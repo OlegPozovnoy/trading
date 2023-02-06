@@ -1,0 +1,26 @@
+Begin quotes reimport 2023-02-03 08:45:01.910063
+removing old file
+1675403101.9100952 [Errno 2] No such file or directory: './Data/candles.csv'
+2023-02-03 08:45:01.910224
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 91, in update_all_quotes
+    qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 16, in __call__
+    cls._singleton  = super(Singleton, cls).__call__(*args, **kwargs)
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 165, in __init__
+    self.socketRequests.connect((self.Host, self.RequestsPort))  # Открываем соединение для запросов
+ConnectionRefusedError: [Errno 111] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/morning_routine.py", line 77, in <module>
+    Examples.Bars_upd.update_all_quotes(candles_num=20000)
+  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 97, in update_all_quotes
+    qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
+AttributeError: 'NoneType' object has no attribute 'CloseConnectionAndThread'
+Exception ignored in: <function QuikPy.__del__ at 0x7f4a9fcb1c60>
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 592, in __del__
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 585, in CloseConnectionAndThread
+AttributeError: 'NoneType' object has no attribute 'process'

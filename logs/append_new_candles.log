@@ -1,0 +1,23 @@
+2023-02-03 23:56:01.865637
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 91, in update_all_quotes
+    qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 16, in __call__
+    cls._singleton  = super(Singleton, cls).__call__(*args, **kwargs)
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 165, in __init__
+    self.socketRequests.connect((self.Host, self.RequestsPort))  # Открываем соединение для запросов
+ConnectionRefusedError: [Errno 111] Connection refused
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/append_new_candles.py", line 10, in <module>
+    Examples.Bars_upd.update_all_quotes(to_remove=False, candles_num=10)
+  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 97, in update_all_quotes
+    qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
+AttributeError: 'NoneType' object has no attribute 'CloseConnectionAndThread'
+Exception ignored in: <function QuikPy.__del__ at 0x7f7d1c703640>
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 592, in __del__
+  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 585, in CloseConnectionAndThread
+AttributeError: 'NoneType' object has no attribute 'process'

@@ -1,0 +1,102 @@
+from time import time
+import os.path
+
+from Examples import Bars_upd_config
+
+import pandas as pd
+from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
+
+
+from sqlalchemy import create_engine
+
+
+
+qpProvider = None
+#qpProvider = QuikPy()
+
+def GetCandlesDF(classCode, secCodes, candles_num=0):
+    result_df = pd.DataFrame()
+    for secCode in secCodes:  # Пробегаемся по всем тикерам
+        try:
+            print(secCode)
+            newBars = qpProvider.GetCandlesFromDataSource(classCode, secCode, 1, candles_num)[
+                "data"]  # Получаем все свечки
+            pdBars = pd.DataFrame.from_dict(pd.json_normalize(newBars),
+                                            orient='columns')  # Внутренние колонки даты/времени разворачиваем в отдельные колонки
+            pdBars.rename(columns={'datetime.year': 'year', 'datetime.month': 'month', 'datetime.day': 'day',
+                                   'datetime.hour': 'hour', 'datetime.min': 'minute', 'datetime.sec': 'second'},
+                          inplace=True)  # Чтобы получить дату/время переименовываем колонки
+            pdBars.index = pd.to_datetime(
+                pdBars[['year', 'month', 'day', 'hour', 'minute', 'second']])  # Собираем дату/время из колонок
+            # pdBars = pdBars[['open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
+            # для скорости используем только close
+            pdBars = pdBars[['close', 'volume']]
+            pdBars.index.name = 'datetime'  # Ставим название индекса даты/времени
+            pdBars.volume = pd.to_numeric(pdBars.volume, downcast='integer')  # Объемы могут быть только целыми
+            pdBars['security'] = secCode
+            pdBars['class_code'] = classCode
+            print('records readed:', len(pdBars))
+            result_df = pd.concat([result_df, pdBars])
+        except Exception as e:
+            print(str(e))
+            pass
+    return result_df
+
+
+def SaveCandlesToFile(class_sec, fileName, candles_num=0):
+    """Получение баров, объединение с имеющимися барами в файле (если есть), сохранение баров в файл
+    :param classCode: Код рынка
+    :param compression: Кол-во минут для минутного графика. Для остальных = 1
+    """
+
+    result_df = pd.DataFrame()
+    for classCode, secCodes in class_sec:
+        print(f'GetCandlesDF({classCode}, {secCodes}, {candles_num}')
+        new_df = GetCandlesDF(classCode, secCodes, candles_num)
+        result_df = pd.concat([result_df, new_df])
+
+    isFileExists = os.path.isfile(fileName)  # Существует ли файл
+    if not isFileExists:  # Если файл не существует
+        fileBars = pd.DataFrame()
+    else:  # Файл существует
+        fileBars = pd.read_csv(fileName, sep='\t', index_col='datetime')  # Считываем файл в DataFrame
+        fileBars.index = pd.to_datetime(fileBars.index, format='%d.%m.%Y %H:%M')  # Переводим индекс в формат datetime
+
+    print(len(result_df), len(fileBars))
+    fileBars = pd.concat([result_df, fileBars]).drop_duplicates(keep='last').sort_index()
+    engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    print("saving to DB ", time())
+    #fileBars.to_sql('df_all_candles', engine, if_exists='replace')
+    print("saving to file ", time())
+    fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
+    print("saved", time())
+    print(f'- В файл {fileName} сохранено записей: {len(fileBars)}')
+
+
+
+def update_all_quotes(to_remove=True, candles_num=4100):
+    global qpProvider
+    fileName = './Data/candles.csv'
+
+    if to_remove:
+        try:
+            print("removing old file")
+            os.remove(fileName)
+        except Exception as e:
+            print(time(), str(e))
+
+    startTime = time()  # Время начала запуска скрипта
+
+    try:
+        qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
+
+        SaveCandlesToFile([(Bars_upd_config.config["equities"]["classCode"], Bars_upd_config.config["equities"]["secCodes"]),
+                         (Bars_upd_config.config["futures"]["classCode"], Bars_upd_config.config["futures"]["secCodes"])],
+                          fileName=fileName, candles_num=candles_num)
+    finally:
+        qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
+    print(f'04 - Bars_upd выполнен за {(time() - startTime):.2f} с')
+
+
+if __name__ == '__main__':  # Точка входа при запуске этого скрипта
+    update_all_quotes(to_remove=False, candles_num=10)

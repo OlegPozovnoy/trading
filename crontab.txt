@@ -1,0 +1,4 @@
+15 10-18/1 * * 1-5 /home/oleg/PycharmProjects/trading/update_levels.sh > /home/oleg/PycharmProjects/trading/update_levels.log 2>&1
+*/1 10-23,23 * * 1-5 /home/oleg/PycharmProjects/trading/monitor.sh > /home/oleg/PycharmProjects/trading/monitor.log 2>&1
+*/2 10-23,23 * * 1-5 /home/oleg/PycharmProjects/trading/append_new_candles.sh > /home/oleg/PycharmProjects/trading/append_new_candles.log 2>&1
+45 10-18/1 * * 1-5 /home/oleg/PycharmProjects/trading/kill_ophran.sh > /home/oleg/PycharmProjects/trading/kill_ophran.log 2>&1
