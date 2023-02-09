@@ -1,67 +1,101 @@
-    code     state  ...     new_std                        timestamp
-0   YNH3  sl_start  ...   20.894116 2023-02-09 10:09:59.046080+03:00
-1   VTBR  sl_start  ...    0.000012 2023-02-09 10:09:59.046080+03:00
-2   VBH3     start  ...    1.527316 2023-02-09 10:09:59.046080+03:00
-3  TRNFP   observe  ...  137.824716 2023-02-09 10:09:59.046080+03:00
-4  TATNP   observe  ...    0.133357 2023-02-09 10:09:59.046080+03:00
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3361, in _wrap_pool_connect
+    return fn()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 310, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 868, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 476, in checkout
+    rec = pool._do_get()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 145, in _do_get
+    with util.safe_reraise():
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 70, in __exit__
+    compat.raise_(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/compat.py", line 208, in raise_
+    raise exception
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 143, in _do_get
+    return self._create_connection()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 256, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 371, in __init__
+    self.__connect()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 665, in __connect
+    with util.safe_reraise():
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 70, in __exit__
+    compat.raise_(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/compat.py", line 208, in raise_
+    raise exception
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 661, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 578, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 597, in connect
+    return self.dbapi.connect(*cargs, **cparams)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+psycopg2.OperationalError: connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
 
-[5 rows x 7 columns]     code old_state  ...     new_std                        timestamp
-0   VTBR  new_high  ...    0.000012 2023-02-09 10:09:59.046080+03:00
-1   VBZ2  tp_start  ...         NaN                              NaT
-2   UPRO   new_low  ...         NaN                              NaT
-3  TRNFP   new_low  ...  137.824716 2023-02-09 10:09:59.046080+03:00
-4   TRMK   new_low  ...         NaN                              NaT
 
-[5 rows x 18 columns]
-step2     code old_state  ...     new_std                        timestamp
-0   VTBR  new_high  ...    0.000012 2023-02-09 10:09:59.046080+03:00
-1   VBZ2  tp_start  ...         NaN                              NaT
-2   UPRO   new_low  ...         NaN                              NaT
-3  TRNFP   new_low  ...  137.824716 2023-02-09 10:09:59.046080+03:00
-4   TRMK   new_low  ...         NaN                              NaT
+The above exception was the direct cause of the following exception:
 
-[5 rows x 18 columns]
-step3     code old_state  ...                        timestamp  to_update
-0   VTBR  new_high  ... 2023-02-09 10:09:59.046080+03:00      False
-1   VBZ2  tp_start  ...                              NaT      False
-2   UPRO   new_low  ...                              NaT      False
-3  TRNFP   new_low  ... 2023-02-09 10:09:59.046080+03:00      False
-4   TRMK   new_low  ...                              NaT      False
+Traceback (most recent call last):
+  File "/home/oleg/PycharmProjects/trading/monitor.py", line 255, in <module>
+    df_monitor = update_tables(filtered=False)
+  File "/home/oleg/PycharmProjects/trading/monitor.py", line 28, in update_tables
+    df_monitor = pd.DataFrame(engine.execute(
+  File "<string>", line 2, in execute
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/deprecations.py", line 402, in warned
+    return fn(*args, **kwargs)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3256, in execute
+    connection = self.connect(close_with_result=True)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3315, in connect
+    return self._connection_cls(self, close_with_result=close_with_result)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 96, in __init__
+    else engine.raw_connection()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3394, in raw_connection
+    return self._wrap_pool_connect(self.pool.connect, _connection)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3364, in _wrap_pool_connect
+    Connection._handle_dbapi_exception_noconnection(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 2198, in _handle_dbapi_exception_noconnection
+    util.raise_(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/compat.py", line 208, in raise_
+    raise exception
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/base.py", line 3361, in _wrap_pool_connect
+    return fn()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 310, in connect
+    return _ConnectionFairy._checkout(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 868, in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 476, in checkout
+    rec = pool._do_get()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 145, in _do_get
+    with util.safe_reraise():
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 70, in __exit__
+    compat.raise_(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/compat.py", line 208, in raise_
+    raise exception
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/impl.py", line 143, in _do_get
+    return self._create_connection()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 256, in _create_connection
+    return _ConnectionRecord(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 371, in __init__
+    self.__connect()
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 665, in __connect
+    with util.safe_reraise():
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/langhelpers.py", line 70, in __exit__
+    compat.raise_(
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/util/compat.py", line 208, in raise_
+    raise exception
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/pool/base.py", line 661, in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/create.py", line 578, in connect
+    return dialect.connect(*cargs, **cparams)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/sqlalchemy/engine/default.py", line 597, in connect
+    return self.dbapi.connect(*cargs, **cparams)
+  File "/home/oleg/PycharmProjects/trading/venv/lib/python3.10/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
 
-[5 rows x 19 columns] 0      False
-1      False
-2      False
-3      False
-4      False
-       ...  
-96     False
-97     False
-98     False
-99     False
-100    False
-Name: to_update, Length: 101, dtype: bool Empty DataFrame
-Columns: [code, old_state, old_price, old_start, old_end, new_state, new_price, new_start, new_end, std, old_timestamp, new_timestamp, state, price, start, end, new_std, timestamp, to_update]
-Index: []
-2023-02-09 10:10:06.358620
-df_monitor Empty DataFrame
-Columns: [code, old_state, old_price, old_start, old_end, new_state, new_price, new_start, new_end, std, old_timestamp, new_timestamp, state, price, start, end, new_std, timestamp, to_update]
-Index: []
-Series([], Name: code, dtype: object)
-   security class_code_x  ...             cdate_y  inc
-0      AFKS         TQBR  ... 2023-02-06 19:35:00  0.0
-55     RNH3       SPBFUT  ... 2023-02-06 19:32:00  0.0
-54     RNFT         TQBR  ... 2023-02-06 18:48:00  0.0
-53     RMH3       SPBFUT  ... 2023-02-06 19:35:00  0.0
-52     RIH3       SPBFUT  ... 2023-02-06 19:37:00  0.0
-..      ...          ...  ...                 ...  ...
-23     IRAO         TQBR  ... 2023-02-06 19:36:00  0.0
-22     INGR         TQBR  ... 2023-02-06 18:01:00  0.0
-21     HYDR         TQBR  ... 2023-02-06 19:35:00  0.0
-28     LKH3       SPBFUT  ... 2023-02-06 19:34:00  0.0
-77     YNH3       SPBFUT  ... 2023-02-06 19:30:00  0.0
-
-[78 rows x 7 columns]
-df_gains Empty DataFrame
-Columns: [security, class_code_x, close_x, close_y, cdate_x, cdate_y, inc]
-Index: []
-monitor: ended 2023-02-09 10:10:31.578805
+(Background on this error at: https://sqlalche.me/e/14/e3q8)
