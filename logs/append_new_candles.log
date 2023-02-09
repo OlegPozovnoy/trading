@@ -1,23 +1,185 @@
-2023-02-03 23:56:01.865637
-Traceback (most recent call last):
-  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 91, in update_all_quotes
-    qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 16, in __call__
-    cls._singleton  = super(Singleton, cls).__call__(*args, **kwargs)
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 165, in __init__
-    self.socketRequests.connect((self.Host, self.RequestsPort))  # Открываем соединение для запросов
-ConnectionRefusedError: [Errno 111] Connection refused
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/oleg/PycharmProjects/trading/append_new_candles.py", line 10, in <module>
-    Examples.Bars_upd.update_all_quotes(to_remove=False, candles_num=10)
-  File "/home/oleg/PycharmProjects/trading/Examples/Bars_upd.py", line 97, in update_all_quotes
-    qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
-AttributeError: 'NoneType' object has no attribute 'CloseConnectionAndThread'
-Exception ignored in: <function QuikPy.__del__ at 0x7f7d1c703640>
-Traceback (most recent call last):
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 592, in __del__
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 585, in CloseConnectionAndThread
-AttributeError: 'NoneType' object has no attribute 'process'
+GetCandlesDF(TQBR, ['URKA', 'TRCN', 'MFON', 'IRGZ', 'SNGS', 'LENT', 'KMAZ', 'INGR', 'POSI', 'SPBE', 'TATN', 'PHOR', 'FEES', 'TRNFP', 'TATNP', 'TRMK', 'SNGSP', 'FLOT', 'AFKS', 'SGZH', 'CHMF', 'SBERP', 'SMLT', 'RNFT', 'HYDR', 'RSTI', 'PIKK', 'OGKB', 'NLMK', 'MOEX', 'MTLRP', 'MTLR', 'MGNT', 'MTSS', 'MAGN', 'MVID', 'LSRG', 'DSKY', 'FESH', 'SIBN', 'BELU', 'BANEP', 'BSPB', 'AKRN', 'ISKJ', 'UPRO', 'IRAO', 'RASP', 'ALRS', 'PLZL', 'AFLT', 'RUAL', 'GMKN', 'CBOM', 'VTBR', 'NVTK', 'ROSN', 'LKOH', 'GAZP', 'SBER'], 10
+URKA
+[Errno 104] Connection reset by peer
+TRCN
+[Errno 32] Broken pipe
+MFON
+[Errno 32] Broken pipe
+IRGZ
+[Errno 32] Broken pipe
+SNGS
+[Errno 32] Broken pipe
+LENT
+[Errno 32] Broken pipe
+KMAZ
+[Errno 32] Broken pipe
+INGR
+[Errno 32] Broken pipe
+POSI
+[Errno 32] Broken pipe
+SPBE
+[Errno 32] Broken pipe
+TATN
+[Errno 32] Broken pipe
+PHOR
+[Errno 32] Broken pipe
+FEES
+[Errno 32] Broken pipe
+TRNFP
+[Errno 32] Broken pipe
+TATNP
+[Errno 32] Broken pipe
+TRMK
+[Errno 32] Broken pipe
+SNGSP
+[Errno 32] Broken pipe
+FLOT
+[Errno 32] Broken pipe
+AFKS
+[Errno 32] Broken pipe
+SGZH
+[Errno 32] Broken pipe
+CHMF
+[Errno 32] Broken pipe
+SBERP
+[Errno 32] Broken pipe
+SMLT
+[Errno 32] Broken pipe
+RNFT
+[Errno 32] Broken pipe
+HYDR
+[Errno 32] Broken pipe
+RSTI
+[Errno 32] Broken pipe
+PIKK
+[Errno 32] Broken pipe
+OGKB
+[Errno 32] Broken pipe
+NLMK
+[Errno 32] Broken pipe
+MOEX
+[Errno 32] Broken pipe
+MTLRP
+[Errno 32] Broken pipe
+MTLR
+[Errno 32] Broken pipe
+MGNT
+[Errno 32] Broken pipe
+MTSS
+[Errno 32] Broken pipe
+MAGN
+[Errno 32] Broken pipe
+MVID
+[Errno 32] Broken pipe
+LSRG
+[Errno 32] Broken pipe
+DSKY
+[Errno 32] Broken pipe
+FESH
+[Errno 32] Broken pipe
+SIBN
+[Errno 32] Broken pipe
+BELU
+[Errno 32] Broken pipe
+BANEP
+[Errno 32] Broken pipe
+BSPB
+[Errno 32] Broken pipe
+AKRN
+[Errno 32] Broken pipe
+ISKJ
+[Errno 32] Broken pipe
+UPRO
+[Errno 32] Broken pipe
+IRAO
+[Errno 32] Broken pipe
+RASP
+[Errno 32] Broken pipe
+ALRS
+[Errno 32] Broken pipe
+PLZL
+[Errno 32] Broken pipe
+AFLT
+[Errno 32] Broken pipe
+RUAL
+[Errno 32] Broken pipe
+GMKN
+[Errno 32] Broken pipe
+CBOM
+[Errno 32] Broken pipe
+VTBR
+[Errno 32] Broken pipe
+NVTK
+[Errno 32] Broken pipe
+ROSN
+[Errno 32] Broken pipe
+LKOH
+[Errno 32] Broken pipe
+GAZP
+[Errno 32] Broken pipe
+SBER
+[Errno 32] Broken pipe
+GetCandlesDF(SPBFUT, ['EuH3', 'SiH3', 'CRH3', 'BRF3', 'NMH3', 'LKH3', 'EDH3', 'GDZ2', 'GKH3', 'SVZ2', 'POH3', 'PZH3', 'SFZ2', 'SPH3', 'MXH3', 'SRH3', 'SNH3', 'NAZ2', 'GZH3', 'CHH3', 'VBH3', 'RMH3', 'RNH3', 'RIH3', 'YNH3', 'NGZ2', 'OZH3', 'MNH3'], 10
+EuH3
+[Errno 32] Broken pipe
+SiH3
+[Errno 32] Broken pipe
+CRH3
+[Errno 32] Broken pipe
+BRF3
+[Errno 32] Broken pipe
+NMH3
+[Errno 32] Broken pipe
+LKH3
+[Errno 32] Broken pipe
+EDH3
+[Errno 32] Broken pipe
+GDZ2
+[Errno 32] Broken pipe
+GKH3
+[Errno 32] Broken pipe
+SVZ2
+[Errno 32] Broken pipe
+POH3
+[Errno 32] Broken pipe
+PZH3
+[Errno 32] Broken pipe
+SFZ2
+[Errno 32] Broken pipe
+SPH3
+[Errno 32] Broken pipe
+MXH3
+[Errno 32] Broken pipe
+SRH3
+[Errno 32] Broken pipe
+SNH3
+[Errno 32] Broken pipe
+NAZ2
+[Errno 32] Broken pipe
+GZH3
+[Errno 32] Broken pipe
+CHH3
+[Errno 32] Broken pipe
+VBH3
+[Errno 32] Broken pipe
+RMH3
+[Errno 32] Broken pipe
+RNH3
+[Errno 32] Broken pipe
+RIH3
+[Errno 32] Broken pipe
+YNH3
+[Errno 32] Broken pipe
+NGZ2
+[Errno 32] Broken pipe
+OZH3
+[Errno 32] Broken pipe
+MNH3
+[Errno 32] Broken pipe
+0 1120180
+saving to DB  1675926576.1980066
+saving to file  1675926576.1980197
+saved 1675926592.4430075
+- В файл ./Data/candles.csv сохранено записей: 1120180
+04 - Bars_upd выполнен за 110.16 с
+2023-02-09 10:09:52.450852
