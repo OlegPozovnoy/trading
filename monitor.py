@@ -25,14 +25,20 @@ def copy_colvals(df_monitor, colpairs, is_upd_only=False):
 
 
 def update_tables(filtered=False):
-    df_monitor = pd.DataFrame(engine.execute(
-        "select code, old_state, old_price, old_start, old_end, new_state, new_price, new_start, new_end, std, "
-        "old_timestamp, new_timestamp from public.df_monitor"))
+    df_monitor = []
+
+    try:
+        df_monitor = pd.DataFrame(engine.execute(
+            "select code, old_state, old_price, old_start, old_end, new_state, new_price, new_start, new_end, std, "
+            "old_timestamp, new_timestamp from public.df_monitor"))
+    except:
+        pass
 
     if len(df_monitor) == 0:
         df_monitor = pd.DataFrame([], columns=['code', 'old_state', 'old_price', 'old_start', 'old_end', 'new_state',
                                                'new_price', 'new_start', 'new_end', 'std', 'old_timestamp',
                                                'new_timestamp'])
+        df_monitor.to_sql('df_monitor', engine, if_exists='replace')
 
     columns = df_monitor.columns
 
