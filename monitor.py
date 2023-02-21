@@ -167,8 +167,9 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
             #ax_left.axhline(y=row['min_start'], color='g', linestyle='-')
             #ax_left.axhline(y=row['max_start'], color='g', linestyle='-')
             #ax_left.axhline(y=row['end'], color='m', linestyle='-')
-            if (row['down']) != "0":
-                ax_left.axhline(y=row['sl'], color='k', linestyle='-')
+            #if (row['down']) != "0":
+            #    ax_left.axhline(y=row['sl'], color='k', linestyle='-')
+            pass
 
     colors = ['g' if x > 0 else 'r' for x in df_bigdealshist['price_inc']]
     if len(df_bigdealshist) > 0:

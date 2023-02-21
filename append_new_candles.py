@@ -9,7 +9,6 @@ if __name__ == '__main__':
     startTime = time.time()
     signal.alarm(120)
     try:
-        #Examples.Bars_upd.update_all_quotes()
         Examples.Bars_upd.update_all_quotes(to_remove=False, candles_num=10)
     except:
         print("error", datetime.datetime.now())

@@ -16,7 +16,7 @@ qpProvider = None
 
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
-    for secCode in secCodes:  # Пробегаемся по всем тикерам
+    for secCode in secCodes:  # Пробегаемся по всем тикерам - переделать на таблицы
         try:
             print(secCode)
             newBars = qpProvider.GetCandlesFromDataSource(classCode, secCode, 1, candles_num)[
@@ -28,9 +28,9 @@ def GetCandlesDF(classCode, secCodes, candles_num=0):
                           inplace=True)  # Чтобы получить дату/время переименовываем колонки
             pdBars.index = pd.to_datetime(
                 pdBars[['year', 'month', 'day', 'hour', 'minute', 'second']])  # Собираем дату/время из колонок
-            # pdBars = pdBars[['open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
-            # для скорости используем только close
-            pdBars = pdBars[['close', 'volume']]
+            pdBars = pdBars[['open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
+            # для скорости используем только close - для нормальных обьемов надо все
+            # pdBars = pdBars[['close', 'volume']]
             pdBars.index.name = 'datetime'  # Ставим название индекса даты/времени
             pdBars.volume = pd.to_numeric(pdBars.volume, downcast='integer')  # Объемы могут быть только целыми
             pdBars['security'] = secCode
