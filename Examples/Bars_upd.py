@@ -28,7 +28,8 @@ def GetCandlesDF(classCode, secCodes, candles_num=0):
                           inplace=True)  # Чтобы получить дату/время переименовываем колонки
             pdBars.index = pd.to_datetime(
                 pdBars[['year', 'month', 'day', 'hour', 'minute', 'second']])  # Собираем дату/время из колонок
-            pdBars = pdBars[['open', 'high', 'low', 'close', 'volume']]  # Отбираем нужные колонки
+
+            pdBars = pdBars[['open',  'close', 'high', 'low', 'volume']]  # Отбираем нужные колонки
             # для скорости используем только close - для нормальных обьемов надо все
             # pdBars = pdBars[['close', 'volume']]
             pdBars.index.name = 'datetime'  # Ставим название индекса даты/времени
