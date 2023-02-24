@@ -1,0 +1,6 @@
+*.csv
+*.log
+*.png
+/.ipynb_checkpoints/
+/level_images/
+/tools/.ipynb_checkpoints/
