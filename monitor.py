@@ -269,7 +269,7 @@ or code in (select code from public.pos_bollinger);"""
 
 
 def send_bollinger(df_bollinger):
-    asyncio.run(telegram.send_message(df_bollinger.to_string(justify='left',index=True)))
+    asyncio.run(telegram.send_message(df_bollinger.to_string(justify='left',index=False)))
 
 
 if __name__ == '__main__':
