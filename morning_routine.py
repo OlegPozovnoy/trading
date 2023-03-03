@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+import sql.get_table
 
 import Examples.Bars_upd
 import time
@@ -70,9 +71,35 @@ def clean_db():
     engine.execute(sql_query)
 
 
+def update_instrument_list():
+    query_fut = "select distinct code from public.futquotes"
+    query_sec = "select distinct code from public.secquotes"
+
+    fut_list = [x[0] for x in sql.get_table.exec_query(query_fut)]
+    sec_list = [x[0] for x in sql.get_table.exec_query(query_sec)]
+
+    setting = f"""config = {{
+        "equities": {{
+          "classCode" : "TQBR",
+            "secCodes" : {sec_list}
+        }},
+        "futures":{{
+            "classCode": "SPBFUT",
+            "secCodes": {fut_list}
+        }}
+    }}
+    """
+
+    f = open("./Examples/Bars_upd_config.py", "w")
+    f.write(setting)
+    print(setting)
+
+
 if __name__ == '__main__':
     startTime = time.time()
     try:
+        print('Update import settings')
+        update_instrument_list()
         print('Begin quotes reimport', datetime.datetime.now())
         Examples.Bars_upd.update_all_quotes(candles_num=20000)
         print('Bars updated', datetime.datetime.now())

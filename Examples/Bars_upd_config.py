@@ -1,100 +1,11 @@
-config = {
-    "equities": {
-      "classCode" : "TQBR",
-        "secCodes" : [
-        'URKA',
-        'TRCN',
-        'MFON',
-        'IRGZ',
-        'SNGS',
-        'LENT',
-        'KMAZ',
-        'INGR',
-        'POSI',
-        'SPBE',
-        'TATN',
-        'PHOR',
-        'FEES',
-        'TRNFP',
-        'TATNP',
-        'TRMK',
-        'SNGSP',
-        'FLOT',
-        'AFKS',
-        'SGZH',
-        'CHMF',
-        'SBERP',
-        'SMLT',
-        'RNFT',
-        'HYDR',
-        'RSTI',
-        'PIKK',
-        'OGKB',
-        'NLMK',
-        'MOEX',
-        'MTLRP',
-        'MTLR',
-        'MGNT',
-        'MTSS',
-        'MAGN',
-        'MVID',
-        'LSRG',
-        'DSKY',
-        'FESH',
-        'SIBN',
-        'BELU',
-        'BANEP',
-        'BSPB',
-        'AKRN',
-        'ISKJ',
-        'UPRO',
-        'IRAO',
-        'RASP',
-        'ALRS',
-        'PLZL',
-        'AFLT',
-        'RUAL',
-        'GMKN',
-        'CBOM',
-        'VTBR',
-        'NVTK',
-        'ROSN',
-        'LKOH',
-        'GAZP',
-        'SBER']
-    },
-    "futures":{
-        "classCode": "SPBFUT",
-        "secCodes": [
-            'EuH3'
-            , 'SiH3'
-            , 'CRH3'
-            , 'BRF3'
-            , 'NMH3'
-            , 'LKH3'
-            , 'EDH3'
-            , 'GDZ2'
-            , 'GKH3'
-            , 'SVZ2'
-            , 'POH3'
-            , 'PZH3'
-            , 'SFZ2'
-            , 'SPH3'
-            , 'MXH3'
-            , 'SRH3'
-            , 'SNH3'
-            , 'NAZ2'
-            , 'GZH3'
-            , 'CHH3'
-            , 'VBH3'
-            , 'RMH3'
-            , 'RNH3'
-            , 'RIH3'
-            , 'YNH3'
-            , 'NGZ2'
-            , 'OZH3'
-            , 'MNH3'
-        ]
-    }
 
-}
+config = {
+        "equities": {
+          "classCode" : "TQBR",
+            "secCodes" : ['NLMK', 'HYDR', 'SBERP', 'MTSS', 'POSI', 'PLZL', 'SIBN', 'MVID', 'SBER', 'VTBR', 'RUAL', 'SMLT', 'SGZH', 'LKOH', 'IRAO', 'DSKY', 'SU26238RMFS4', 'LSRG', 'FLOT', 'ALRS', 'BSPB', 'TRMK', 'RNFT', 'GAZP', 'RASP', 'ROSN', 'MTLRP', 'KMAZ', 'RTKM', 'AFKS', 'ISKJ', 'TATN', 'SPBE', 'AFLT', 'BELU', 'ROSB', 'BANEP', 'AQUA', 'SNGS', 'CHMF', 'MAGN', 'LENT', 'MGNT', 'PHOR', 'OGKB', 'UPRO', 'PIKK', 'TATNP', 'NVTK', 'GMKN', 'TGKA', 'MTLR', 'CBOM', 'SNGSP', 'MOEX', 'INGR', 'AKRN', 'FESH', 'FEES', 'TRNFP']
+        },
+        "futures" :{
+            "classCode": "SPBFUT",
+            "secCodes": ['RLH3', 'OZH3', 'NKH3', 'YNH3', 'MXH3', 'NGH3', 'GDH3', 'LKH3', 'SiH3', 'SRH3', 'SFH3', 'PZH3', 'MNH3', 'GZH3', 'EDH3', 'BRJ3', 'VBH3', 'RIH3', 'GKH3', 'RNH3', 'NAH3', 'CRH3', 'MGH3', 'POH3', 'SNH3', 'EuH3', 'NMH3']
+        }
+    }

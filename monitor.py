@@ -5,7 +5,7 @@ import pandas as pd
 import telegram
 import asyncio
 import matplotlib.pyplot as plt
-
+import sql.get_table
 import config.sql_queries
 from datetime import datetime, timedelta
 
@@ -164,10 +164,10 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
     for _, row in df_eq.iterrows():  # np.array([t[0] for t in peaks]):
         ax_left.axhline(y=row['price'], color='r', linestyle='-')
         if row['min_start']:
-            #ax_left.axhline(y=row['min_start'], color='g', linestyle='-')
-            #ax_left.axhline(y=row['max_start'], color='g', linestyle='-')
-            #ax_left.axhline(y=row['end'], color='m', linestyle='-')
-            #if (row['down']) != "0":
+            # ax_left.axhline(y=row['min_start'], color='g', linestyle='-')
+            # ax_left.axhline(y=row['max_start'], color='g', linestyle='-')
+            # ax_left.axhline(y=row['end'], color='m', linestyle='-')
+            # if (row['down']) != "0":
             #    ax_left.axhline(y=row['sl'], color='k', linestyle='-')
             pass
 
@@ -238,7 +238,7 @@ def get_abnormal_volumes(include_daily=False, minutes_lookback=10, days_lookback
         df_analys = df_prev.merge(df_now, how='inner', on='security')
         df_analys['std'] = (df_analys['volume'] - df_analys['volume_mean']) / df_analys['volume_std']
         df_analys['end_time'] = end_time
-        return df_analys[df_analys['std'] >= 3].sort_values('std', ascending=False)
+        return df_analys[df_analys['std'] >= 4].sort_values('std', ascending=False)
 
     df_minutes = get_volumes()
     df_minutes['timeframe'] = 'mins'
@@ -251,11 +251,25 @@ def get_abnormal_volumes(include_daily=False, minutes_lookback=10, days_lookback
 
 def send_abnormal_volumes(df_volumes):
     for idx, row in df_volumes.iterrows():
-        msg = f'{row["security"]} {row["timeframe"]} {round(row["std"],1)}: \
+        msg = f'{row["security"]} {row["timeframe"]} {round(row["std"], 1)}: \
 {int(row["volume"])} {int(row["volume_mean"])} {int(row["volume_std"])} {row["end_time"]}'
         print(msg)
         asyncio.run(telegram.send_message(msg))
         asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png'))
+
+
+def get_bollinger():
+    query = """SELECT code, quote, round(bollinger::numeric,2) as bollinger, count, 
+round(up::numeric,2) as up, round(down::numeric,2) as down
+FROM public.quote_bollinger 
+where (class_code = 'SPBFUT' and abs(bollinger) > 1.7) 
+or abs(bollinger) > 2 
+or code in (select code from public.pos_bollinger);"""
+    return pd.DataFrame(sql.get_table.exec_query(query))
+
+
+def send_bollinger(df_bollinger):
+    asyncio.run(telegram.send_message(df_bollinger.to_string(justify='left',index=True)))
 
 
 if __name__ == '__main__':
@@ -267,6 +281,8 @@ if __name__ == '__main__':
     print('df_gains', df_gains.head())
     df_volumes = get_abnormal_volumes()
 
+    df_bollinger = get_bollinger()
+
     if len(pd.concat([df_volumes['security'], df_gains['security']])) > 0:
         # if len(df_gains['security']) > 0:
         prepare_images(pd.concat([df_volumes['security'], df_gains['security']]).drop_duplicates())
@@ -274,4 +290,8 @@ if __name__ == '__main__':
         # send_messages(df_monitor)
         send_gains(df_gains)
         send_abnormal_volumes(df_volumes)
+
+    if len(df_bollinger) > 0:
+        print("sending bollinger")
+        send_bollinger(df_bollinger)
     print("monitor: ended", datetime.now())

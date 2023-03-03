@@ -1,19 +1,27 @@
 import pandas as pd
 import sql.get_table
 
-query = """
-select * 
-	from public.orders_auto oa
-left join
-	(select * from
-	(SELECT row_number() over(PARTITION BY d.code order by order_id desc) as last_order, d.*
-		FROM public.deorders d) d
-	where last_order = 1) orders
-on oa.code = orders.code
-inner join public.futquotes fq 
-on oa.code = fq.code 
+query_fut = "select distinct code from public.futquotes"
 
+query_sec = "select distinct code from public.secquotes"
+
+fut_list = [x[0] for x in sql.get_table.exec_query(query_fut)]
+sec_list = [x[0] for x in sql.get_table.exec_query(query_sec)]
+
+setting = f"""
+config = {{
+    "equities": {{
+      "classCode" : "TQBR",
+        "secCodes" : {sec_list}
+    }},
+    "futures":{{
+        "classCode": "SPBFUT",
+        "secCodes": {fut_list}
+    }}
+}}
 """
 
-s = pd.DataFrame(sql.get_table.exec_query(query))
-print(s)
+f = open("./Examples/Bars_upd_config.py", "w")
+# f is the File Handler
+f.write(setting)
+print(setting)
