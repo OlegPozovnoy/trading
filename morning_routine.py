@@ -35,7 +35,9 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     df_bollinger['down'] = -df_bollinger['std'] * 2 + df_bollinger['mean']
     # save
     df_bollinger.to_csv('./Data/bollinger.csv', sep='\t')
-    df_bollinger.to_sql('df_bollinger', engine, if_exists='replace')
+
+    sql.get_table.exec_query("delete from public.df_bollinger")
+    df_bollinger.to_sql('df_bollinger', engine, if_exists='append')
     #print(df_bollinger[df_bollinger['class_code'] == 'SPBFUT'])
 
     df_ = df_.sort_values(['security', 'class_code', 'dt', 'time'], ascending=True)
@@ -59,7 +61,9 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
         lambda x: x.rolling(10, 1, center=True).mean())
 
     df_volumes.to_csv('./Data/volumes.csv', sep='\t')
-    df_volumes.to_sql('df_volumes', engine, if_exists='replace')
+
+    sql.get_table.exec_query("delete from public.df_volumes")
+    df_volumes.to_sql('df_volumes', engine, if_exists='append')
     #print(df_volumes.head(5))
 
 

@@ -38,7 +38,7 @@ def update_tables(filtered=False):
         df_monitor = pd.DataFrame([], columns=['code', 'old_state', 'old_price', 'old_start', 'old_end', 'new_state',
                                                'new_price', 'new_start', 'new_end', 'std', 'old_timestamp',
                                                'new_timestamp'])
-        df_monitor.to_sql('df_monitor', engine, if_exists='replace')
+        df_monitor.to_sql('df_monitor', engine, if_exists='append')
 
     columns = df_monitor.columns
 
@@ -69,7 +69,8 @@ def update_tables(filtered=False):
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
     print("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
 
-    df_monitor[columns].to_sql('df_monitor', engine, if_exists='replace')
+    sql.get_table.exec_query("delete from public.df_monitor")
+    df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
 
     return df_monitor[df_monitor['to_update']]
 
@@ -200,17 +201,19 @@ def get_gains(path='./Data/candles.csv', min_lag=10, threshold=0.5):
     return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)]
 
 
-def send_gains(df_gains):
+def send_gains(df_gains, urgent_list=None):
+    if urgent_list is None:
+        urgent_list = []
     for idx, row in df_gains.iterrows():
         before = round(row['close_y'], 4)
         after = round(row['close_x'], 4)
         inc = round(row['inc'], 2)
 
         msg = f'{row["security"]} {inc}: {before} -> {after}  {row["cdate_x"]}'
-
+        is_urgent = (row["security"] in urgent_list)
         print(msg)
-        asyncio.run(telegram.send_message(msg))
-        asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png'))
+        asyncio.run(telegram.send_message(msg, is_urgent))
+        asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
 def get_abnormal_volumes(include_daily=False, minutes_lookback=10, days_lookback=14, path='./Data/candles.csv'):
@@ -249,13 +252,16 @@ def get_abnormal_volumes(include_daily=False, minutes_lookback=10, days_lookback
     return pd.concat([df_minutes, df_daily], axis=0).reset_index()
 
 
-def send_abnormal_volumes(df_volumes):
+def send_abnormal_volumes(df_volumes, urgent_list=None):
+    if urgent_list is None:
+        urgent_list = []
     for idx, row in df_volumes.iterrows():
         msg = f'{row["security"]} {row["timeframe"]} {round(row["std"], 1)}: \
 {int(row["volume"])} {int(row["volume_mean"])} {int(row["volume_std"])} {row["end_time"]}'
         print(msg)
-        asyncio.run(telegram.send_message(msg))
-        asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png'))
+        is_urgent = (row["security"] in urgent_list)
+        asyncio.run(telegram.send_message(msg, is_urgent))
+        asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
 def get_bollinger():
@@ -273,6 +279,8 @@ def send_bollinger(df_bollinger):
 
 
 if __name__ == '__main__':
+    urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
+    print("urgent_list:",urgent_list)
     df_monitor = update_tables(filtered=False)
     print(datetime.now())
     print('df_monitor', df_monitor.head())
@@ -288,8 +296,8 @@ if __name__ == '__main__':
         prepare_images(pd.concat([df_volumes['security'], df_gains['security']]).drop_duplicates())
         # prepare_images(df_gains['security'].drop_duplicates())
         # send_messages(df_monitor)
-        send_gains(df_gains)
-        send_abnormal_volumes(df_volumes)
+        send_gains(df_gains, urgent_list)
+        send_abnormal_volumes(df_volumes, urgent_list)
 
     if len(df_bollinger) > 0:
         print("sending bollinger")

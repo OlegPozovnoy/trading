@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from scipy.signal import find_peaks
 from sqlalchemy import create_engine
 import time
-
+import sql.get_table
 import telegram
 
 CANDLES_PATH = './Data/candles.csv'
@@ -26,9 +26,11 @@ def load_df(days_to_subtract=7):
     current_week = datetime.today().isocalendar().week
     current_day = datetime.today()
 
+    df = df[(df['volume'] > 0) & (df['close'] > 0)]
+
     # Adjust start date
     start_date = datetime.today() - timedelta(days=days_to_subtract)
-    df = df[df['t'] > start_date]
+    df = df[df['t'] > np.datetime64(start_date)]
 
     # adjust past week volume
     df.loc[df['week'] != current_week, 'volume'] = df.loc[df['week'] != current_week, 'volume'] / 2
@@ -214,15 +216,20 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
     except:
         pass
 
-    df_levels.to_sql('df_levels', engine, if_exists='replace')
-    df_all_levels.to_sql('df_all_levels', engine, if_exists='replace')
-    engine.execute(config.sql_queries.config["create_view"])
-    df_all_volumes.to_sql('df_all_volumes', engine, if_exists='replace')
+
+    sql.get_table.exec_query("delete from public.df_levels")
+    sql.get_table.exec_query("delete from public.df_all_levels")
+    sql.get_table.exec_query("delete from public.df_all_volumes")
+
+    df_levels.to_sql('df_levels', engine, if_exists='append')
+    df_all_levels.to_sql('df_all_levels', engine, if_exists='append')
+    #engine.execute(config.sql_queries.config["create_view"])
+    df_all_volumes.to_sql('df_all_volumes', engine, if_exists='append')
 
 
 if __name__ == '__main__':
     startTime = time.time()
-    print(startTime)
+    print(time.ctime())
     df = load_df()
     df_levels, df_all_levels, df_all_volumes = build_levels(df)
     update_db_tables(df_levels, df_all_levels, df_all_volumes)
