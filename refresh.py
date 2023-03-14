@@ -39,7 +39,7 @@ start_refresh = compose_td_datetime("09:00:00")
 end_refresh = compose_td_datetime("23:30:00")
 
 if __name__ == '__main__':
-    while start_refresh < datetime.datetime.now() < end_refresh:
+    while start_refresh <= datetime.datetime.now() < end_refresh:
         logger.info(datetime.datetime.now())
         update()
         time.sleep(1.0 - (time.time() % 1.0))

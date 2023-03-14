@@ -7,11 +7,11 @@ import datetime
 import os
 
 import pandas as pd
-from sqlalchemy import create_engine
-
+#from sqlalchemy import create_engine
+engine = sql.get_table.engine
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
-    engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     df_ = pd.read_csv('./Data/candles.csv', sep='\t')
     df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
     df_['dt'] = df_['t'].dt.date
@@ -68,7 +68,7 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
 
 
 def clean_db():
-    engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     sql_query = """ DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);"""

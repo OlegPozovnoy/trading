@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 import pandas as pd
 import telegram
 import asyncio
@@ -9,8 +9,8 @@ import sql.get_table
 import config.sql_queries
 from datetime import datetime, timedelta
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
-
+#engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+engine = sql.get_table.engine
 
 def copy_colvals(df_monitor, colpairs, is_upd_only=False):
     for pairs in colpairs:

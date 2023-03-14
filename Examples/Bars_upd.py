@@ -1,4 +1,4 @@
-from time import time
+from time import time, ctime
 import os.path
 
 from Examples import Bars_upd_config
@@ -7,7 +7,7 @@ import pandas as pd
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
 
 
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 
 
 
@@ -57,7 +57,7 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
         result_df = pd.concat([result_df, new_df])
 
     isFileExists = os.path.isfile(fileName)  # Существует ли файл
-    if not isFileExists:  # Если файл не существует
+    if (not isFileExists) or os.path.getsize(fileName) < 1000:  # Если файл не существует
         fileBars = pd.DataFrame()
     else:  # Файл существует
         fileBars = pd.read_csv(fileName, sep='\t', index_col='datetime')  # Считываем файл в DataFrame
@@ -65,12 +65,12 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
 
     print(len(result_df), len(fileBars))
     fileBars = pd.concat([result_df, fileBars]).drop_duplicates(keep='last').sort_index()
-    engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
-    print("saving to DB ", time())
+    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    print("saving to DB ", ctime())
     #fileBars.to_sql('df_all_candles', engine, if_exists='replace')
-    print("saving to file ", time())
+    print("saving to file ", ctime())
     fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
-    print("saved", time())
+    print("saved", ctime())
     print(f'- В файл {fileName} сохранено записей: {len(fileBars)}')
 
 

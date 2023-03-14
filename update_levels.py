@@ -9,12 +9,13 @@ import numpy as np
 import config.sql_queries
 from datetime import datetime, timedelta
 from scipy.signal import find_peaks
-from sqlalchemy import create_engine
+# from sqlalchemy import create_engine
 import time
 import sql.get_table
 import telegram
 
 CANDLES_PATH = './Data/candles.csv'
+engine = sql.get_table.engine
 
 
 def load_df(days_to_subtract=7):
@@ -112,11 +113,10 @@ def build_levels(df_):
             df_eq.loc[idx, 'prev_end'] = (df_eq.loc[idx - 1, 'end'] if idx - 1 >= 0 else None)
             df_eq.loc[idx, 'next_sl'] = (df_eq.loc[idx + 1, 'sl'] if idx + 1 < len(df_eq) else None)
 
-
         # creating price-volume df
         df_price_volume = pd.DataFrame({"price": price_range, "volume": volumes})
         df_price_volume['code'] = eq
-        #print(df_price_volume)
+        # print(df_price_volume)
 
         # create 1 level 1 row table
         df_eq_all_levels = create_all_levels(df_eq)
@@ -128,7 +128,7 @@ def build_levels(df_):
         df_all_volumes = pd.concat([df_all_volumes, df_price_volume])
 
         df_levels['implied_prob'] = ((df_levels['min_start'] + df_levels['max_start']) / 2 - df_levels['sl']) / (
-                    df_levels['end'] - df_levels['sl'])
+                df_levels['end'] - df_levels['sl'])
     return df_levels, df_all_levels, df_all_volumes
 
 
@@ -136,7 +136,7 @@ def create_all_levels(df_levels):
     df_all_levels = pd.DataFrame([], columns=['code', 'name', 'start', 'end', 'logic'])
     for idx, row in df_levels.iterrows():
         if idx == 0:
-            #print(row['next_sl'])
+            # print(row['next_sl'])
             if row['next_sl']:
                 df_all_levels.loc[len(df_all_levels)] = (row['sec'], 'new_low', 0, row['next_sl'], 0)
             else:
@@ -206,7 +206,7 @@ def compress_all_levels(df_all_levels):
 
 
 def update_db_tables(df_levels, df_all_levels, df_all_volumes):
-    engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    # engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
 
     df_levels['timestamp'] = datetime.now()
     df_all_levels['timestamp'] = datetime.now()
@@ -216,14 +216,13 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
     except:
         pass
 
-
     sql.get_table.exec_query("delete from public.df_levels")
     sql.get_table.exec_query("delete from public.df_all_levels")
     sql.get_table.exec_query("delete from public.df_all_volumes")
 
     df_levels.to_sql('df_levels', engine, if_exists='append')
     df_all_levels.to_sql('df_all_levels', engine, if_exists='append')
-    #engine.execute(config.sql_queries.config["create_view"])
+    # engine.execute(config.sql_queries.config["create_view"])
     df_all_volumes.to_sql('df_all_volumes', engine, if_exists='append')
 
 
