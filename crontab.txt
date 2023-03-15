@@ -5,3 +5,6 @@
 0 9 * * 1-5 /home/oleg/PycharmProjects/trading/bash/refresh.sh > /home/oleg/PycharmProjects/trading/logs/refresh.log 2>&1
 50 8 * * 1-5 /home/oleg/PycharmProjects/trading/bash/morning_routine.sh > /home/oleg/PycharmProjects/trading/logs/morning_routine.log 2>&1
 
+git rm -r --cached .
+git add .
+git commit -m "Drop files from .gitignore"

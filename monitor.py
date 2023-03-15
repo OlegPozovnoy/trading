@@ -279,10 +279,10 @@ def send_bollinger(df_bollinger):
 
 
 if __name__ == '__main__':
+    print(datetime.now())
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print("urgent_list:",urgent_list)
     df_monitor = update_tables(filtered=False)
-    print(datetime.now())
     print('df_monitor', df_monitor.head())
     print(df_monitor.code.drop_duplicates())
     df_gains = get_gains()
