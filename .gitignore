@@ -1,6 +1,6 @@
 *.csv
 *.log
 *.png
-/.ipynb_checkpoints/
+*/.ipynb_checkpoints/
 /level_images/
-/tools/.ipynb_checkpoints/
+*/__pycache__
