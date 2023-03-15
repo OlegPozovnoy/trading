@@ -6,5 +6,5 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
 def exec_query(query):
-    print("engine:", id(engine))
+    #print("engine:", id(engine))
     return engine.execute(query)

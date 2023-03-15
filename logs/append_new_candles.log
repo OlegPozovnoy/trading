@@ -1,9 +1,0 @@
-error 2023-02-09 15:14:02.273936
-2023-02-09 15:14:02.273993
-Exception ignored in: <function QuikPy.__del__ at 0x7fde07466200>
-Traceback (most recent call last):
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 592, in __del__
-    self.CloseConnectionAndThread()  # Закрываем соединение для запросов и поток обработки функций обратного вызова
-  File "/home/oleg/PycharmProjects/trading/QuikPy/QuikPy.py", line 585, in CloseConnectionAndThread
-    self.callbackThread.process = False  # Поток обработки функций обратного вызова больше не нужен
-AttributeError: 'NoneType' object has no attribute 'process'

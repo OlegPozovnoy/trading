@@ -71,7 +71,8 @@ def clean_db():
     #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     sql_query = """ DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
-    DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);"""
+    DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
+    DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);"""
     engine.execute(sql_query)
 
 
