@@ -177,7 +177,7 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
         ax_left.scatter(x=df_bigdealshist['index'], y=df_bigdealshist['close'], s=df_bigdealshist['volume_inc'] * 20,
                         c=colors)
     print("Monitor: Saving file")
-    plt.savefig(f'./level_images/{filename}.png')
+    plt.savefig(f'./level_images/{filename}.png', dpi=50)
 
 
 def get_gains(path='./Data/candles.csv', min_lag=10, threshold=0.5):

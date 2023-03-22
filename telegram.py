@@ -12,7 +12,7 @@ channel_id_urgent = -876592585
 
 async def test():
     async with Client("my_ccount", api_id, api_hash) as app:
-        await app.send_message(channel_id_urgent, str("test"))
+        await app.send_message(channel_id_urgent, str("test_login"))
 
 
 async def main():
