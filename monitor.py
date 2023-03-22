@@ -1,6 +1,5 @@
 import datetime
 
-#from sqlalchemy import create_engine
 import pandas as pd
 import telegram
 import asyncio
@@ -8,8 +7,12 @@ import matplotlib.pyplot as plt
 import sql.get_table
 import config.sql_queries
 from datetime import datetime, timedelta
+import logging
+import sys
 
-#engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('monitor')
 engine = sql.get_table.engine
 
 def copy_colvals(df_monitor, colpairs, is_upd_only=False):
@@ -50,14 +53,14 @@ def update_tables(filtered=False):
     df_new = pd.DataFrame(engine.execute(query))
     df_monitor = df_monitor.merge(df_new, how='outer', on='code')
 
-    print(df_new.head(), df_monitor.head())
+    logger.info(df_new.head(), df_monitor.head())
     # переносим not null новое в старое и переносим цену и стд
     colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
                 ('old_end', 'new_end'), ('old_timestamp', 'new_timestamp'), ('new_price', 'price'), ('std', 'new_std'),
                 ('new_timestamp', 'timestamp')]
 
     df_monitor = copy_colvals(df_monitor, colpairs)
-    print("step2", df_monitor.head())
+    logger.info("step2", df_monitor.head())
 
     # тестим
     df_monitor['to_update'] = df_monitor['new_state'].isnull() | (
@@ -67,7 +70,7 @@ def update_tables(filtered=False):
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
 
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
-    print("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
+    logger.info("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
 
     sql.get_table.exec_query("delete from public.df_monitor")
     df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
@@ -84,7 +87,7 @@ def send_messages(df_monitor):
 
         msg = f'{row["code"]} {state_msg}: {before} ->\n {after}'
 
-        print(msg)
+        logger.info(msg)
         asyncio.run(telegram.send_message(msg))
         asyncio.run(telegram.send_photo(f'./level_images/{row["code"]}.png'))
 
@@ -135,14 +138,14 @@ def prepare_images(df_monitor_code_series):
     df_volumes = pd.DataFrame(engine.execute(query))
 
     for sec in df_monitor_code_series:
-        print(sec)
+        logger.info(sec)
         df_ = df[df['security'] == sec]
         df_eq_ = df_eq[df_eq['sec'] == sec]
         df_volumes_ = df_volumes[df_volumes['code'] == sec]
         df_bigdealshist_ = df_bigdealshist[df_bigdealshist['security'] == sec]
         plot_price_volume(df_, df_eq_, df_volumes_, df_bigdealshist_[['index', 'close', 'volume_inc', 'price_inc']],
                           title=f"{sec} {datetime.now()}", filename=f"{sec}")
-    print("Monitor: graphs updated")
+    logger.info("Monitor: graphs updated")
 
 
 def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", filename="fig"):
@@ -159,6 +162,7 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
 
     ax_left.locator_params(axis='x', nbins=50)
     ax_left.locator_params(axis='y', nbins=20)
+    ax_left.set_xticklabels(df['datetime'])
     ax_left.plot(df['close'])
 
     plt.title(title)
@@ -176,7 +180,7 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
     if len(df_bigdealshist) > 0:
         ax_left.scatter(x=df_bigdealshist['index'], y=df_bigdealshist['close'], s=df_bigdealshist['volume_inc'] * 20,
                         c=colors)
-    print("Monitor: Saving file")
+    logger.info("Monitor: Saving file")
     plt.savefig(f'./level_images/{filename}.png', dpi=50)
 
 
@@ -196,12 +200,17 @@ def get_gains(path='./Data/candles.csv', min_lag=10, threshold=0.5):
     df_res = df_end.merge(df_start, how='inner', on='security')[
         ['security', 'class_code_x', 'close_x', 'close_y', 'cdate_x', 'cdate_y']]
     df_res['inc'] = (df_res['close_x'] / df_res['close_y'] - 1) * 100
-    print(df_res.sort_values('inc'))
 
-    return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)]
+    df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
+    df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
+    df_inc = pd.concat([df_eq.head(5), df_eq.tail(5), df_fut.head(5), df_fut.tail(5)])[['security', 'inc', 'close_y']]\
+        .sort_values('inc').reset_index()
+
+    return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)], df_inc
 
 
 def send_gains(df_gains, urgent_list=None):
+    logger.info("df_info:", df_inc.to_string(justify='left', index=False))
     if urgent_list is None:
         urgent_list = []
     for idx, row in df_gains.iterrows():
@@ -211,12 +220,12 @@ def send_gains(df_gains, urgent_list=None):
 
         msg = f'{row["security"]} {inc}: {before} -> {after}  {row["cdate_x"]}'
         is_urgent = (row["security"] in urgent_list)
-        print(msg)
+        logger.info(msg)
         asyncio.run(telegram.send_message(msg, is_urgent))
         asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
-def get_abnormal_volumes(include_daily=False, minutes_lookback=10, days_lookback=14, path='./Data/candles.csv'):
+def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=14, path='./Data/candles.csv'):
     def get_volumes(minutes_lookback=minutes_lookback, days_lookback=days_lookback, path=path):
         start_time = (datetime.now() - timedelta(minutes=minutes_lookback)).time()
         end_time = (datetime.now()).time()
@@ -257,11 +266,12 @@ def send_abnormal_volumes(df_volumes, urgent_list=None):
         urgent_list = []
     for idx, row in df_volumes.iterrows():
         msg = f'{row["security"]} {row["timeframe"]} {round(row["std"], 1)}: \
-{int(row["volume"])} {int(row["volume_mean"])} {int(row["volume_std"])} {row["end_time"]}'
-        print(msg)
+vol:{int(row["volume"])} avg:{int(row["volume_mean"])} std:{int(row["volume_std"])} {row["end_time"]}'
+        logger.info(msg)
         is_urgent = (row["security"] in urgent_list)
         asyncio.run(telegram.send_message(msg, is_urgent))
-        asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
+        if row["timeframe"] == 'daily':
+            asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
 def get_bollinger():
@@ -279,14 +289,14 @@ def send_bollinger(df_bollinger):
 
 
 if __name__ == '__main__':
-    print(datetime.now())
+    logger.info(datetime.now())
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
-    print("urgent_list:",urgent_list)
+    logger.info("urgent_list:",urgent_list)
     df_monitor = update_tables(filtered=False)
-    print('df_monitor', df_monitor.head())
-    print(df_monitor.code.drop_duplicates())
-    df_gains = get_gains()
-    print('df_gains', df_gains.head())
+    logger.info('df_monitor', df_monitor.head())
+    logger.info(df_monitor.code.drop_duplicates())
+    df_gains, df_inc = get_gains()
+    logger.info('df_gains', df_gains.head())
     df_volumes = get_abnormal_volumes()
 
     df_bollinger = get_bollinger()
@@ -299,7 +309,8 @@ if __name__ == '__main__':
         send_gains(df_gains, urgent_list)
         send_abnormal_volumes(df_volumes, urgent_list)
 
+    send_bollinger(df_inc)
     if len(df_bollinger) > 0:
-        print("sending bollinger")
+        logger.info("sending bollinger")
         send_bollinger(df_bollinger)
-    print("monitor: ended", datetime.now())
+    logger.info("monitor: ended", datetime.now())
