@@ -284,7 +284,7 @@ or code in (select code from public.pos_bollinger);"""
     return pd.DataFrame(sql.get_table.exec_query(query))
 
 
-def send_bollinger(df_bollinger):
+def send_df(df_bollinger):
     asyncio.run(telegram.send_message(df_bollinger.to_string(justify='left',index=False)))
 
 
@@ -309,8 +309,8 @@ if __name__ == '__main__':
         send_gains(df_gains, urgent_list)
         send_abnormal_volumes(df_volumes, urgent_list)
 
-    send_bollinger(df_inc)
+    send_df(df_inc)
     if len(df_bollinger) > 0:
         logger.info("sending bollinger")
-        send_bollinger(df_bollinger)
+        send_df(df_bollinger)
     logger.info("monitor: ended", datetime.now())
