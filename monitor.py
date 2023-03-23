@@ -270,7 +270,7 @@ vol:{int(row["volume"])} avg:{int(row["volume_mean"])} std:{int(row["volume_std"
         print(msg)
         is_urgent = (row["security"] in urgent_list)
         asyncio.run(telegram.send_message(msg, is_urgent))
-        if row["timeframe"] == 'daily':
+        if row["timeframe"] == 'mins':
             asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
