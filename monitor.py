@@ -163,7 +163,8 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
     #ax_left.locator_params(axis='x', nbins=50)
     ax_left.locator_params(axis='y', nbins=20)
     ax_left.set_xticklabels(df['datetime'])
-    ax_left.plot(df['t'],df['close'])
+    ax_left.plot(df['close'])
+    #ax_left.plot(df['t'],df['close'])
 
     plt.title(title)
     for _, row in df_eq.iterrows():  # np.array([t[0] for t in peaks]):
