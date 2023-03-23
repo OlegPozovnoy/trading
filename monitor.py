@@ -53,14 +53,14 @@ def update_tables(filtered=False):
     df_new = pd.DataFrame(engine.execute(query))
     df_monitor = df_monitor.merge(df_new, how='outer', on='code')
 
-    logger.info(df_new.head(), df_monitor.head())
+    print(df_new.head(), df_monitor.head())
     # переносим not null новое в старое и переносим цену и стд
     colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
                 ('old_end', 'new_end'), ('old_timestamp', 'new_timestamp'), ('new_price', 'price'), ('std', 'new_std'),
                 ('new_timestamp', 'timestamp')]
 
     df_monitor = copy_colvals(df_monitor, colpairs)
-    logger.info("step2", df_monitor.head())
+    print("step2", df_monitor.head())
 
     # тестим
     df_monitor['to_update'] = df_monitor['new_state'].isnull() | (
@@ -70,7 +70,7 @@ def update_tables(filtered=False):
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
 
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
-    logger.info("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
+    print("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
 
     sql.get_table.exec_query("delete from public.df_monitor")
     df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     logger.info("urgent_list:",urgent_list)
     df_monitor = update_tables(filtered=False)
-    logger.info('df_monitor', df_monitor.head())
+    print('df_monitor', df_monitor.head())
     logger.info(df_monitor.code.drop_duplicates())
     df_gains, df_inc = get_gains()
     logger.info('df_gains', df_gains.head())
