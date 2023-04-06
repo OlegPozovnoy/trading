@@ -5,6 +5,9 @@ import datetime
 import logging
 import sys
 
+
+engine = sql.get_table.engine
+
 query_upd = """BEGIN;
 MERGE INTO public.futquotesdiff fqd
 USING public.futquotes fq
@@ -23,6 +26,7 @@ logger = logging.getLogger("refresh")
 
 def update():
     sql.get_table.exec_query(query_upd)
+    store_jumps()
     query = "select * from public.futquotesdiff;"
     s = pd.DataFrame(sql.get_table.exec_query(query))
     logger.info(s[:5].to_string())
@@ -34,6 +38,13 @@ def compose_td_datetime(curr_time):
     my_datetime = datetime.datetime.strptime(curr_time, "%H:%M:%S").time()
     return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
+
+
+def store_jumps():
+    query = "select * from public.jumps;"
+    df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
+    if len(df_jumps)>0:
+        df_jumps.to_sql('df_jumps', engine, if_exists='append')
 
 start_refresh = compose_td_datetime("09:00:00")
 end_refresh = compose_td_datetime("23:30:00")

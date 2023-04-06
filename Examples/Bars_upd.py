@@ -6,13 +6,13 @@ from Examples import Bars_upd_config
 import pandas as pd
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
 
+import sql.get_table
 
-#from sqlalchemy import create_engine
-
-
-
+engine = sql.get_table.engine
 qpProvider = None
-#qpProvider = QuikPy()
+
+
+# qpProvider = QuikPy()
 
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
@@ -29,7 +29,7 @@ def GetCandlesDF(classCode, secCodes, candles_num=0):
             pdBars.index = pd.to_datetime(
                 pdBars[['year', 'month', 'day', 'hour', 'minute', 'second']])  # Собираем дату/время из колонок
 
-            pdBars = pdBars[['open',  'close', 'high', 'low', 'volume']]  # Отбираем нужные колонки
+            pdBars = pdBars[['open', 'close', 'high', 'low', 'volume']]  # Отбираем нужные колонки
             # для скорости используем только close - для нормальных обьемов надо все
             # pdBars = pdBars[['close', 'volume']]
             pdBars.index.name = 'datetime'  # Ставим название индекса даты/времени
@@ -65,14 +65,29 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
 
     print(len(result_df), len(fileBars))
     fileBars = pd.concat([result_df, fileBars]).drop_duplicates(keep='last').sort_index()
-    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
+    # engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     print("saving to DB ", ctime())
-    #fileBars.to_sql('df_all_candles', engine, if_exists='replace')
+    # fileBars.to_sql('df_all_candles', engine, if_exists='replace')
     print("saving to file ", ctime())
     fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
+    if candles_num < 30: record_10min_statistics(result_df)
+
     print("saved", ctime())
     print(f'- В файл {fileName} сохранено записей: {len(fileBars)}')
 
+
+def record_10min_statistics(df):
+    print("recording stats")
+    df=df.reset_index()
+    df_filtered = df.groupby('security').apply(lambda x: x.iloc[:-3]).reset_index(drop=True)
+    df_filtered = df_filtered.groupby('security').agg(dt=('datetime', 'max'), cnt=('volume', 'count'), max_volume=('volume', 'max'),
+                                                      max_high=('high', 'max'), min_low=('low', 'min')).reset_index()
+    df_filtered['spread'] = df_filtered['max_high'] - df_filtered['min_low']
+
+    #print(df_filtered.head(), df_filtered.columns)
+    df_filtered = df_filtered[['security', 'max_volume', 'spread','dt', 'cnt']]
+    engine.execute("delete from public.df_stats")
+    df_filtered.to_sql('df_stats', engine, if_exists='append')
 
 
 def update_all_quotes(to_remove=True, candles_num=4100):
@@ -84,16 +99,21 @@ def update_all_quotes(to_remove=True, candles_num=4100):
             print("removing old file")
             os.remove(fileName)
         except Exception as e:
-            print(time(), str(e))
+            print(time())
+            if hasattr(e, 'message'):
+                print(e.message)
+            else:
+                print(e)
 
     startTime = time()  # Время начала запуска скрипта
 
     try:
         qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
 
-        SaveCandlesToFile([(Bars_upd_config.config["equities"]["classCode"], Bars_upd_config.config["equities"]["secCodes"]),
-                         (Bars_upd_config.config["futures"]["classCode"], Bars_upd_config.config["futures"]["secCodes"])],
-                          fileName=fileName, candles_num=candles_num)
+        SaveCandlesToFile(
+            [(Bars_upd_config.config["equities"]["classCode"], Bars_upd_config.config["equities"]["secCodes"]),
+             (Bars_upd_config.config["futures"]["classCode"], Bars_upd_config.config["futures"]["secCodes"])],
+            fileName=fileName, candles_num=candles_num)
     finally:
         qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
     print(f'04 - Bars_upd выполнен за {(time() - startTime):.2f} с')

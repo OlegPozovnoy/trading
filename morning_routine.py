@@ -70,6 +70,8 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
 def clean_db():
     #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     sql_query = """ DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
+    DELETE	FROM public.secquotes;
+    DELETE	FROM public.futquotes;
     DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);"""
