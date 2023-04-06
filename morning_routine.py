@@ -74,6 +74,7 @@ def clean_db():
     DELETE	FROM public.futquotes;
     DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
+    UPDATE public.orders_my set state=0;
     DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);"""
     engine.execute(sql_query)
 
