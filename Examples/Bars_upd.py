@@ -12,7 +12,7 @@ engine = sql.get_table.engine
 qpProvider = None
 
 
-# qpProvider = QuikPy()
+#qpProvider = QuikPy()
 
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
@@ -41,6 +41,7 @@ def GetCandlesDF(classCode, secCodes, candles_num=0):
         except Exception as e:
             print(str(e))
             pass
+    print(f"columns type: {result_df.dtypes}")
     return result_df
 
 
@@ -67,7 +68,7 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
     fileBars = pd.concat([result_df, fileBars]).drop_duplicates(keep='last').sort_index()
     # engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     print("saving to DB ", ctime())
-    # fileBars.to_sql('df_all_candles', engine, if_exists='replace')
+    #fileBars.to_sql('df_all_candles', engine, if_exists='replace')
     print("saving to file ", ctime())
     fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
     if candles_num < 30: record_10min_statistics(result_df)
