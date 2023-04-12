@@ -8,7 +8,7 @@ import sys
 
 engine = sql.get_table.engine
 
-query_upd = """BEGIN;
+query_fut_upd = """BEGIN;
 MERGE INTO public.futquotesdiff fqd
 USING public.futquotes fq
 ON fq.code = fqd.code
@@ -17,7 +17,31 @@ UPDATE SET bid = fq.bid, ask = fq.ask, volume = fq.volume, openinterest = fq.ope
 bid_inc = fq.bid - fqd.bid, ask_inc = fq.ask-fqd.ask, volume_inc = fq.volume-fqd.volume, updated_at=fq.updated_at, last_upd=NOW()  
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd) 
-VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW()); COMMIT;
+VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW()); 
+COMMIT;
+"""
+
+
+query_sec_upd="""BEGIN;
+MERGE INTO public.secquotesdiff fqd
+USING public.secquotes fq
+ON fq.code = fqd.code
+WHEN MATCHED THEN
+UPDATE SET 
+bid = fq.bid, 
+ask = fq.ask, 
+volume = fq.volume, 
+bidamount=fq.bidamount, 
+askamount=fq.askamount, 
+bid_inc = fq.bid - fqd.bid, 
+ask_inc = fq.ask-fqd.ask, 
+volume_inc = fq.volume-fqd.volume, 
+updated_at=fq.updated_at, 
+last_upd=NOW()  
+WHEN NOT MATCHED THEN
+INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd) 
+VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW());
+COMMIT;
 """
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -25,7 +49,8 @@ logger = logging.getLogger("refresh")
 
 
 def update():
-    sql.get_table.exec_query(query_upd)
+    sql.get_table.exec_query(query_fut_upd)
+    sql.get_table.exec_query(query_sec_upd)
     store_jumps()
     query = "select * from public.futquotesdiff;"
     s = pd.DataFrame(sql.get_table.exec_query(query))

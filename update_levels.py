@@ -13,15 +13,19 @@ from scipy.signal import find_peaks
 import time
 import sql.get_table
 import telegram
+import pytz
 
 CANDLES_PATH = './Data/candles.csv'
 engine = sql.get_table.engine
 
 
 def load_df(days_to_subtract=7):
-    df = pd.read_csv(CANDLES_PATH, sep='\t')
+    df = sql.get_table.query_to_df("select * from df_all_candles_t") #pd.read_csv(CANDLES_PATH, sep='\t')
 
-    df['t'] = pd.to_datetime(df['datetime'], format='%d.%m.%Y %H:%M')
+    #df['t'] = pd.to_datetime(df['datetime'], format='%d.%m.%Y %H:%M')
+    df['t'] = pd.to_datetime(df['datetime'])
+    df.drop(columns=['datetime'], inplace=True)
+
     df['week'] = df['t'].dt.isocalendar().week
     df['day'] = df['t'].dt.day
     current_week = datetime.today().isocalendar().week
@@ -30,8 +34,10 @@ def load_df(days_to_subtract=7):
     df = df[(df['volume'] > 0) & (df['close'] > 0)]
 
     # Adjust start date
-    start_date = datetime.today() - timedelta(days=days_to_subtract)
-    df = df[df['t'] > np.datetime64(start_date)]
+    start_date = (datetime.today() - timedelta(days=days_to_subtract))
+    start_date = start_date.replace(tzinfo=pytz.timezone('Europe/Moscow'))
+
+    df = df[df['t'] > start_date] #np.datetime64(start_date)]
 
     # adjust past week volume
     df.loc[df['week'] != current_week, 'volume'] = df.loc[df['week'] != current_week, 'volume'] / 2
@@ -206,7 +212,6 @@ def compress_all_levels(df_all_levels):
 
 
 def update_db_tables(df_levels, df_all_levels, df_all_volumes):
-    # engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
 
     df_levels['timestamp'] = datetime.now()
     df_all_levels['timestamp'] = datetime.now()

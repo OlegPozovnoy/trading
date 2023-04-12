@@ -1,19 +1,28 @@
 import datetime
 
 import pandas as pd
+import pytz
+
 import telegram
 import asyncio
 import matplotlib.pyplot as plt
 import sql.get_table
 import config.sql_queries
 from datetime import datetime, timedelta
-import logging
-import sys
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('monitor')
+#import sys
+#import logging
+#logging.basicConfig(stream=sys.stdout, level=logging.ERROR)
+#logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+#logger = logging.getLogger('monitor')
+#logger.setLevel(logging.ERROR)
+
 engine = sql.get_table.engine
+
+
+def load_candles():
+    return sql.get_table.query_to_df("select * from df_all_candles_t")
+
 
 def copy_colvals(df_monitor, colpairs, is_upd_only=False):
     for pairs in colpairs:
@@ -45,24 +54,20 @@ def update_tables(filtered=False):
 
     columns = df_monitor.columns
 
-    if filtered:
-        query = config.sql_queries.monitor["filtered_query"]
-    else:
-        query = config.sql_queries.monitor["non_filtered_query"]
-
+    query = config.sql_queries.monitor["filtered_query"] if filtered else config.sql_queries.monitor["non_filtered_query"]
     df_new = pd.DataFrame(engine.execute(query))
     df_monitor = df_monitor.merge(df_new, how='outer', on='code')
 
-    print(df_new.head(), df_monitor.head())
+    print("df_new", df_new.head())
+    print("df_monitor", df_monitor.head())
     # переносим not null новое в старое и переносим цену и стд
     colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
                 ('old_end', 'new_end'), ('old_timestamp', 'new_timestamp'), ('new_price', 'price'), ('std', 'new_std'),
                 ('new_timestamp', 'timestamp')]
 
     df_monitor = copy_colvals(df_monitor, colpairs)
-    print("step2", df_monitor.head())
+    print("step2: df_monitor", df_monitor.head())
 
-    # тестим
     df_monitor['to_update'] = df_monitor['new_state'].isnull() | (
             df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) | \
                               (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end'])
@@ -70,11 +75,11 @@ def update_tables(filtered=False):
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
 
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
-    print("step3", df_monitor.head(), df_monitor['to_update'], df_monitor[df_monitor['to_update']])
+    print("step3: df_monitor full", df_monitor.head())
+    print("step3: df_monitor[to_update]==True - filtered", df_monitor[df_monitor['to_update']])
 
     sql.get_table.exec_query("delete from public.df_monitor")
     df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
-
     return df_monitor[df_monitor['to_update']]
 
 
@@ -115,18 +120,21 @@ def create_big_deals_image(code):
 
 def prepare_images(df_monitor_code_series):
     days_to_subtract = 7
-    CANDLES_PATH = './Data/candles.csv'
-
-    df = pd.read_csv(CANDLES_PATH, sep='\t')
-    df['t'] = pd.to_datetime(df['datetime'], format='%d.%m.%Y %H:%M')
+    df = sql.get_table.query_to_df("select * from df_all_candles_t")
+    df['t'] = pd.to_datetime(df['datetime'])
+    #df.drop(columns=['datetime'], inplace=True)
     start_date = datetime.today() - timedelta(days=days_to_subtract)
+    start_date = start_date.replace(tzinfo=pytz.timezone('Europe/Moscow'))
     df = df[df['t'] > start_date]
 
-    query = f"select * from public.bigdealshist where price_inc <> 0"  # and code='SBER'"
+    query = f"select * from public.bigdealshist where price_inc <> 0"
     df_bigdealshist = pd.DataFrame(engine.execute(query))
-    df_bigdealshist['datetime'] = df_bigdealshist['tradedate'].astype(str) + " " + df_bigdealshist[
-                                                                                       'snaptimestamp'].astype(str).str[
-                                                                                   :5]
+
+    df_bigdealshist['snaptimestamp'] = df_bigdealshist['snaptimestamp'].astype(str)[:5]+":00" + df_bigdealshist['snaptimestamp'].astype(str)[-6:]
+    print("df_bigdealshist", df_bigdealshist.head())
+    df_bigdealshist['datetime'] = df_bigdealshist['tradedate'].astype(str) + " " + df_bigdealshist['snaptimestamp']
+    df_bigdealshist['datetime'] =  pd.to_datetime(df['tradedate'], format='%d.%m.%Y %H:%M:%S %z')
+    print("df_bigdealshist",df_bigdealshist.head())
 
     df_bigdealshist = df.reset_index().merge(df_bigdealshist, how='inner', right_on=['code', 'datetime'],
                                              left_on=['security', 'datetime'])
@@ -185,15 +193,15 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
     plt.savefig(f'./level_images/{filename}.png', dpi=50)
 
 
-def get_gains(path='./Data/candles.csv', min_lag=10, threshold=0.5):
-    df = pd.read_csv(path, sep='\t')
-    df['cdate'] = pd.to_datetime(df['datetime'], format="%d.%m.%Y %H:%M")
+def get_gains(min_lag=10, threshold=0.5):
+    # возвращаем то чот выросло нв трешхолд процентов за минлаг минут
+    df = load_candles()
+    df['cdate'] = pd.to_datetime(df['datetime'])#, format="%d.%m.%Y %H:%M")
 
     start_date = datetime.now() - timedelta(minutes=min_lag)
-    # end_date = datetime.datetime.now() - datetime.timedelta(minutes=0)
-
+    start_date = start_date.replace(tzinfo=pytz.timezone('Europe/Moscow'))
     df_start = df[df['cdate'] < start_date]
-    df_end = df  # [df['cdate'] < end_date]
+    df_end = df
 
     df_start = df_start.sort_values(['security', 'cdate']).groupby(['security']).tail(1)
     df_end = df_end.sort_values(['security', 'cdate']).groupby(['security']).tail(1)
@@ -226,16 +234,16 @@ def send_gains(df_gains, urgent_list=None):
         asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
-def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=14, path='./Data/candles.csv'):
-    def get_volumes(minutes_lookback=minutes_lookback, days_lookback=days_lookback, path=path):
+def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=14):
+    def get_volumes(minutes_lookback=minutes_lookback, days_lookback=days_lookback):
         start_time = (datetime.now() - timedelta(minutes=minutes_lookback)).time()
         end_time = (datetime.now()).time()
 
         start_date = (datetime.now() - timedelta(days=days_lookback)).date()
         end_date = (datetime.now()).date()
 
-        df = pd.read_csv(path, sep='\t')
-        df['cdate'] = pd.to_datetime(df['datetime'], format="%d.%m.%Y %H:%M")
+        df=load_candles()
+        df['cdate'] = pd.to_datetime(df['datetime'])
         df['ctime'] = df['cdate'].dt.time
         df['cdt'] = df['cdate'].dt.date
 
@@ -277,20 +285,20 @@ vol:{int(row["volume"])} avg:{int(row["volume_mean"])} std:{int(row["volume_std"
 
 def get_bollinger():
     query = """SELECT code, quote, round(bollinger::numeric,2) as bollinger, count, 
-round(up::numeric,2) as up, round(down::numeric,2) as down
-FROM public.quote_bollinger 
-where (class_code = 'SPBFUT' and abs(bollinger) > 1.7) 
-or abs(bollinger) > 2 
-or code in (select code from public.pos_bollinger);"""
+    round(up::numeric,2) as up, round(down::numeric,2) as down
+    FROM public.quote_bollinger 
+    where (class_code = 'SPBFUT' and abs(bollinger) > 1.7) 
+    or abs(bollinger) > 2 
+    or code in (select code from public.pos_bollinger);"""
     return pd.DataFrame(sql.get_table.exec_query(query))
 
 
-def send_df(df_bollinger):
-    asyncio.run(telegram.send_message(df_bollinger.to_string(justify='left',index=False)))
+def send_df(df):
+    asyncio.run(telegram.send_message(df.to_string(justify='left',index=False)))
 
 
 if __name__ == '__main__':
-    print(datetime.now())
+    print("monitor started: ",datetime.now())
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print("urgent_list:",urgent_list)
     df_monitor = update_tables(filtered=False)

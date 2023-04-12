@@ -7,7 +7,9 @@ import datetime
 import os
 
 import pandas as pd
-#from sqlalchemy import create_engine
+
+from tinkoff_candles import import_new_tickers
+
 engine = sql.get_table.engine
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
@@ -79,6 +81,25 @@ def clean_db():
     UPDATE public.orders_my set state=0;
     DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);"""
     engine.execute(sql_query)
+    clean_tinkoff()
+
+def clean_tinkoff():
+    # 20 days for bollinger bands calculation
+    query = "delete FROM public.df_all_candles_t_arch where datetime < (now() - interval '90 days')"
+    engine.execute(query)
+    query = """
+        WITH moved_rows AS (
+            DELETE FROM df_all_candles_t  a
+            WHERE datetime < now() - interval '28 days'
+            RETURNING a.* -- or specify columns
+        )
+        INSERT INTO df_all_candles_t_arch  --specify columns if necessary
+        SELECT  * FROM moved_rows;    
+    """
+    engine.execute(query)
+    query ="DELETE FROM df_all_candles_t_arch WHERE datetime < now() - interval '90 days'"
+    engine.execute(query)
+
 
 
 def update_instrument_list():
@@ -111,7 +132,8 @@ if __name__ == '__main__':
         print('Update import settings')
         update_instrument_list()
         print('Begin quotes reimport', datetime.datetime.now())
-        Examples.Bars_upd.update_all_quotes(candles_num=20000)
+        #Examples.Bars_upd.update_all_quotes(candles_num=20000)
+        import_new_tickers(True)
         print('Bars updated', datetime.datetime.now())
         clean_db()
         print('DB Cleaned', datetime.datetime.now())
