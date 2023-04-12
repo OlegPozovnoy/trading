@@ -126,6 +126,7 @@ def import_new_tickers(refresh_tickers=False):
 
 if __name__ == "__main__":
     startTime = time.time()
+    time.sleep(1)
     signal.alarm(120)
     try:
         import_new_tickers(refresh_tickers=False)

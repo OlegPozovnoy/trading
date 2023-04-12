@@ -56,10 +56,11 @@ def update_tables(filtered=False):
 
     query = config.sql_queries.monitor["filtered_query"] if filtered else config.sql_queries.monitor["non_filtered_query"]
     df_new = pd.DataFrame(engine.execute(query))
-    df_monitor = df_monitor.merge(df_new, how='outer', on='code')
-
     print("df_new", df_new.head())
+
+    df_monitor = df_monitor.merge(df_new, how='outer', on='code')
     print("df_monitor", df_monitor.head())
+
     # переносим not null новое в старое и переносим цену и стд
     colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
                 ('old_end', 'new_end'), ('old_timestamp', 'new_timestamp'), ('new_price', 'price'), ('std', 'new_std'),
