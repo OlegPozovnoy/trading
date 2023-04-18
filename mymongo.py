@@ -1,7 +1,7 @@
 import json
 
 from pymongo import MongoClient
-from datetime import datetime, timedelta
+from datetime import timedelta
 import sql.get_table
 import pandas as pd
 import matplotlib.pyplot as plt

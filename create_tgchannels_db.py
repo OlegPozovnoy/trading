@@ -1,23 +1,24 @@
 import datetime
-import time
+from dotenv import load_dotenv
 
 import hft.discovery
 import nlp.mongo_tools
 import nlp.lang_models
 from nlp.mongo_tools import get_active_channels
-
-key = "1337743768:AAFPfYpYqkbRkii5wZbH5PKtKrACKyifJAY"
-
-api_id = "1961024"
-api_hash = "6d5112fa19798f8e832a13587bfc4fe3"
-
 import asyncio
 from pyrogram import Client
 import json
 from pymongo import MongoClient
+import os
+import tools.clean_processes
 
-channel_id = -667947767
-channel_id_urgent = -876592585
+load_dotenv(dotenv_path='./my.env')
+
+key = os.environ['tg_key']
+api_id = os.environ['tg_api_id']
+api_hash = os.environ['tg_api_hash']
+channel_id = os.environ['tg_channel_id']
+channel_id_urgent = os.environ['tg_channel_id_urgent']
 
 channels = [
     "AK47pfl"
@@ -28,7 +29,6 @@ channels = [
     , "bcsinvestidea"
     , "finamalert"
     , "StockNews100"
-    , "bbbreaking"
     , "renat_vv"
     , "russianmacro"
     , "MarketDumki"
@@ -51,6 +51,25 @@ channels = [
     "alfawealth", "alfa_investments",
     "bitkogan_hotline", "StockNews100", "usamarke1", "taurenin", "marketsnapshot", -1001656693918]
 
+#Лимон на чай ? Хомяк активный
+channels = ['divonline', 'dohod', 'smfanton', 'divonline', 'usamarke1', 'particular_trader', 'investheroes',
+            'finrangecom', 'zabfin', 'invest_or_lost','PravdaInvest', 'private_investor', 'Tradermoex',
+            'investarter', 'trader_nt','atlant_signals', 'openinvestor', 'arsageranews', 'rynok_znania',
+            'trekinvest','ltrinvestment', 'INVESTR_RU', 'FTMTrends', 'Risk_zakharov', 'if_stocks',
+            'tinkoff_invest_official', 'SberInvestments', 'omyinvestments', 'selfinvestor',
+            'antonchehovanalitk', 'investorylife', 'investokrat', 'truecon', 'scapitalrussia',
+            'rodinfinance', 'warwisdom', 'GBEanalytix', 'truevalue', 'FinamPrem', 'ingosinvest',
+            'alorbroker', 'RSHB_Invest', 'FREEDOMFINANCE', 'open_invest', 'bcs_express',
+            'tinkoff_analytics_official', 'vadya93_official', 'AROMATH', 'romanandreev_trader',
+            'martynovtim', 'invest_budka', 'invest_fynbos', 'razb0rka', 'kuzmlab', 'harmfulinvestor',
+            'meatinvestor'
+
+            ]
+
+channels = ['Alfacapital_ru', 'finam_invest', 'FinamInvestLAB', 'promsvyaz_am',
+'gpb_investments','aton1991','mkb_investments','iticapital_invest'
+]
+
 channels = set(channels)
 client = MongoClient()
 
@@ -68,7 +87,7 @@ async def test_func(chat_id):
         result["username"] = chat.get('username', '').strip()
         result['description'] = chat.get('description', '').strip()
         result['members_count'] = chat['members_count']
-        result['count'] = count
+        result['count'] = 0#count - 100 # to import 100 messages after creation
         # print(result)
         return result
 
@@ -84,12 +103,9 @@ async def create_channels():
             pass
 
 
-async def import_news(username, limit=None, max_msg_load=1000):
+async def import_news(channel, limit=None, max_msg_load=1000):
     async with Client("my_ccount", api_id, api_hash) as app:
-        names_collection = client.trading['tg_channels']
         news_collection = client.trading['news']
-
-        channel = names_collection.find_one({"username": username})
 
         print(f"channel:{channel}")
         if channel is None: return
@@ -98,7 +114,7 @@ async def import_news(username, limit=None, max_msg_load=1000):
         count = await app.get_chat_history_count(chat_id=chat_id)
 
         new_msg_count = count - channel['count']
-        print(f"{username} has {new_msg_count} new messages")
+        print(f"{channel['username']} has {new_msg_count} new messages")
         if limit is None:
             limit = min(count - channel['count'], max_msg_load)
 
@@ -109,31 +125,57 @@ async def import_news(username, limit=None, max_msg_load=1000):
                 res['channel_title'] = channel.get('title', '')
                 res['channel_username'] = channel.get('username', '')
                 res['date'] = msg.date
-                res['text'] = msg.text
-                res['caption'] = msg.caption
-                print("message:", msg)
-                print(res)
+                res['text'] = msg.text or ''
+                res['caption'] = msg.caption or ''
+                #print("message:", msg)
+                #print(res)
                 if msg.caption is not None or msg.text is not None:
                     tags = nlp.lang_models.build_news_tags(str(msg.caption) + ' ' + str(msg.text))
                     res['tags'] = tags
-                    if len(tags)>0: hft.discovery.record_new_watch(tags, res['date'], username)
-                    news_collection.insert_one(res)
+                    if len(tags)>0:
+                        res['is_important'] = nlp.lang_models.check_doc_importance(res)
+                        hft.discovery.record_new_watch(res, channel['username'])
 
-            nlp.mongo_tools.update_tg_msg_count(username, count)
+                    if len(tags) > 0: #or channel['import_empty']: пока из за большего числа каналов только по теме импорт
+                        res['parent_tags'] = channel['tags']
+                        news_collection.insert_one(res)
 
+            nlp.mongo_tools.update_tg_msg_count(channel['username'], count)
 
 
 async def upload_recent_news():
-    active_channels = get_active_channels()
-    print(active_channels)
-    for channel in active_channels:
-        await import_news(channel['username'], limit=None, max_msg_load=1000)
+    conf = json.load(open('./tg_import_config.json', 'r'))
+    conf['last_id'] += 1
+    json.dump(conf, open('./tg_import_config.json', 'w'))
 
-# asyncio.run(create_channels())
+    active_channels = get_active_channels()
+    nlp.mongo_tools.renumerate_channels(is_active=True)
+
+    print(conf, len(active_channels))
+    ids_list = list(range((conf['last_id']-1)*conf['non_urgent_channels'], conf['last_id']*conf['non_urgent_channels']))
+
+    for channel in active_channels:
+        try:
+            if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
+                await import_news(channel, limit=None, max_msg_load=10000)
+        except Exception as e:
+            print(f"Checking {channel['title']}", channel, str(e))
+
+
+if __name__ == "__main__":
+    print(datetime.datetime.now())
+    if not tools.clean_processes.clean_proc("create_tgchannels_db", os.getpid(), 5):
+        print("something is already running")
+        exit(0)
+
+    asyncio.run(upload_recent_news())
+    print(datetime.datetime.now())
+
+
+#asyncio.run(create_channels())
 
 # asyncio.run(import_news(-1001656693918, limit = 100))
-
+#signal.alarm(590)
 #asyncio.run(import_news(-1001075101206, limit=200))
-asyncio.run(upload_recent_news())
-print(datetime.datetime.now())
+#print(datetime.datetime.now())
 #print(get_active_channels())

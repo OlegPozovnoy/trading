@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 
 engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 
 def exec_query(query):
@@ -15,3 +15,7 @@ def query_to_df(query):
 
 def query_to_list(query):
     return exec_query(query).mappings().all()
+
+
+def load_candles():
+    return query_to_df("select * from df_all_candles_t")

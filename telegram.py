@@ -1,15 +1,29 @@
-key = "1337743768:AAFPfYpYqkbRkii5wZbH5PKtKrACKyifJAY"
-
-api_id = "1961024"
-api_hash = "6d5112fa19798f8e832a13587bfc4fe3"
-
+import datetime
+from dotenv import load_dotenv
 import asyncio
 from pyrogram import Client
-
-channel_id = -667947767
-channel_id_urgent = -876592585
-
 import json
+import os
+
+import tools.clean_processes
+import sql.get_table
+
+load_dotenv(dotenv_path='./my.env')
+
+key = os.environ['tg_key']
+api_id = os.environ['tg_api_id']
+api_hash = os.environ['tg_api_hash']
+channel_id = os.environ['tg_channel_id']
+channel_id_urgent = os.environ['tg_channel_id_urgent']
+
+URGENT_PATH = './tg_buffer/urgent/'
+NORMAL_PATH = './tg_buffer/normal/'
+
+
+engine = sql.get_table.engine
+
+TOKEN = os.environ["INVEST_TOKEN"]
+
 
 async def test():
     async with Client("my_ccount", api_id, api_hash) as app:
@@ -30,10 +44,6 @@ async def test_func():
 
 async def main():
     async with Client("my_ccount", api_id, api_hash) as app:
-        # contact = await app.get_chats()
-        # print(contact)
-        #hist = app.get_chat_history("@AK47pfl", limit=10)
-        #hist = app.get_chat_history(-1001656693918, limit=20)
         count = await app.get_chat_history_count(chat_id=-1001656693918)
         print("msg_count:", count)
         # async for msg in hist:
@@ -46,21 +56,47 @@ async def main():
 
 
 async def send_message(msg, urgent=False):
-    stream_id = channel_id_urgent if urgent else channel_id
-    async with Client("my_ccount", api_id, api_hash) as app:
-        await app.send_message(stream_id, str(msg))
-        # await app.log_out()
+    filename = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f")+'.json'
+    folder = URGENT_PATH if urgent else NORMAL_PATH
+    with open(os.path.join(folder, filename), 'w') as f:
+        json.dump({'msg': msg}, f)
 
 
 async def send_photo(filepath, urgent=False):
-    stream_id = channel_id_urgent if urgent else channel_id
+    filename = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f")+'.json'
+    folder = URGENT_PATH if urgent else NORMAL_PATH
+    with open(os.path.join(folder, filename), 'w') as f:
+        json.dump({'filepath': filepath}, f)
+
+
+
+async def send_all():
     async with Client("my_ccount", api_id, api_hash) as app:
-        await app.send_photo(stream_id, filepath)
-        # await app.log_out()
+        for dir, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
+            listdir = os.listdir(dir)
+            listdir.sort()
+            for filename in os.listdir(dir):
+                f = os.path.join(dir, filename)
+                print(f, filename)
+                if os.path.isfile(f):
+                    with open(f, 'r') as f_read:
+                        data = json.load(f_read)
+                        if 'filepath' in data:
+                                await app.send_photo(stream_id, data['filepath'])
+                        if 'msg' in data:
+                                await app.send_message(stream_id, str(filename[:16])+ '\n'+ str(data['msg']))
+                    os.remove(f)
 
 
-#asyncio.run(main())
-asyncio.run(test())
+
+if __name__ == "__main__":
+    print(datetime.datetime.now())
+    if not tools.clean_processes.clean_proc("telegram", os.getpid(), 3):
+        print("something is already running")
+        exit(0)
+    asyncio.run(send_all())
+    print(datetime.datetime.now())
 
 
-#asyncio.run(test_func())
+#asyncio.run(test())
+#asyncio.run(send_message("Hello"))

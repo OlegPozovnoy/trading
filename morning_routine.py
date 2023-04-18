@@ -14,7 +14,7 @@ engine = sql.get_table.engine
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
-    df_ = pd.read_csv('./Data/candles.csv', sep='\t')
+    df_ = sql.get_table.load_candles()
     df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
     df_['dt'] = df_['t'].dt.date
     df_['time'] = df_['t'].dt.time
@@ -70,7 +70,6 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
 
 
 def clean_db():
-    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     sql_query = """ DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.secquotes;
     DELETE	FROM public.futquotes;

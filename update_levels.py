@@ -3,6 +3,7 @@
 
 # https://www.geeksforgeeks.org/how-to-schedule-python-scripts-as-cron-jobs-with-crontab/
 import asyncio
+import os
 
 import pandas as pd
 import numpy as np
@@ -14,6 +15,8 @@ import time
 import sql.get_table
 import telegram
 import pytz
+
+import tools.clean_processes
 
 CANDLES_PATH = './Data/candles.csv'
 engine = sql.get_table.engine
@@ -35,7 +38,7 @@ def load_df(days_to_subtract=7):
 
     # Adjust start date
     start_date = (datetime.today() - timedelta(days=days_to_subtract))
-    start_date = start_date.replace(tzinfo=pytz.timezone('Europe/Moscow'))
+    start_date = start_date.replace(tzinfo=df['t'][0].tzinfo)
 
     df = df[df['t'] > start_date] #np.datetime64(start_date)]
 
@@ -234,6 +237,9 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
 if __name__ == '__main__':
     startTime = time.time()
     print(time.ctime())
+    if not tools.clean_processes.clean_proc("update_levels", os.getpid(), 5):
+        print("something is already running")
+        exit(0)
     df = load_df()
     df_levels, df_all_levels, df_all_volumes = build_levels(df)
     update_db_tables(df_levels, df_all_levels, df_all_volumes)

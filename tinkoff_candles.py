@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 import time
 import sys
 import signal
-
+import tools.clean_processes
 
 #import tools.pandas_full_view
 
@@ -126,8 +126,13 @@ def import_new_tickers(refresh_tickers=False):
 
 if __name__ == "__main__":
     startTime = time.time()
+
+    if not tools.clean_processes.clean_proc("tinkoff_candles", os.getpid(), 3):
+        print("something is already running")
+        exit(0)
+
     time.sleep(1)
-    signal.alarm(120)
+    #signal.alarm(120)
     try:
         import_new_tickers(refresh_tickers=False)
     except:
@@ -137,7 +142,7 @@ if __name__ == "__main__":
         print(datetime.datetime.now())
 
 
-
+#
 
 
 

@@ -13,6 +13,26 @@ morph = pymorphy2.MorphAnalyzer()
 
 keywords = None
 
+important_words = ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД']
+
+
+def update_importance():
+    names_collection = client.trading['news']
+    for document in names_collection.find():
+        is_important = check_doc_importance(document)
+        names_collection.update_one(document, {'$set': {'is_important': is_important}})
+
+
+def check_doc_importance(document):
+    fulltext = str(document['text']) + " " + str(document['caption'])
+    if len(document['tags']) > 0:
+        for word in important_words:
+            if check_sentence(fulltext, word):
+                return True
+        return False
+    return False
+
+
 def update_all_tags():
     names_collection = client.trading['news']
 
@@ -43,6 +63,9 @@ def build_news_tags(text):
         if check_sentence(text, key):
             tags.extend(value)
     return list(set(tags))
+
+
+
 
 
 def convert_normal_form(sentence):
@@ -101,5 +124,4 @@ def get_words_prononse(name):
 #print(load_keywords())
 #get_words_prononse("ММК")
 #get_words_prononse("ВТБ")
-
-#Если с большой буквы -  убираем все не с большой, если с маленькой - смотрим все слова
+#update_importance()

@@ -9,3 +9,7 @@ git rm -r --cached .
 git add .
 git commit -m "Drop files from .gitignore"
 
+
+
+# совет директоров, дивиденды, суд, отчетность - важный день - параметр
+# https://docs.google.com/spreadsheets/d/1wYOjuHCav06ZGc5K9zzJbERitwcRmppN2JtLOsoWzMo/edit#gid=1909038703
