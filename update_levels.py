@@ -236,12 +236,15 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
 
 if __name__ == '__main__':
     startTime = time.time()
+
     print(time.ctime())
     if not tools.clean_processes.clean_proc("update_levels", os.getpid(), 5):
         print("something is already running")
         exit(0)
+
     df = load_df()
     df_levels, df_all_levels, df_all_volumes = build_levels(df)
     update_db_tables(df_levels, df_all_levels, df_all_volumes)
+
     asyncio.run(telegram.send_message(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с'))
     print(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с')
