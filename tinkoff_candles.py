@@ -16,7 +16,6 @@ from Examples import Bars_upd_config
 from dotenv import load_dotenv
 import time
 import sys
-import signal
 import tools.clean_processes
 
 #import tools.pandas_full_view
@@ -132,7 +131,6 @@ if __name__ == "__main__":
         exit(0)
 
     time.sleep(1)
-    #signal.alarm(120)
     try:
         import_new_tickers(refresh_tickers=False)
     except:

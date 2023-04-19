@@ -76,17 +76,19 @@ async def send_all():
             listdir = os.listdir(dir)
             listdir.sort()
             for filename in os.listdir(dir):
-                f = os.path.join(dir, filename)
-                print(f, filename)
-                if os.path.isfile(f):
-                    with open(f, 'r') as f_read:
-                        data = json.load(f_read)
-                        if 'filepath' in data:
-                                await app.send_photo(stream_id, data['filepath'])
-                        if 'msg' in data:
-                                await app.send_message(stream_id, str(filename[:16])+ '\n'+ str(data['msg']))
-                    os.remove(f)
-
+                try:
+                    f = os.path.join(dir, filename)
+                    print(f, filename)
+                    if os.path.isfile(f):
+                        with open(f, 'r') as f_read:
+                            data = json.load(f_read)
+                            if 'filepath' in data:
+                                    await app.send_photo(stream_id, data['filepath'])
+                            if 'msg' in data:
+                                    await app.send_message(stream_id, str(filename[:16])+ '\n'+ str(data['msg']))
+                        os.remove(f)
+                except:
+                    pass
 
 
 if __name__ == "__main__":

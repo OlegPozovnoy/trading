@@ -2,6 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/timeseries_clustering_vae" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/timeseries_clustering_vae" vcs="Git" />
   </component>
 </project>
