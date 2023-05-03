@@ -1,5 +1,7 @@
 import datetime
+import os
 import random
+import sys
 from time import sleep
 import sql.get_table
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
@@ -9,6 +11,37 @@ import pandas as pd
 reply = False
 global_reply = None
 engine = sql.get_table.engine
+
+
+class OrderProcesser():
+    def __init__(self, func, timeout=0.5):
+        self.tasks_list = []
+        self.func = func
+        self.timeout = timeout
+    def add_task(self,task, timeout):
+#        try:
+#            self.func(task[0][1:])  # все без key, key always 1
+#        except:
+#            pass
+
+        if task[0] not in [item[0] for item in self.tasks_list]:
+            self.tasks_list.append((task, datetime.datetime.now() + datetime.timedelta(seconds=timeout)))
+            self.tasks_list = sorted(self.tasks_list, key=lambda x: x[1])
+            return True # task is not scheduled
+        return False  # task scheduled
+
+    def do_tasks(self):
+
+        tasks_to_do = [task for task in self.tasks_list if task[1] < datetime.datetime.now()]
+#        for task in tasks_to_do:
+#
+#            try:
+#                self.func(task[0][1:]) # все без key, key always 1
+#            except:
+#                pass
+
+        self.tasks_list = self.tasks_list[len(tasks_to_do):]
+        return tasks_to_do
 
 
 def OnTransReply(data):
@@ -242,12 +275,18 @@ def set_position(secCode, target_pos, sleep_time, max_amount, price_bound):
         print(f"pos:{pos}, target_pos:{target_pos}")
 
 
-def process_orders():
+def dummyfunc(args):
+    secCode, quantity, price_bound, max_quantity,  comment = args
+    place_order(secCode, quantity, price_bound, max_quantity, comment)
+
+
+def process_orders(orderProcesser):
     query = "SELECT  * FROM public.allquotes where id is not null and amount <> quantity and state <> 0"
-    #query = "SELECT  * FROM public.allquotes where id is not null"
+
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
-    print(orders)
+
+    print(f"orders:{orders}")
     for order in orders:
         print(order)
         comment = order['comment'] + str(order['id'])
@@ -255,22 +294,35 @@ def process_orders():
         kill_orders(secCode, comment)
         price_bound=order['barrier']
         quantity=order['quantity']-order['amount']
+
         if ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (price_bound is None):
-            place_order(secCode=secCode,
-                        quantity=quantity,
-                        price_bound=price_bound,
-                        max_quantity=order['max_amount'],
-                        comment=comment)
-            sleep(order['pause'])
+            if_not_exist = orderProcesser.add_task((comment, secCode, quantity, price_bound, order['max_amount'], comment), order['pause'])  # key 1st
+            if if_not_exist:
+                place_order(secCode, quantity, price_bound, order['max_amount'], comment)
+
         update_query = f"update public.orders_my set remains = {order['amount']} where id = {order['id']}"
         sql.get_table.exec_query(update_query)
         sleep(0.1)
 
+    # get tasks tthat are scheduled
+    tasks_list = orderProcesser.do_tasks()
+    print(f"tasks_list:{tasks_list}")
+    for task in tasks_list:
+        print(task)
+        place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5])
+
+    sleep(random.uniform(0,0.1))
+
+
+
 
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
+    #print("!!!!",os.getcwd())
+
     qpProvider = QuikPy()
+    orderProcesser = OrderProcesser(func=dummyfunc)
     while True:
-        process_orders()
+        process_orders(orderProcesser)
     #set_position('VTBR', 0, sleep_time=10, max_amount=100000, price_bound=None)
 
     qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
