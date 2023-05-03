@@ -70,7 +70,8 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
 
 
 def clean_db():
-    sql_query = """ DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
+    sql_query = """ 
+    DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.secquotes;
     DELETE	FROM public.futquotes;
     DELETE	FROM public.deals;
@@ -78,7 +79,10 @@ def clean_db():
     DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.bigdealshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     UPDATE public.orders_my set state=0;
-    DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);"""
+    DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);
+    DELETE  FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);  
+    VACUUM FULL;  
+    """
     engine.execute(sql_query)
     clean_tinkoff()
 
