@@ -1,0 +1,3 @@
+add futures trading
+add sec news trading (news embedding, last flows, predictor)
+add positional trading

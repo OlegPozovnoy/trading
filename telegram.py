@@ -34,7 +34,7 @@ async def test_func():
     async with Client("my_ccount", api_id, api_hash) as app:
         chat = await app.get_chat(-1001656693918)
         count = await app.get_chat_history_count(chat_id=-1001656693918)
-        print(chat)
+        #print(chat)
         #print(chat, type(chat), str(chat))
         chat = json.loads(str(chat))
         chat['is_active'] = 1
@@ -78,7 +78,7 @@ async def send_all():
             for filename in os.listdir(dir):
                 try:
                     f = os.path.join(dir, filename)
-                    print(f, filename)
+                    print(filename)
                     if os.path.isfile(f):
                         with open(f, 'r') as f_read:
                             data = json.load(f_read)

@@ -28,7 +28,7 @@ loaded_candles = None
 def load_candles():
     global loaded_candles
     if loaded_candles is None:
-        loaded_candles = sql.get_table.query_to_df("select * from df_all_candles_t")
+        loaded_candles = sql.get_table.query_to_df("select * from df_all_candles_t order by datetime asc")
     return loaded_candles
 
 
@@ -54,7 +54,11 @@ def update_tables(filtered=False):
     except:
         pass
 
-    if len(df_monitor) == 0:
+    check_consistancy_query = """select  code, count(*)	FROM public.df_monitor
+        group by code having count(*)>1"""
+
+    if len(df_monitor) == 0 or len(pd.DataFrame(engine.execute(check_consistancy_query))) > 0:
+        sql.get_table.exec_query("delete from public.df_monitor")
         df_monitor = pd.DataFrame([], columns=['code', 'old_state', 'old_price', 'old_start', 'old_end', 'new_state',
                                                'new_price', 'new_start', 'new_end', 'std', 'old_timestamp',
                                                'new_timestamp'])
@@ -65,10 +69,10 @@ def update_tables(filtered=False):
     query = config.sql_queries.monitor["filtered_query"] if filtered else config.sql_queries.monitor[
         "non_filtered_query"]
     df_new = pd.DataFrame(engine.execute(query))
-    print("df_new", df_new.head())
+    print("df_new (new data):\n", df_new.head())
 
     df_monitor = df_monitor.merge(df_new, how='outer', on='code')
-    print("df_monitor", df_monitor.head())
+    print("df_monitor: moving new state to old state\n", df_monitor.head())
 
     # переносим not null новое в старое и переносим цену и стд
     colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
@@ -76,7 +80,7 @@ def update_tables(filtered=False):
                 ('new_timestamp', 'timestamp')]
 
     df_monitor = copy_colvals(df_monitor, colpairs)
-    print("step2: df_monitor", df_monitor.head())
+    print("step2: df_monitor\n", df_monitor.head())
 
     df_monitor['to_update'] = df_monitor['new_state'].isnull() | (
             df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) | \
@@ -85,8 +89,8 @@ def update_tables(filtered=False):
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
 
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
-    print("step3: df_monitor full", df_monitor.head())
-    print("step3: df_monitor[to_update]==True - filtered", df_monitor[df_monitor['to_update']])
+    print("step3: df_monitor full (updated states)\n", df_monitor.head())
+    print("step3: df_monitor[to_update]==True - filtered\n", df_monitor[df_monitor['to_update']])
 
     sql.get_table.exec_query("delete from public.df_monitor")
     df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
@@ -109,30 +113,14 @@ def send_messages(df_monitor):
 
 def prepare_images(df_monitor_code_series):
     days_to_subtract = 7
-    df = sql.get_table.query_to_df("select * from df_all_candles_t")
+
+    df = sql.get_table.query_to_df(f"select * from df_all_candles_t  where datetime > NOW() -  interval '{days_to_subtract+1} days' order by datetime asc")
+
     df['t'] = pd.to_datetime(df['datetime'])
     # df.drop(columns=['datetime'], inplace=True)
     start_date = datetime.today() - timedelta(days=days_to_subtract)
     start_date = start_date.replace(tzinfo=df['t'][0].tzinfo)
     df = df[df['t'] > start_date]
-
-    # query = f"select * from public.bigdealshist where price_inc <> 0"
-    # df_bigdealshist = pd.DataFrame(engine.execute(query))
-
-    # print("df_bigdealshist snap before", df_bigdealshist['snaptimestamp'][:2])
-    # df_bigdealshist['snaptimestamp'] = df_bigdealshist['snaptimestamp'].astype(str).str[:5] + ":00 " + df_bigdealshist[
-    #                                                                                                       'snaptimestamp'].astype(
-    #    str).str[-6:]
-    # df_bigdealshist['datetime'] = df_bigdealshist['tradedate'].astype(str) + " " + df_bigdealshist['snaptimestamp']
-    # print("df_bigdealshist datetime", df_bigdealshist['datetime'][:2], df_bigdealshist.dtypes)
-
-    # df_bigdealshist['datetime'] = pd.to_datetime(df_bigdealshist['datetime'], format='%d.%m.%Y %H:%M:%S %z')
-    # print("df_bigdealshist datetime2", df_bigdealshist['datetime'][:2])
-    # print("df_bigdealshist", df_bigdealshist.head())
-
-    #df_bigdealshist = pd.DataFrame()
-    #df_bigdealshist = df.reset_index().merge(df_bigdealshist, how='inner', right_on=['code', 'datetime'],
-    #                                         left_on=['security', 'datetime'])
 
     query = f"select * from public.df_levels"  # and code='SBER'"
     df_eq = pd.DataFrame(engine.execute(query))
@@ -145,15 +133,13 @@ def prepare_images(df_monitor_code_series):
         df_ = df[df['security'] == sec]
         df_eq_ = df_eq[df_eq['sec'] == sec]
         df_volumes_ = df_volumes[df_volumes['code'] == sec]
-        #df_bigdealshist_ = df_bigdealshist[df_bigdealshist['security'] == sec]
-        #plot_price_volume(df_, df_eq_, df_volumes_, df_bigdealshist_[['index', 'close', 'volume_inc', 'price_inc']],
-        #                  title=f"{sec} {datetime.now()}", filename=f"{sec}")
-        plot_price_volume(df_, df_eq_, df_volumes_, pd.DataFrame(),
+        plot_price_volume(df_, df_eq_, df_volumes_,
                       title=f"{sec} {datetime.now()}", filename=f"{sec}")
     print("Monitor: graphs updated")
 
 
-def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", filename="fig"):
+def plot_price_volume(df, df_eq, df_volumes,  title="title", filename="fig"):
+    df = df.sort_values('datetime')
     fig, ax_left = plt.subplots()
     plt.xticks(rotation=90)
     fig.set_figheight(9)
@@ -162,19 +148,30 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
 
     #df.to_csv("df.csv", sep='\t')
     #df_eq.to_csv("df_eq.csv", sep='\t')
-    #df_bigdealshist.to_csv("df_bigdealshist.csv", sep='\t')
-
+    #df_volumes.to_csv("df_volumes.csv", sep='\t')
 
     ax_right = ax_left.twiny()
     if len(df_volumes) > 0:
         ax_right.plot(df_volumes['volume'], df_volumes['price'], color='green', linestyle='dashed')
         ax_right.axis(xmax=max(df_volumes['volume']) * 3)
 
-    # ax_left.locator_params(axis='x', nbins=50)
+    ax_left.locator_params(axis='x', nbins=25)
     ax_left.locator_params(axis='y', nbins=20)
-    ax_left.set_xticklabels(df['datetime'].astype(str))
+    #ax_left.set_xticklabels(df['datetime'].astype(str))
     ax_left.plot(df['close'])
-    # ax_left.plot(df['t'],df['close'])
+
+    # бьем вертикальными линиями по дням
+    res = []
+    df['datetime'] = df['datetime'].astype(str)
+    prev_row = None
+    for idx, row in df.iterrows():
+        if row['datetime'][:10] != prev_row:
+            res.append((idx, row['datetime'][:10]))
+        prev_row = row['datetime'][:10]
+
+    for idx,dt in res:
+        ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
+
 
     plt.title(title)
     for _, row in df_eq.iterrows():  # np.array([t[0] for t in peaks]):
@@ -187,10 +184,6 @@ def plot_price_volume(df, df_eq, df_volumes, df_bigdealshist, title="title", fil
             #    ax_left.axhline(y=row['sl'], color='k', linestyle='-')
             pass
 
-    #colors = ['g' if x > 0 else 'r' for x in df_bigdealshist['price_inc']]
-    #if len(df_bigdealshist) > 0:
-    #    ax_left.scatter(x=df_bigdealshist['index'], y=df_bigdealshist['close'], s=df_bigdealshist['volume_inc'] * 20,
-    #                    c=colors)
     print("Monitor: Saving file")
     plt.savefig(f'./level_images/{filename}.png', dpi=50)
 
@@ -208,9 +201,7 @@ def get_gains(min_lag=10, threshold=0.5):
     df_end = df
 
     df_start = df_start.sort_values(['security', 'cdate']).groupby(['security']).tail(1)
-    print("get_gains:df_start", df_start.head())
     df_end = df_end.sort_values(['security', 'cdate']).groupby(['security']).tail(1)
-    print("get_gains:df_end", df_end.head())
 
     df_res = df_end.merge(df_start, how='inner', on='security')[
         ['security', 'class_code_x', 'close_x', 'close_y', 'cdate_x', 'cdate_y']]
@@ -220,9 +211,11 @@ def get_gains(min_lag=10, threshold=0.5):
     df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
     df_inc = pd.concat([df_eq.head(5), df_eq.tail(5), df_fut.head(5), df_fut.tail(5)])[['security', 'inc', 'close_x', 'cdate_x']] \
-        .sort_values('inc').reset_index()
-    df_inc['cdate_x'] = df_inc['cdate_x'].apply(lambda x: x.strftime("%H:%M:%S"))
-    print("full df inc", df_inc)
+        .sort_values('inc').reset_index(drop=True)
+
+    df_inc['cdate_x'] = df_inc['cdate_x'].apply(lambda x: x.strftime("%H:%M"))
+    df_inc['inc'] =  df_inc['inc'].round(2)
+    print("full df inc\n", df_inc)
     return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)], df_inc
 
 
@@ -254,6 +247,7 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df['ctime'] = df['cdate'].dt.time
         df['cdt'] = df['cdate'].dt.date
 
+        # считаем mean std volumes предыдущегго и текущего периодов
         df_prev = df.loc[(df['cdate'].dt.time > start_time) & (df['cdate'].dt.time <= end_time) &
                          (df['cdate'].dt.date >= start_date) & (df['cdate'].dt.date < end_date)] \
             .groupby([df['cdate'].dt.date, 'security']).sum('volume').reset_index() \
@@ -266,11 +260,13 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df_analys = df_prev.merge(df_now, how='inner', on='security')
         df_analys['std'] = (df_analys['volume'] - df_analys['volume_mean']) / df_analys['volume_std']
         df_analys['end_time'] = end_time
+
         return df_analys[df_analys['std'] >= 4].sort_values('std', ascending=False)
 
     df_minutes = get_volumes()
     df_minutes['timeframe'] = 'mins'
 
+    #540 это -9 часов, чтобы это сработало в 9 утра
     df_daily = get_volumes(minutes_lookback=540) if include_daily else pd.DataFrame()
     df_daily['timeframe'] = 'days'
 
@@ -313,25 +309,31 @@ if __name__ == '__main__':
 
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print("urgent_list:", urgent_list)
+
     df_monitor = update_tables(filtered=False)
     print('df_monitor', df_monitor.head())
     print(df_monitor.code.drop_duplicates())
+
     df_gains, df_inc = get_gains()
     print('df_gains', df_gains.head())
+
     df_volumes = get_abnormal_volumes()
 
     df_bollinger = get_bollinger()
 
     if len(pd.concat([df_volumes['security'], df_gains['security']])) > 0:
-        # if len(df_gains['security']) > 0:
         prepare_images(pd.concat([df_volumes['security'], df_gains['security']]).drop_duplicates())
-        # prepare_images(df_gains['security'].drop_duplicates())
         # send_messages(df_monitor)
         send_gains(df_gains, urgent_list)
         send_abnormal_volumes(df_volumes, urgent_list)
 
+    df_inc['close_x'] = df_inc['close_x'].astype(str).replace(r'0+$', '', regex=True)
     send_df(df_inc)
+
     if len(df_bollinger) > 0:
         print("sending bollinger")
+        df_bollinger['quote'] = df_bollinger['quote'].round(8)
+        df_bollinger['quote'] = df_bollinger['quote'].astype(str).replace(r'0+$', '', regex=True)
+        print(df_bollinger)
         send_df(df_bollinger)
     print("monitor: ended", datetime.now())
