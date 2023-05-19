@@ -44,6 +44,11 @@ VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0,
 COMMIT;
 """
 
+
+query_sig_upd = """insert into public.signal_arch(tstz, code, date_discovery, channel_source, news_time, min_val, max_val, mean_val, volume, board, min, max, last_volume, count)
+select * from signal"""
+
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging.getLogger("refresh")
 
@@ -54,7 +59,8 @@ def update():
     store_jumps()
     query = "select * from public.futquotesdiff;"
     s = pd.DataFrame(sql.get_table.exec_query(query))
-    logger.info(s[:5].to_string())
+    #logger.info(s[:5].to_string())
+    logger.info(f"df length: {len(s)}")
     return s
 
 
@@ -71,6 +77,7 @@ def store_jumps():
     if len(df_jumps)>0:
         df_jumps.to_sql('df_jumps', engine, if_exists='append')
 
+
 start_refresh = compose_td_datetime("09:00:00")
 end_refresh = compose_td_datetime("23:30:00")
 
@@ -79,4 +86,5 @@ if __name__ == '__main__':
     while start_refresh <= datetime.datetime.now() < end_refresh:
         logger.info(datetime.datetime.now())
         update()
+        sql.get_table.exec_query(query_sig_upd)
         time.sleep(0.5 - (time.time() % 0.5))

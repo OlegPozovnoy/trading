@@ -41,6 +41,7 @@ def GetAllAccounts():
             firmMoneyLimits = [moneyLimit for moneyLimit in moneyLimits if moneyLimit['firmid'] == firmId]  # Денежные лимиты по фирме
             for firmMoneyLimit in firmMoneyLimits:  # Пробегаемся по всем денежным лимитам
                 limitKind = firmMoneyLimit['limit_kind']  # День лимита
+                print(firmMoneyLimit)
                 print(f'- Денежный лимит {firmMoneyLimit["tag"]} на T{limitKind}: {firmMoneyLimit["currentbal"]} {firmMoneyLimit["currcode"]}')
                 # Позиции
                 firmKindDepoLimits = [depoLimit for depoLimit in depoLimits if depoLimit['firmid'] == firmId and depoLimit['limit_kind'] == limitKind and depoLimit['currentbal'] != 0]  # Берем только открытые позиции по фирме и дню
@@ -51,6 +52,7 @@ def GetAllAccounts():
                     lastPrice = float(qpProvider.GetParamEx(classCode, secCode, 'LAST')['data']['param_value'])  # Последняя цена сделки
                     if classCode == 'TQOB':  # Для рынка облигаций
                         lastPrice *= 10  # Умножаем на 10
+                    print(firmKindDepoLimit)
                     print(f'  - Позиция {classCode}.{secCode} {firmKindDepoLimit["currentbal"]} @ {entryPrice:.2f}/{lastPrice:.2f}')
         # Заявки
         firmOrders = [order for order in orders if order['firmid'] == firmId and order['flags'] & 0b1 == 0b1]  # Активные заявки по фирме
@@ -63,7 +65,7 @@ def GetAllAccounts():
             isBuy = firmStopOrder['flags'] & 0b100 != 0b100  # Заявка на покупку
             print(f'- Стоп заявка номер {firmStopOrder["order_num"]} {"Покупка" if isBuy else "Продажа"} {firmStopOrder["class_code"]}.{firmStopOrder["sec_code"]} {firmStopOrder["qty"]} @ {firmStopOrder["price"]}')
 
-def GetAccount(ClientCode='', FirmId='SPBFUT', TradeAccountId='SPBFUT00PST', LimitKind=0, CurrencyCode='SUR', IsFutures=True):
+def GetAccount(ClientCode='', FirmId='SPBFUT', TradeAccountId='SPBFUT002KY', LimitKind=0, CurrencyCode='SUR', IsFutures=True):
     """Получение торгового счета. По умолчанию, выдается счет срочного рынка"""
     classCodes = qpProvider.GetClassesList()['data']  # Список классов
     moneyLimits = qpProvider.GetMoneyLimits()['data']  # Все денежные лимиты (остатки на счетах)
@@ -77,6 +79,7 @@ def GetAccount(ClientCode='', FirmId='SPBFUT', TradeAccountId='SPBFUT00PST', Lim
         futuresHoldings = qpProvider.GetFuturesHoldings()['data']  # Все фьючерсные позиции
         activeFuturesHoldings = [futuresHolding for futuresHolding in futuresHoldings if futuresHolding['totalnet'] != 0]  # Активные фьючерсные позиции
         for activeFuturesHolding in activeFuturesHoldings:
+            print(activeFuturesHolding)
             print(f'- Фьючерсная позиция {activeFuturesHolding["sec_code"]} {activeFuturesHolding["totalnet"]} @ {activeFuturesHolding["cbplused"]}')
     else:  # Для остальных фирм
         accountMoneyLimit = [moneyLimit for moneyLimit in moneyLimits  # Денежный лимит
@@ -84,6 +87,7 @@ def GetAccount(ClientCode='', FirmId='SPBFUT', TradeAccountId='SPBFUT00PST', Lim
                              moneyLimit['firmid'] == FirmId and  # Фирме
                              moneyLimit['limit_kind'] == LimitKind and  # Дню лимита
                              moneyLimit["currcode"] == CurrencyCode][0]  # Валюте
+        print(accountMoneyLimit)
         print(f'- Денежный лимит {accountMoneyLimit["currentbal"]}')
         accountDepoLimits = [depoLimit for depoLimit in depoLimits  # Бумажный лимит
                              if depoLimit['client_code'] == ClientCode and  # Выбираем по коду клиента
@@ -97,6 +101,7 @@ def GetAccount(ClientCode='', FirmId='SPBFUT', TradeAccountId='SPBFUT00PST', Lim
             lastPrice = float(qpProvider.GetParamEx(classCode, secCode, 'LAST')['data']['param_value'])  # Последняя цена сделки
             if classCode == 'TQOB':  # Для рынка облигаций
                 lastPrice *= 10  # Умножаем на 10
+            print(accountDepoLimits)
             print(f'- Позиция {classCode}.{secCode} {firmKindDepoLimit["currentbal"]} @ {entryPrice:.2f}/{lastPrice:.2f}')
     accountOrders = [order for order in orders  # Заявки
                      if (order['client_code'] == ClientCode or ClientCode == '') and  # Выбираем по коду клиента
@@ -121,7 +126,7 @@ if __name__ == '__main__':  # Точка входа при запуске это
     # qpProvider = QuikPy(Host='<Ваш IP адрес>')  # Вызываем конструктор QuikPy с подключением к удаленному компьютеру с QUIK
 
     GetAllAccounts()  # Получаем все счета. По ним можно будет сформировать список счетов для торговли
-    print()
+    print("---------------------------------------------------------")
     GetAccount()  # Российские фьючерсы и опционы (счет по умолчанию)
     # По списку полученных счетов обязательно проверьте каждый!
     # GetAccount('<Код клиента>', '<Код фирмы>', '<Счет>', <Номер дня лимита>, '<Валюта>', <Счет фьючерсов=True, иначе=False>)

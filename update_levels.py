@@ -10,7 +10,7 @@ import numpy as np
 import config.sql_queries
 from datetime import datetime, timedelta
 from scipy.signal import find_peaks
-# from sqlalchemy import create_engine
+
 import time
 import sql.get_table
 import telegram
@@ -18,14 +18,11 @@ import pytz
 
 import tools.clean_processes
 
-CANDLES_PATH = './Data/candles.csv'
 engine = sql.get_table.engine
 
 
 def load_df(days_to_subtract=7):
-    df = sql.get_table.query_to_df("select * from df_all_candles_t") #pd.read_csv(CANDLES_PATH, sep='\t')
-
-    #df['t'] = pd.to_datetime(df['datetime'], format='%d.%m.%Y %H:%M')
+    df = sql.get_table.query_to_df("select * from df_all_candles_t")
     df['t'] = pd.to_datetime(df['datetime'])
     df.drop(columns=['datetime'], inplace=True)
 
@@ -39,8 +36,7 @@ def load_df(days_to_subtract=7):
     # Adjust start date
     start_date = (datetime.today() - timedelta(days=days_to_subtract))
     start_date = start_date.replace(tzinfo=df['t'][0].tzinfo)
-
-    df = df[df['t'] > start_date] #np.datetime64(start_date)]
+    df = df[df['t'] > start_date]
 
     # adjust past week volume
     df.loc[df['week'] != current_week, 'volume'] = df.loc[df['week'] != current_week, 'volume'] / 2

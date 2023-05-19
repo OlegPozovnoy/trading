@@ -134,7 +134,11 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                     res['tags'] = tags
                     if len(tags)>0:
                         res['is_important'] = nlp.lang_models.check_doc_importance(res)
-                        hft.discovery.record_new_watch(res, channel['username'])
+
+                        important_tags = list(set(tags) - {'MOEX'})  # убираем слишком широкие инструменты
+                        important_tags = list(filter(lambda n: n[-1] != '3', important_tags))
+                        if len(important_tags) <= 2:
+                            hft.discovery.record_new_watch(res, channel['username'])
 
                     if len(tags) > 0: #or channel['import_empty']: пока из за большего числа каналов только по теме импорт
                         res['parent_tags'] = channel['tags']
