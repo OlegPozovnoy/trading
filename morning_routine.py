@@ -74,6 +74,8 @@ def clean_db():
     DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
     DELETE	FROM public.secquotes;
     DELETE	FROM public.futquotes;
+    DELETE	FROM public.pos_eq;
+    DELETE	FROM public.pos_collat;
     DELETE	FROM public.deals;
     DELETE	FROM public.deorders;
     DELETE	FROM public.df_monitor;

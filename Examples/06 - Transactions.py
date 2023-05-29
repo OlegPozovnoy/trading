@@ -14,33 +14,22 @@ engine = sql.get_table.engine
 
 
 class OrderProcesser():
-    def __init__(self, func, timeout=0.5):
+    def __init__(self):
         self.tasks_list = []
-        self.func = func
-        self.timeout = timeout
-    def add_task(self,task, timeout):
-#        try:
-#            self.func(task[0][1:])  # все без key, key always 1
-#        except:
-#            pass
 
-        if task[0] not in [item[0] for item in self.tasks_list]:
+    def add_task(self,task, timeout):
+        if task[0] not in [item[0][0] for item in self.tasks_list]: #item[0] order item[0][0] - key
             self.tasks_list.append((task, datetime.datetime.now() + datetime.timedelta(seconds=timeout)))
             self.tasks_list = sorted(self.tasks_list, key=lambda x: x[1])
-            return True # task is not scheduled
-        return False  # task scheduled
+            return True # task is scheduled
+        return False  # task exist
 
     def do_tasks(self):
 
         tasks_to_do = [task for task in self.tasks_list if task[1] < datetime.datetime.now()]
-#        for task in tasks_to_do:
-#
-#            try:
-#                self.func(task[0][1:]) # все без key, key always 1
-#            except:
-#                pass
-
         self.tasks_list = self.tasks_list[len(tasks_to_do):]
+        print(f"Order oricessor tasks to do {tasks_to_do}")
+        print(f"Order oricessor tasks_list {self.tasks_list}")
         return tasks_to_do
 
 
@@ -308,7 +297,7 @@ def process_orders(orderProcesser):
     tasks_list = orderProcesser.do_tasks()
     print(f"tasks_list:{tasks_list}")
     for task in tasks_list:
-        print(task)
+        print(f"processing taks {task}")
         place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5])
 
     sleep(random.uniform(0,0.1))
@@ -320,7 +309,7 @@ if __name__ == '__main__':  # Точка входа при запуске это
     #print("!!!!",os.getcwd())
 
     qpProvider = QuikPy()
-    orderProcesser = OrderProcesser(func=dummyfunc)
+    orderProcesser = OrderProcesser()
     while True:
         process_orders(orderProcesser)
     #set_position('VTBR', 0, sleep_time=10, max_amount=100000, price_bound=None)
