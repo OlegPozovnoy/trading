@@ -100,6 +100,7 @@ def update_import_params():
 def import_new_tickers(refresh_tickers=False):
     df = update_import_params() if refresh_tickers else sql.get_table.query_to_df("select * from public.tinkoff_params")
     startTime = time.time()
+    print(f"update import params", df.head())
     for idx, row in df.iterrows():
         try:
             print("loading", row['name'],  row['ticker'], row['figi'])
@@ -125,7 +126,7 @@ def import_new_tickers(refresh_tickers=False):
 
 if __name__ == "__main__":
     startTime = time.time()
-
+    print(f"inkoff candles: {datetime.datetime.now()} {os.getpid()}")
     if not tools.clean_processes.clean_proc("tinkoff_candles", os.getpid(), 3):
         print("something is already running")
         exit(0)

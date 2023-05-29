@@ -94,6 +94,7 @@ def update_tables(filtered=False):
 
     sql.get_table.exec_query("delete from public.df_monitor")
     df_monitor[columns].to_sql('df_monitor', engine, if_exists='append')
+    print("df_monitor finished")
     return df_monitor[df_monitor['to_update']]
 
 
@@ -113,7 +114,7 @@ def send_messages(df_monitor):
 
 def prepare_images(df_monitor_code_series):
     days_to_subtract = 7
-
+    print(f"preparing images {df_monitor_code_series}")
     df = sql.get_table.query_to_df(f"select * from df_all_candles_t  where datetime > NOW() -  interval '{days_to_subtract+1} days' order by datetime asc")
 
     df['t'] = pd.to_datetime(df['datetime'])
@@ -303,7 +304,7 @@ def send_df(df):
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
 
-    if not tools.clean_processes.clean_proc("monitor", os.getpid(), 3):
+    if not tools.clean_processes.clean_proc("monitor", os.getpid(), 5):
         print("something is already running")
         exit(0)
 

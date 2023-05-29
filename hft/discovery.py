@@ -9,7 +9,7 @@ def record_new_watch(doc, news_channel):
     for code in codes:
         query_10mins = f"""SELECT code, board, min, max, mean, volume, count 
         FROM public.diffhistview_1510 
-        where code = {code} 
+        where code = '{code}' 
         limit 1;"""
         params = sql.get_table.query_to_list(query_10mins)
 
