@@ -189,7 +189,7 @@ def remove_empty_tag_news():
             if len(item['tags']) == 0:
                 news_collection.delete_one(item)
 
-remove_news_duplicates()
+#remove_news_duplicates()
 #remove_empty_tag_news()
 #remove_channel('promsvyaz_am')
 #remove_channel_duplicates()

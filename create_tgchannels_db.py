@@ -104,7 +104,7 @@ async def create_channels():
 
 
 async def import_news(channel, limit=None, max_msg_load=1000):
-    async with Client("my_ccount", api_id, api_hash) as app:
+    async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
         news_collection = client.trading['news']
 
         print(f"channel:{channel}")
@@ -132,19 +132,26 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                 if msg.caption is not None or msg.text is not None:
                     tags = nlp.lang_models.build_news_tags(str(msg.caption) + ' ' + str(msg.text))
                     res['tags'] = tags
-                    if len(tags)>0:
-                        res['is_important'] = nlp.lang_models.check_doc_importance(res)
-
-                        important_tags = list(set(tags) - {'MOEX'})  # убираем слишком широкие инструменты
-                        important_tags = list(filter(lambda n: n[-1] != '3', important_tags))
-                        if len(important_tags) <= 2:
-                            hft.discovery.record_new_watch(res, channel['username'])
 
                     if len(tags) > 0: #or channel['import_empty']: пока из за большего числа каналов только по теме импорт
                         res['parent_tags'] = channel['tags']
                         news_collection.insert_one(res)
 
-            nlp.mongo_tools.update_tg_msg_count(channel['username'], count)
+                    if len(tags)>0:
+                        res['is_important'] = nlp.lang_models.check_doc_importance(res)
+
+                        important_tags = list(set(tags) - {'MOEX'})  # убираем слишком широкие инструменты
+                        important_tags = list(filter(lambda n: n[-1] != '3', important_tags))
+
+                        res['important_tags'] = important_tags
+                        if len(important_tags) <= 2:
+                            try:
+                                hft.discovery.record_new_watch(res, channel['username'])
+                            except Exception as e:
+                                print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
+
+
+        nlp.mongo_tools.update_tg_msg_count(channel['username'], count)
 
 
 async def upload_recent_news():
@@ -163,12 +170,13 @@ async def upload_recent_news():
             if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
                 await import_news(channel, limit=None, max_msg_load=10000)
         except Exception as e:
-            print(f"Checking {channel['title']}", channel, str(e))
+            print(f"Checking {channel['title']}  {channel} \n{str(e)}" )
 
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 2):
+    print(os.getgid(), os.getppid(), os.getpgrp())
+    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 6):
         print("something is already running")
         exit(0)
 
