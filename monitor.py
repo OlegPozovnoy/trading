@@ -301,8 +301,19 @@ def send_df(df):
     asyncio.run(telegram.send_message(df.to_string(justify='left', index=False)))
 
 
+def check_quotes_import():
+    query_sec= "SELECT max(last_upd) FROM public.secquotesdiff;"
+    query_fut= "select max(last_upd) from public.futquotesdiff;"
+    last_sec = sql.get_table.query_to_list(query_sec)[0]['max'].replace(tzinfo=None)
+    last_fut = sql.get_table.query_to_list(query_fut)[0]['max'].replace(tzinfo=None)
+    print(last_sec, last_fut, datetime.now() - timedelta(minutes=10))
+    if min(last_fut, last_sec) < datetime.now() - timedelta(minutes=10):
+        asyncio.run(telegram.send_message(f"quotes import problems: sec: {last_sec} fut: {last_fut}", urgent=True))
+
+
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
+    check_quotes_import()
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 5):
         print("something is already running")
