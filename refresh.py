@@ -51,10 +51,8 @@ COMMIT;
 
 
 query_sig_upd = """
-BEGIN;
 insert into public.signal_arch(tstz, code, date_discovery, channel_source, news_time, min_val, max_val, mean_val, volume, board, min, max, last_volume, count)
 select * from public.signal;
-COMMIT;
 """
 
 
@@ -66,8 +64,8 @@ def update():
     sql.get_table.exec_query(query_fut_upd)
     sql.get_table.exec_query(query_sec_upd)
     #store_jumps()
-    query_fut = "select max(last_upd), count(*) as cnt from public.futquotesdiff;"
-    query_sec = "select max(last_upd), count(*) as cnt from public.secquotesdiff;"
+    query_fut = "select max(updated_at), count(*) as cnt from public.futquotesdiff;"
+    query_sec = "select max(updated_at), count(*) as cnt from public.secquotesdiff;"
 
     last_sec = sql.get_table.query_to_list(query_sec)[0]
     last_fut = sql.get_table.query_to_list(query_fut)[0]

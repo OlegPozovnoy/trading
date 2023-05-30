@@ -26,14 +26,19 @@ def clean_proc(keyword, pid, mins_threshold):
     print(f"res: {res}\n pid_process(caller):{pid_process}")
 
     state = True
+    killcount = 0
     for item in res:
         print(f"False: {item[2]} {pid_process[0][2] + 1. / 60}")
         if item[2] > mins_threshold:
             print(f"Killing {item}")
             os.kill(item[0], signal.SIGTERM)
+            killcount += 1
             #os.system(f"pkill -9 -f {item[0]}") # too long
         elif item[2] > (pid_process[0][2] + 1./60):
             state = False  # something is running
+
+    if keyword == "create_tgchanne" and len(res) - killcount >=5:
+        state = False
     print(f"state: {state}")
     return state
 

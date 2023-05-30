@@ -28,7 +28,7 @@ loaded_candles = None
 def load_candles():
     global loaded_candles
     if loaded_candles is None:
-        loaded_candles = sql.get_table.query_to_df("select * from df_all_candles_t order by datetime asc")
+        loaded_candles = sql.get_table.query_to_df("select * from df_all_candles_t  where datetime >  (CURRENT_DATE-14) order by datetime asc")
     return loaded_candles
 
 
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     print("monitor started: ", datetime.now())
     check_quotes_import()
 
-    if not tools.clean_processes.clean_proc("monitor", os.getpid(), 5):
+    if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         print("something is already running")
         exit(0)
 
