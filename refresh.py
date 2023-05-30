@@ -12,6 +12,7 @@ import tools.clean_processes
 engine = sql.get_table.engine
 
 query_fut_upd = """
+BEGIN;
 MERGE INTO public.futquotesdiff fqd
 USING public.futquotes fq
 ON fq.code = fqd.code
@@ -21,10 +22,12 @@ bid_inc = fq.bid - fqd.bid, ask_inc = fq.ask-fqd.ask, volume_inc = fq.volume-fqd
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW()); 
+COMMIT;
 """
 
 
 query_sec_upd="""
+BEGIN;
 MERGE INTO public.secquotesdiff fqd
 USING public.secquotes fq
 ON fq.code = fqd.code
@@ -43,12 +46,15 @@ last_upd=NOW()
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW());
+COMMIT;
 """
 
 
 query_sig_upd = """
+BEGIN;
 insert into public.signal_arch(tstz, code, date_discovery, channel_source, news_time, min_val, max_val, mean_val, volume, board, min, max, last_volume, count)
 select * from public.signal;
+COMMIT;
 """
 
 
@@ -60,10 +66,13 @@ def update():
     sql.get_table.exec_query(query_fut_upd)
     sql.get_table.exec_query(query_sec_upd)
     #store_jumps()
-    query = "select * from public.futquotesdiff;"
-    s = pd.DataFrame(sql.get_table.exec_query(query))
-    logger.info(f"df length: {len(s)}")
-    return s
+    query_fut = "select max(last_upd), count(*) as cnt from public.futquotesdiff;"
+    query_sec = "select max(last_upd), count(*) as cnt from public.secquotesdiff;"
+
+    last_sec = sql.get_table.query_to_list(query_sec)[0]
+    last_fut = sql.get_table.query_to_list(query_fut)[0]
+    logger.info(f"\nsec: {last_sec}\nfut: {last_fut}")
+    return
 
 
 def compose_td_datetime(curr_time):
