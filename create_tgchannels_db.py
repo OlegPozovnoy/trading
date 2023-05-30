@@ -176,7 +176,7 @@ async def upload_recent_news():
 if __name__ == "__main__":
     print(datetime.datetime.now())
     print(os.getgid(), os.getppid(), os.getpgrp())
-    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 6):
+    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 1):
         print("something is already running")
         exit(0)
 
