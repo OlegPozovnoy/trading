@@ -205,6 +205,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
         print(f"error: {result}")
         return
 
+    transaction['last_upd'] = datetime.datetime.now()
     order_in = pd.DataFrame([transaction])
     order_in.to_sql('orders_in', engine, if_exists='append')
 
@@ -270,7 +271,7 @@ def dummyfunc(args):
 
 
 def process_orders(orderProcesser):
-    query = "SELECT  * FROM public.allquotes where id is not null and amount <> quantity and state <> 0"
+    query = "SELECT  * FROM public.allquotes where id is not null and amount + amount_pending + unconfirmed_amount <> quantity and state <> 0"
 
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
@@ -289,8 +290,12 @@ def process_orders(orderProcesser):
             if if_not_exist:
                 place_order(secCode, quantity, price_bound, order['max_amount'], comment)
 
-        update_query = f"update public.orders_my set remains = {order['amount']} where id = {order['id']}"
+        update_query = f"update public.orders_my set remains = {order['amount'] + order['amount_pending'] + order['unconfirmed_amount']} where id = {order['id']}"
         sql.get_table.exec_query(update_query)
+
+        update_query = f"update public.orders_my set state = 0  where id = {order['id']} and remains = quantity"
+        sql.get_table.exec_query(update_query)
+
         sleep(0.1)
 
     # get tasks tthat are scheduled
