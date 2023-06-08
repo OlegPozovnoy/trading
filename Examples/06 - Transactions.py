@@ -111,14 +111,14 @@ def normalize_price(price):
 
 
 def kill_orders(secCode, comment):
-    query = f"""SELECT order_num FROM public.autoorders where "SECCODE"='{secCode}' and state = 'ACTIVE' and "COMMENT"='{comment}'"""
-    print(query)
+    query = f"""SELECT order_id FROM public.autoorders where "SECCODE"='{secCode}' and state = 'ACTIVE' and "COMMENT"='{comment}' and order_id is not null"""
+    print("kill orders:", query)
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
     print(orders)
     for order_num in orders:
         TransId = get_trans_id()
-        orderNum = order_num['order_num']
+        orderNum = order_num['order_id']
         classCode = get_class_code(secCode)
 
         transaction = {
@@ -163,7 +163,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     operation = "B" if quantity > 0 else "S"
     price = (float(quotes['ask'])) if quantity > 0 else (float(quotes['bid']))
 
-    print(f"price {price}, price_bound {price_bound} quantity{quantity}")
+    print(f"price {price}, price_bound {price_bound} quantity {quantity}")
     if (price_bound is not None) and (quantity * (price - price_bound) > 0):
         print(f"price {price}, price_bound {price_bound}")
         return
@@ -212,7 +212,6 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     print(transaction)
     print(f'Новая лимитная/рыночная заявка отправлена на рынок:')
     print(result)
-    print(result["data"])
 
     while not reply:
         sleep(0.01)
@@ -244,7 +243,6 @@ def sqltime_to_datetime(sql_time):
 # def set_target_position()
 def get_class_code(secCode):
     query = f"select * from public.futquotes where code='{secCode}'"
-    print(query)
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
     if len(orders) == 0:
@@ -281,21 +279,29 @@ def process_orders(orderProcesser):
         print(order)
         comment = order['comment'] + str(order['id'])
         secCode = order['code']
-        kill_orders(secCode, comment)
+        kill_orders(secCode, comment) # пока так, меняет в процессе amount pending
         price_bound=order['barrier']
-        quantity=order['quantity']-order['amount']
+        quantity=order['quantity']-order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
 
         if ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (price_bound is None):
             if_not_exist = orderProcesser.add_task((comment, secCode, quantity, price_bound, order['max_amount'], comment), order['pause'])  # key 1st
             if if_not_exist:
                 place_order(secCode, quantity, price_bound, order['max_amount'], comment)
 
-        update_query = f"update public.orders_my set remains = {order['amount'] + order['amount_pending'] + order['unconfirmed_amount']} where id = {order['id']}"
+        print(f"updating: \namount:{order['amount']} \namount pending: {order['amount_pending']} \nunconfirmed_amount: {order['unconfirmed_amount']}")
+        update_query = f"""
+        begin;
+        update public.orders_my 
+        set remains = {order['amount']}, 
+        pending_conf = {order['amount_pending']}, 
+        pending_unconf = {order['unconfirmed_amount']} 
+        where id = {order['id']};
+        commit;
+        begin;
+        update public.orders_my set state = 0  where id = {order['id']} and remains = quantity;
+        commit;
+        """
         sql.get_table.exec_query(update_query)
-
-        update_query = f"update public.orders_my set state = 0  where id = {order['id']} and remains = quantity"
-        sql.get_table.exec_query(update_query)
-
         sleep(0.1)
 
     # get tasks tthat are scheduled
@@ -303,16 +309,14 @@ def process_orders(orderProcesser):
     print(f"tasks_list:{tasks_list}")
     for task in tasks_list:
         print(f"processing taks {task}")
+        #place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0004,
+        #            is_fast=False):
         place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5])
 
     sleep(random.uniform(0,0.1))
 
 
-
-
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
-    #print("!!!!",os.getcwd())
-
     qpProvider = QuikPy()
     orderProcesser = OrderProcesser()
     while True:
