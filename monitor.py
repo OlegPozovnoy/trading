@@ -302,14 +302,29 @@ def send_df(df):
 
 
 def check_quotes_import():
-    query_sec= "SELECT max(last_upd) FROM public.secquotesdiff;"
-    query_fut= "select max(last_upd) from public.futquotesdiff;"
+    # check that quotes are constantly running
+    query_sec = "SELECT max(last_upd) FROM public.secquotesdiff;"
+    query_fut = "select max(last_upd) from public.futquotesdiff;"
     last_sec = sql.get_table.query_to_list(query_sec)[0]['max'].replace(tzinfo=None)
     last_fut = sql.get_table.query_to_list(query_fut)[0]['max'].replace(tzinfo=None)
     print(last_sec, last_fut, datetime.now() - timedelta(minutes=10))
     if min(last_fut, last_sec) < datetime.now() - timedelta(minutes=10):
         asyncio.run(telegram.send_message(f"quotes import problems: sec: {last_sec} fut: {last_fut}", urgent=True))
 
+    #check that tables are not empty
+    tables = ['pos_fut', 'pos_money', 'pos_eq', 'pos_collat']
+    for table in tables:
+        query = f"select count(*) as cnt from public.{table}"
+        cnt = sql.get_table.query_to_list(query)[0]['cnt']
+        if int(cnt) == 0:
+            asyncio.run(telegram.send_message(f"table {table} is empty", urgent=True))
+
+    # check that money are imported
+    query = "SELECT count(*) as cnt_rows, count(money) as cnt_money FROM public.money;"
+    cnt_rows = sql.get_table.query_to_list(query)[0]['cnt_rows']
+    cnt_money = sql.get_table.query_to_list(query)[0]['cnt_money']
+    if not (cnt_rows, cnt_money) == (2,2):
+        asyncio.run(telegram.send_message(f"public.money error: {(cnt_rows, cnt_money)}", urgent=True))
 
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())

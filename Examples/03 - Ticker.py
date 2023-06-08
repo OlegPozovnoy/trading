@@ -15,6 +15,7 @@ if __name__ == '__main__':  # Точка входа при запуске это
 
     # Данные тикера
     securityInfo = qpProvider.GetSecurityInfo(classCode, secCode)["data"]  # Интерпретатор языка Lua, Таблица 4.21 Инструменты
+    print(securityInfo)
     print(f'Информация о тикере {classCode}.{secCode} ({securityInfo["short_name"]}):')  # Короткое наименование инструмента
     print('Валюта:', securityInfo['face_unit'])  # Валюта номинала
     print('Кол-во десятичных знаков:', securityInfo['scale'])  # Точность (количество значащих цифр после запятой)
