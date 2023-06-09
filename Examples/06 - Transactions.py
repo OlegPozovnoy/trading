@@ -282,9 +282,9 @@ def clean_open_orders():
 
 
 def actualize_order_my():
-    # переносим сколько пендинга итд
-    # проставляем direction там где нет
-    # выключаем ордера как только ремейнс достиг quantity
+    # 1)переносим сколько пендинга итд
+    # 2)проставляем direction там где нет
+    # 3)выключаем ордера как только ремейнс достиг quantity
     query = """
     begin;
     UPDATE public.orders_my as om 
@@ -299,8 +299,6 @@ def actualize_order_my():
     UPDATE public.orders_my
     set direction = coalesce(direction, sign(quantity - remains))
     where state <> 0 and remains is not null; 
-    commit;
-    begin;
     UPDATE public.orders_my
     set state = 0
     where state <> 0 and direction * (quantity - remains) <= 0; 
@@ -349,7 +347,7 @@ def process_orders(orderProcesser):
         #            is_fast=False):
     #    place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5], )
 
-    sleep(random.uniform(0,0.1))
+    sleep(random.uniform(0, 0.1))
 
 
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
