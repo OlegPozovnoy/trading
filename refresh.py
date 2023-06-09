@@ -73,12 +73,55 @@ def update():
     return
 
 
+
+
 def compose_td_datetime(curr_time):
     now = datetime.datetime.now()
     my_datetime = datetime.datetime.strptime(curr_time, "%H:%M:%S").time()
     return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
 
+def process_signal():
+    print("process signal in", datetime.datetime.now())
+    query = "SELECT * FROM public.signal_arch where tstz > now() - interval '1 minute'"
+    quotes = sql.get_table.exec_query(query)
+    signals = (quotes.mappings().all())
+
+    for signal in signals:
+        print(f"processing signal {signal}")
+        comment = 'HFT' + signal['channel_source'] + str(signal['news_time'])
+        code = signal['code']
+        end_time = signal['news_time'] + datetime.timedelta(minutes=3)
+        quantity = 0
+        direction = 0
+        if signal['min'] < signal['min_val'] * 2 - signal['max_val']: #sell
+            direction = -1
+            barrier = signal['mean_val'] / 1.004
+
+        elif signal['max'] > signal['max_val'] * 2 - signal['min_val']: #buy
+            direction = 1
+            barrier = signal['mean_val'] * 1.004
+        else:
+            print("clauses are not fulfilled")
+            continue
+
+        query_count = f"select count(*) cnt from public.orders_my where comment = '{comment}'"
+        ord_count = sql.get_table.exec_query(query_count).mappings().all()[0]['cnt']
+
+        if ord_count == 0:
+            query = f"select round(1100000/(bid * lot)) as qty from public.allquotes_collat where code = '{code}'"
+            quotes = sql.get_table.exec_query(query)
+            qty = (quotes.mappings().all())[0]['qty']
+
+            query = f"""
+            BEGIN;
+            insert into public.orders_my (state, quantity, comment, remains, barrier, max_amount, pause, code, end_time, start_time)
+            values(0,{qty*direction},'{comment}',0,{barrier}, {quantity/2},1,'{code}','{end_time}', now())
+            COMMIT;
+            """
+            print(query)
+            sql.get_table.exec_query(query)
+    print("process signal out", datetime.datetime.now())
 
 def store_jumps():
     query = "select * from public.jumps;"
@@ -101,8 +144,10 @@ if __name__ == '__main__':
         logger.info(datetime.datetime.now())
         try:
             update()
+
             sql.get_table.exec_query(query_sig_upd)
         except Exception as e:
             print(e)
 
+        process_signal()
         time.sleep(0.5 - (time.time() % 0.5))
