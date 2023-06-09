@@ -128,9 +128,9 @@ def kill_orders(secCode, comment):
             'SECCODE': secCode,  # Код тикера
             'ORDER_KEY': str(orderNum)}
 
-        print(transaction)
+        print("kill transaction sent:", transaction)
         result = qpProvider.SendTransaction(transaction)
-        print(result)
+        print("kill transaction reply:",result)
     return 0
 
 
@@ -143,7 +143,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     global engine
     global reply
 
-    kill_orders(secCode, comment)
+    #kill_orders(secCode, comment)
     classCode=get_class_code(secCode)
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
@@ -268,8 +268,54 @@ def dummyfunc(args):
     place_order(secCode, quantity, price_bound, max_quantity, comment)
 
 
+def clean_open_orders():
+        # all_quotes а не autoorders потому что если нет котировок - ничего не делаем
+        query = "SELECT id, comment, code FROM public.allquotes where id is not null and state <> 0"
+        quotes = sql.get_table.exec_query(query)
+        orders = (quotes.mappings().all())
+
+        for order in orders:
+            print(f"kill open orders: {order}")
+            comment = order['comment'] + str(order['id'])
+            secCode = order['code']
+            kill_orders(secCode, comment)  # пока так, меняет в процессе amount pending
+
+
+def actualize_order_my():
+    # переносим сколько пендинга итд
+    # проставляем direction там где нет
+    # выключаем ордера как только ремейнс достиг quantity
+    query = """
+    begin;
+    UPDATE public.orders_my as om 
+    SET  remains = ag.amount, 
+         pending_conf = ag.amount_pending, 
+         pending_unconf = ag.unconfirmed_amount 
+    FROM public.autoorders_grouped as ag
+    WHERE concat(om.comment::text, om.id) = ag.comment
+    and om.state <> 0;
+    commit;
+    begin;
+    UPDATE public.orders_my
+    set direction = coalesce(direction, sign(quantity - remains))
+    where state <> 0 and remains is not null; 
+    commit;
+    begin;
+    UPDATE public.orders_my
+    set state = 0
+    where state <> 0 and direction * (quantity - remains) <= 0; 
+    commit;
+    """
+    sql.get_table.exec_query(query)
+
+
+
 def process_orders(orderProcesser):
-    query = "SELECT  * FROM public.allquotes where id is not null and amount + amount_pending + unconfirmed_amount <> quantity and state <> 0"
+    clean_open_orders()
+    actualize_order_my()
+
+    # как всегда allquotes потому что ничего не делаем
+    query = "SELECT  * FROM public.allquotes where id is not null and direction is not null and state <> 0"
 
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
@@ -279,39 +325,29 @@ def process_orders(orderProcesser):
         print(order)
         comment = order['comment'] + str(order['id'])
         secCode = order['code']
-        kill_orders(secCode, comment) # пока так, меняет в процессе amount pending
         price_bound=order['barrier']
         quantity=order['quantity']-order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
 
-        if ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (price_bound is None):
+        price_bound_clause = ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (price_bound is None)
+        direction_clause = order['direction'] * quantity > 0
+
+        if price_bound_clause and direction_clause:
+            # добавляем в очередь блокировки с задержкой pause
             if_not_exist = orderProcesser.add_task((comment, secCode, quantity, price_bound, order['max_amount'], comment), order['pause'])  # key 1st
             if if_not_exist:
                 place_order(secCode, quantity, price_bound, order['max_amount'], comment)
 
-        print(f"updating: \namount:{order['amount']} \namount pending: {order['amount_pending']} \nunconfirmed_amount: {order['unconfirmed_amount']}")
-        update_query = f"""
-        begin;
-        update public.orders_my 
-        set remains = {order['amount']}, 
-        pending_conf = {order['amount_pending']}, 
-        pending_unconf = {order['unconfirmed_amount']} 
-        where id = {order['id']};
-        commit;
-        begin;
-        update public.orders_my set state = 0  where id = {order['id']} and remains = quantity;
-        commit;
-        """
-        sql.get_table.exec_query(update_query)
-        sleep(0.1)
 
     # get tasks tthat are scheduled
     tasks_list = orderProcesser.do_tasks()
     print(f"tasks_list:{tasks_list}")
-    for task in tasks_list:
-        print(f"processing taks {task}")
+
+    # это ошибка, по смыслу tasklist - набор сделок, чье время пока не пришло, как только мы делаем do_task и задача исчезаем- мы можем херачить ордер
+    #for task in tasks_list:
+    #    print(f"processing taks {task}")
         #place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0004,
         #            is_fast=False):
-        place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5])
+    #    place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5], )
 
     sleep(random.uniform(0,0.1))
 
