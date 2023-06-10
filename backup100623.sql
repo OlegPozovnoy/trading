@@ -5,7 +5,31 @@
 -- Dumped from database version 15.1
 -- Dumped by pg_dump version 15.3 (Ubuntu 15.3-1.pgdg22.04+1)
 
--- Started on 2023-06-10 04:38:30 MSK
+-- Started on 2023-06-10 08:30:17 MSK
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE test;
+--
+-- TOC entry 3585 (class 1262 OID 24576)
+-- Name: test; Type: DATABASE; Schema: -; Owner: postgres
+--
+
+CREATE DATABASE test WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Russian_Russia.1251';
+
+
+ALTER DATABASE test OWNER TO postgres;
+
+\connect test
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1349,7 +1373,7 @@ CREATE SEQUENCE public.orders_auto_id_seq
 ALTER TABLE public.orders_auto_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3585 (class 0 OID 0)
+-- TOC entry 3586 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: orders_auto_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -1374,7 +1398,7 @@ CREATE SEQUENCE public.orders_my_id_seq
 ALTER TABLE public.orders_my_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3586 (class 0 OID 0)
+-- TOC entry 3587 (class 0 OID 0)
 -- Dependencies: 244
 -- Name: orders_my_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -1640,7 +1664,7 @@ CREATE SEQUENCE public.signal_arch_id_seq
 ALTER TABLE public.signal_arch_id_seq OWNER TO postgres;
 
 --
--- TOC entry 3587 (class 0 OID 0)
+-- TOC entry 3588 (class 0 OID 0)
 -- Dependencies: 258
 -- Name: signal_arch_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -2052,7 +2076,7 @@ CREATE TRIGGER updated_at_rule BEFORE INSERT OR UPDATE ON public.futquotes FOR E
 CREATE TRIGGER updated_at_rule BEFORE INSERT OR UPDATE ON public.secquotes FOR EACH ROW EXECUTE FUNCTION public.updated_at_upd();
 
 
--- Completed on 2023-06-10 04:38:35 MSK
+-- Completed on 2023-06-10 08:30:22 MSK
 
 --
 -- PostgreSQL database dump complete
