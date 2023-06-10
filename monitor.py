@@ -28,7 +28,8 @@ loaded_candles = None
 def load_candles():
     global loaded_candles
     if loaded_candles is None:
-        loaded_candles = sql.get_table.query_to_df("select * from df_all_candles_t  where datetime >  (CURRENT_DATE-14) order by datetime asc")
+        loaded_candles = sql.get_table.query_to_df(
+            "select * from df_all_candles_t  where datetime >  (CURRENT_DATE-14) order by datetime asc")
     return loaded_candles
 
 
@@ -115,7 +116,8 @@ def send_messages(df_monitor):
 def prepare_images(df_monitor_code_series):
     days_to_subtract = 7
     print(f"preparing images {df_monitor_code_series}")
-    df = sql.get_table.query_to_df(f"select * from df_all_candles_t  where datetime > NOW() -  interval '{days_to_subtract+1} days' order by datetime asc")
+    df = sql.get_table.query_to_df(
+        f"select * from df_all_candles_t  where datetime > NOW() -  interval '{days_to_subtract + 1} days' order by datetime asc")
 
     df['t'] = pd.to_datetime(df['datetime'])
     # df.drop(columns=['datetime'], inplace=True)
@@ -135,11 +137,11 @@ def prepare_images(df_monitor_code_series):
         df_eq_ = df_eq[df_eq['sec'] == sec]
         df_volumes_ = df_volumes[df_volumes['code'] == sec]
         plot_price_volume(df_, df_eq_, df_volumes_,
-                      title=f"{sec} {datetime.now()}", filename=f"{sec}")
+                          title=f"{sec} {datetime.now()}", filename=f"{sec}")
     print("Monitor: graphs updated")
 
 
-def plot_price_volume(df, df_eq, df_volumes,  title="title", filename="fig"):
+def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
     df = df.sort_values('datetime')
     fig, ax_left = plt.subplots()
     plt.xticks(rotation=90)
@@ -147,9 +149,9 @@ def plot_price_volume(df, df_eq, df_volumes,  title="title", filename="fig"):
     fig.set_figwidth(16)
     fig.align_ylabels()
 
-    #df.to_csv("df.csv", sep='\t')
-    #df_eq.to_csv("df_eq.csv", sep='\t')
-    #df_volumes.to_csv("df_volumes.csv", sep='\t')
+    # df.to_csv("df.csv", sep='\t')
+    # df_eq.to_csv("df_eq.csv", sep='\t')
+    # df_volumes.to_csv("df_volumes.csv", sep='\t')
 
     ax_right = ax_left.twiny()
     if len(df_volumes) > 0:
@@ -158,7 +160,7 @@ def plot_price_volume(df, df_eq, df_volumes,  title="title", filename="fig"):
 
     ax_left.locator_params(axis='x', nbins=25)
     ax_left.locator_params(axis='y', nbins=20)
-    #ax_left.set_xticklabels(df['datetime'].astype(str))
+    # ax_left.set_xticklabels(df['datetime'].astype(str))
     ax_left.plot(df['close'])
 
     # бьем вертикальными линиями по дням
@@ -170,9 +172,8 @@ def plot_price_volume(df, df_eq, df_volumes,  title="title", filename="fig"):
             res.append((idx, row['datetime'][:10]))
         prev_row = row['datetime'][:10]
 
-    for idx,dt in res:
+    for idx, dt in res:
         ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
-
 
     plt.title(title)
     for _, row in df_eq.iterrows():  # np.array([t[0] for t in peaks]):
@@ -211,11 +212,12 @@ def get_gains(min_lag=10, threshold=0.5):
 
     df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
-    df_inc = pd.concat([df_eq.head(5), df_eq.tail(5), df_fut.head(5), df_fut.tail(5)])[['security', 'inc', 'close_x', 'cdate_x']] \
+    df_inc = pd.concat([df_eq.head(5), df_eq.tail(5), df_fut.head(5), df_fut.tail(5)])[
+        ['security', 'inc', 'close_x', 'cdate_x']] \
         .sort_values('inc').reset_index(drop=True)
 
     df_inc['cdate_x'] = df_inc['cdate_x'].apply(lambda x: x.strftime("%H:%M"))
-    df_inc['inc'] =  df_inc['inc'].round(2)
+    df_inc['inc'] = df_inc['inc'].round(2)
     print("full df inc\n", df_inc)
     return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)], df_inc
 
@@ -234,6 +236,7 @@ def send_gains(df_gains, urgent_list=None):
         print(msg)
         asyncio.run(telegram.send_message(msg, is_urgent))
         asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
+
 
 def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=14):
     def get_volumes(minutes_lookback=minutes_lookback, days_lookback=days_lookback):
@@ -267,7 +270,7 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
     df_minutes = get_volumes()
     df_minutes['timeframe'] = 'mins'
 
-    #540 это -9 часов, чтобы это сработало в 9 утра
+    # 540 это -9 часов, чтобы это сработало в 9 утра
     df_daily = get_volumes(minutes_lookback=540) if include_daily else pd.DataFrame()
     df_daily['timeframe'] = 'days'
 
@@ -311,7 +314,7 @@ def check_quotes_import():
     if min(last_fut, last_sec) < datetime.now() - timedelta(minutes=10):
         asyncio.run(telegram.send_message(f"quotes import problems: sec: {last_sec} fut: {last_fut}", urgent=True))
 
-    #check that tables are not empty
+    # check that tables are not empty
     tables = ['pos_fut', 'pos_money', 'pos_eq', 'pos_collat']
     for table in tables:
         query = f"select count(*) as cnt from public.{table}"
@@ -323,8 +326,9 @@ def check_quotes_import():
     query = "SELECT count(*) as cnt_rows, count(money) as cnt_money FROM public.money;"
     cnt_rows = sql.get_table.query_to_list(query)[0]['cnt_rows']
     cnt_money = sql.get_table.query_to_list(query)[0]['cnt_money']
-    if not (cnt_rows, cnt_money) == (2,2):
+    if not (cnt_rows, cnt_money) == (2, 2):
         asyncio.run(telegram.send_message(f"public.money error: {(cnt_rows, cnt_money)}", urgent=True))
+
 
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
