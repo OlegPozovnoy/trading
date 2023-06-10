@@ -329,6 +329,12 @@ def check_quotes_import():
     if not (cnt_rows, cnt_money) == (2, 2):
         asyncio.run(telegram.send_message(f"public.money error: {(cnt_rows, cnt_money)}", urgent=True))
 
+    query = "SELECT count(*) as cnt_rows, count(money) as cnt_money FROM public.money;"
+    cnt_rows = sql.get_table.query_to_list(query)[0]['cnt_rows']
+    cnt_money = sql.get_table.query_to_list(query)[0]['cnt_money']
+    if not (cnt_rows, cnt_money) == (2, 2):
+        asyncio.run(telegram.send_message(f"public.money error: {(cnt_rows, cnt_money)}", urgent=True))
+
 
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
