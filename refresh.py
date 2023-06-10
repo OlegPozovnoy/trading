@@ -83,7 +83,7 @@ def compose_td_datetime(curr_time):
 
 def process_signal():
     print("process signal in", datetime.datetime.now())
-    query = "SELECT * FROM public.signal_arch where tstz > now() - interval '1 minute'"
+    query = "SELECT * FROM public.signal_arch where tstz > now() - interval '1 minute' order by tstz desc limit 10"
     quotes = sql.get_table.exec_query(query)
     signals = (quotes.mappings().all())
 
@@ -92,18 +92,19 @@ def process_signal():
         comment = 'HFT' + signal['channel_source'] + str(signal['news_time'])
         code = signal['code']
         end_time = signal['news_time'] + datetime.timedelta(minutes=3)
-        quantity = 0
         direction = 0
         if signal['min'] < signal['min_val'] * 2 - signal['max_val']: #sell
             direction = -1
-            barrier = signal['mean_val'] / 1.004
+            barrier = signal['mean_val'] / 1.003
 
         elif signal['max'] > signal['max_val'] * 2 - signal['min_val']: #buy
             direction = 1
-            barrier = signal['mean_val'] * 1.004
+            barrier = signal['mean_val'] * 1.003
         else:
             print("clauses are not fulfilled")
             continue
+
+        state = 0 if signal['channel_source'] == 'ProfitGateClub' else 0
 
         query_count = f"select count(*) cnt from public.orders_my where comment = '{comment}'"
         ord_count = sql.get_table.exec_query(query_count).mappings().all()[0]['cnt']
@@ -116,7 +117,7 @@ def process_signal():
             query = f"""
             BEGIN;
             insert into public.orders_my (state, quantity, comment, remains, barrier, max_amount, pause, code, end_time, start_time)
-            values(0,{qty*direction},'{comment}',0,{barrier}, {quantity/2},1,'{code}','{end_time}', now())
+            values({state},{qty*direction},'{comment}',0,{barrier}, {qty/2},1,'{code}','{end_time}', now());
             COMMIT;
             """
             print(query)
