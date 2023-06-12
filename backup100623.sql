@@ -18,8 +18,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-DROP DATABASE test;
---
 -- TOC entry 3585 (class 1262 OID 24576)
 -- Name: test; Type: DATABASE; Schema: -; Owner: postgres
 --

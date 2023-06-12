@@ -70,6 +70,36 @@ def update():
     last_sec = sql.get_table.query_to_list(query_sec)[0]
     last_fut = sql.get_table.query_to_list(query_fut)[0]
     logger.info(f"\nsec: {last_sec}\nfut: {last_fut}")
+
+    # deactivate old signals
+    query_deact = "update public.orders_my set state=0	where now() > end_time"
+    sql.get_table.exec_query(query_deact)
+
+    # process stop loss take profit
+    query_sltp = """select case 
+    when (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit) then 1
+    else -1 end as tpsl, 
+    * from allquotes
+    where state = 1 and 
+    (
+    (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit)
+    or
+    (direction = -1 and bid > stop_loss) or (direction = 1 and ask < stop_loss)
+    )
+    """
+    for sltp_line in sql.get_table.query_to_list(query_sltp):
+        deact_query = f"update public.orders_my set state = 0, end_time=now() where id = {sltp_line['id']}"
+        sql.get_table.exec_query(deact_query)
+        if sltp_line['tpsl'] == 1: #take_profit
+            new_order = f"""insert into public.orders_my(state, quantity, comment, remains, parent_id, barrier, max_amount, pause, code, direction, start_time)
+            values(1,{-sltp_line['quantity']},'take profit',0, {sltp_line['id']},{sltp_line['take_profit']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
+            """
+            sql.get_table.exec_query(new_order)
+        else: #stop_loss
+            new_order = f"""insert into public.orders_my(state, quantity, comment, remains, parent_id, barrier, max_amount, pause, code, direction, start_time)
+            values(1,{-sltp_line['quantity']},'stop loss',0, {sltp_line['id']},{sltp_line['stop_loss']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
+            """
+            sql.get_table.exec_query(new_order)
     return
 
 
@@ -83,7 +113,12 @@ def compose_td_datetime(curr_time):
 
 def process_signal():
     print("process signal in", datetime.datetime.now())
-    query = "SELECT * FROM public.signal_arch where tstz > now() - interval '1 minute' order by tstz desc limit 10"
+    query = """
+    SELECT * FROM public.signal_arch where 1=1 
+    and ('HFT' || channel_source ||news_time || ':00') not in (select comment from orders_my)
+    and tstz > now() - interval '1 minute'
+    order by tstz desc limit 10;
+    """
     quotes = sql.get_table.exec_query(query)
     signals = (quotes.mappings().all())
 
@@ -92,36 +127,31 @@ def process_signal():
         comment = 'HFT' + signal['channel_source'] + str(signal['news_time'])
         code = signal['code']
         end_time = signal['news_time'] + datetime.timedelta(minutes=3)
-        direction = 0
-        if signal['min'] < signal['min_val'] * 2 - signal['max_val']: #sell
-            direction = -1
-            barrier = signal['mean_val'] / 1.003
 
-        elif signal['max'] > signal['max_val'] * 2 - signal['min_val']: #buy
+        if signal['max'] > signal['max_val'] * 2 - signal['min_val']: #buy
             direction = 1
             barrier = signal['mean_val'] * 1.003
+        elif signal['min'] < signal['min_val'] * 2 - signal['max_val']: #sell
+            direction = -1
+            barrier = signal['mean_val'] / 1.003
         else:
             print("clauses are not fulfilled")
             continue
 
-        state = 0 if signal['channel_source'] == 'ProfitGateClub' else 0
+        state = 1 if signal['channel_source'] == 'ProfitGateClub' else 0
 
-        query_count = f"select count(*) cnt from public.orders_my where comment = '{comment}'"
-        ord_count = sql.get_table.exec_query(query_count).mappings().all()[0]['cnt']
+        query = f"select round(1100000/(bid * lot)) as qty from public.allquotes_collat where code = '{code}'"
+        quotes = sql.get_table.exec_query(query)
+        qty = (quotes.mappings().all())[0]['qty']
 
-        if ord_count == 0:
-            query = f"select round(1100000/(bid * lot)) as qty from public.allquotes_collat where code = '{code}'"
-            quotes = sql.get_table.exec_query(query)
-            qty = (quotes.mappings().all())[0]['qty']
-
-            query = f"""
+        query = f"""
             BEGIN;
             insert into public.orders_my (state, quantity, comment, remains, barrier, max_amount, pause, code, end_time, start_time)
             values({state},{qty*direction},'{comment}',0,{barrier}, {qty/2},1,'{code}','{end_time}', now());
             COMMIT;
             """
-            print(query)
-            sql.get_table.exec_query(query)
+        print(query)
+        sql.get_table.exec_query(query)
     print("process signal out", datetime.datetime.now())
 
 def store_jumps():
