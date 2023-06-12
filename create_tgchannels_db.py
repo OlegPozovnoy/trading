@@ -11,6 +11,7 @@ import json
 from pymongo import MongoClient
 import os
 import tools.clean_processes
+from refresh import compose_td_datetime
 
 load_dotenv(dotenv_path='./my.env')
 
@@ -172,22 +173,19 @@ async def upload_recent_news():
         except Exception as e:
             print(f"Checking {channel['title']}  {channel} \n{str(e)}" )
 
+start_refresh = compose_td_datetime("09:00:00")
+end_refresh = compose_td_datetime("23:30:00")
+
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    print(os.getgid(), os.getppid(), os.getpgrp())
-    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 1):
+    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
         print("something is already running")
         exit(0)
 
-    asyncio.run(upload_recent_news())
-    print(datetime.datetime.now())
-
-
-#asyncio.run(create_channels())
-
-# asyncio.run(import_news(-1001656693918, limit = 100))
-#signal.alarm(590)
-#asyncio.run(import_news(-1001075101206, limit=200))
-#print(datetime.datetime.now())
-#print(get_active_channels())
+    while start_refresh <= datetime.datetime.now() < end_refresh:
+        try:
+            asyncio.run(upload_recent_news())
+        except Exception as e:
+            print(e)
+        print(datetime.datetime.now())
