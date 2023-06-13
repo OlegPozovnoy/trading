@@ -173,7 +173,7 @@ async def upload_recent_news():
         except Exception as e:
             print(f"Checking {channel['title']}  {channel} \n{str(e)}" )
 
-start_refresh = compose_td_datetime("09:00:00")
+start_refresh = compose_td_datetime("08:59:00")
 end_refresh = compose_td_datetime("23:30:00")
 
 
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
     while start_refresh <= datetime.datetime.now() < end_refresh:
         try:
-            asyncio.run(upload_recent_news())
+                asyncio.run(upload_recent_news())
         except Exception as e:
-            print(e)
+                print(e)
         print(datetime.datetime.now())
