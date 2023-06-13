@@ -333,7 +333,7 @@ def process_orders(orderProcesser):
         quantity=order['quantity']-order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
 
         price_bound_clause = ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (price_bound is None)
-        direction_clause = order['direction'] * quantity > 0
+        direction_clause = ((order['direction'] * quantity) > 0)
 
         if price_bound_clause and direction_clause:
             # добавляем в очередь блокировки с задержкой pause
