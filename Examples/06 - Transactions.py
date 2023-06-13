@@ -121,12 +121,18 @@ def kill_orders(secCode, comment):
         orderNum = order_num['order_id']
         classCode = get_class_code(secCode)
 
+        client_code = '' if classCode == 'SPBFUT' else '5766'
+        account = 'SPBFUT002KY' if classCode == 'SPBFUT' else 'L01+00000F00'
+
         transaction = {
             'TRANS_ID': str(TransId),  # Номер транзакции задается клиентом
             'ACTION': 'KILL_ORDER',  # Тип заявки: Удаление существующей заявки
             'CLASSCODE': classCode,  # Код площадки
             'SECCODE': secCode,  # Код тикера
-            'ORDER_KEY': str(orderNum)}
+            'ORDER_KEY': str(orderNum),
+            'CLIENT_CODE': client_code,
+            'ACCOUNT': account
+        }
 
         print("kill transaction sent:", transaction)
         result = qpProvider.SendTransaction(transaction)

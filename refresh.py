@@ -56,7 +56,7 @@ select * from public.signal;
 """
 
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(stream=sys.stdout, level=logging.WARNING)
 logger = logging.getLogger("refresh")
 
 
