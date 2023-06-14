@@ -13,8 +13,8 @@ load_dotenv(dotenv_path='./my.env')
 key = os.environ['tg_key']
 api_id = os.environ['tg_api_id']
 api_hash = os.environ['tg_api_hash']
-channel_id = os.environ['tg_channel_id']
-channel_id_urgent = os.environ['tg_channel_id_urgent']
+channel_id = int(os.environ['tg_channel_id'])
+channel_id_urgent = int(os.environ['tg_channel_id_urgent'])
 
 URGENT_PATH = './tg_buffer/urgent/'
 NORMAL_PATH = './tg_buffer/normal/'
