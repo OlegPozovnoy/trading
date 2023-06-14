@@ -1,0 +1,5 @@
+15 10-18/1 * * 1-5 /home/oleg/PycharmProjects/trading/bash/update_levels.sh > /home/oleg/PycharmProjects/trading/logs/update_levels.log 2>&1
+*/1 9-23,23 * * 1-5 /home/oleg/PycharmProjects/trading/bash/monitor.sh > /home/oleg/PycharmProjects/trading/logs/monitor.log 2>&1
+*/2 9-23,23 * * 1-5 /home/oleg/PycharmProjects/trading/bash/tinkoff_candles.sh > /home/oleg/PycharmProjects/trading/logs/tinkoff_candles.log 2>&1
+*/1 9 * * 1-5 /home/oleg/PycharmProjects/trading/bash/refresh.sh > /home/oleg/PycharmProjects/trading/logs/refresh.log 2>&1
+50 8 * * 1-5 /home/oleg/PycharmProjects/trading/bash/morning_routine.sh > /home/oleg/PycharmProjects/trading/logs/morning_routine.log 2>&1
