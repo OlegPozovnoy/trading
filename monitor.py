@@ -308,11 +308,14 @@ def check_quotes_import():
     # check that quotes are constantly running
     query_sec = "SELECT max(last_upd) FROM public.secquotesdiff;"
     query_fut = "select max(last_upd) from public.futquotesdiff;"
-    last_sec = sql.get_table.query_to_list(query_sec)[0]['max'].replace(tzinfo=None)
-    last_fut = sql.get_table.query_to_list(query_fut)[0]['max'].replace(tzinfo=None)
-    print(last_sec, last_fut, datetime.now() - timedelta(minutes=10))
-    if min(last_fut, last_sec) < datetime.now() - timedelta(minutes=10):
-        asyncio.run(telegram.send_message(f"quotes import problems: sec: {last_sec} fut: {last_fut}", urgent=True))
+    try:
+        last_sec = sql.get_table.query_to_list(query_sec)[0]['max'].replace(tzinfo=None)
+        last_fut = sql.get_table.query_to_list(query_fut)[0]['max'].replace(tzinfo=None)
+        print(last_sec, last_fut, datetime.now() - timedelta(minutes=10))
+        if min(last_fut, last_sec) < datetime.now() - timedelta(minutes=10):
+            asyncio.run(telegram.send_message(f"quotes import problems: sec: {last_sec} fut: {last_fut}", urgent=True))
+    except:
+        asyncio.run(telegram.send_message(f"quotes import problems: 0 records", urgent=True))
 
     # check that tables are not empty
     tables = ['pos_fut', 'pos_money', 'pos_eq', 'pos_collat']
