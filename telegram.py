@@ -85,7 +85,7 @@ async def send_all():
                             if 'filepath' in data:
                                     await app.send_photo(stream_id, data['filepath'])
                             if 'msg' in data:
-                                    await app.send_message(stream_id, str(filename[:16])+ '\n'+ str(data['msg']))
+                                    await app.send_message(stream_id, str(filename[:17])+ '\n'+ str(data['msg']))
                         os.remove(f)
                 except:
                     pass
