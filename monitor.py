@@ -336,6 +336,13 @@ def check_quotes_import():
     if (sec_qty, fut_qty) != (0, 0):
         asyncio.run(telegram.send_message(f"(sec, fut) doubling: {(sec_qty, fut_qty)}", urgent=True))
 
+    # check candles import is running
+    query_candles = "SELECT count(*) as cnt from  df_all_candles_t where datetime > now() - interval '5 minutes'"
+    cnt_rows = sql.get_table.query_to_list(query_candles)[0]['cnt']
+    if cnt_rows == 0:
+        asyncio.run(telegram.send_message(f"tinkoff candles import error: no candles for the last 5 mins", urgent=True))
+
+
 
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
