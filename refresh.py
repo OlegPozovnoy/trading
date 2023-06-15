@@ -110,6 +110,10 @@ def compose_td_datetime(curr_time):
     my_datetime = datetime.datetime.strptime(curr_time, "%H:%M:%S").time()
     return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
+def get_pos(secCode):
+    query = f"""SELECT * FROM public.united_pos where code='{secCode}' LIMIT 1"""
+    q_res = sql.get_table.exec_query(query).mappings().all()
+    return 0 if len(q_res) == 0 else q_res[0]['pos']
 
 def process_signal():
     print("process signal in", datetime.datetime.now())
@@ -142,7 +146,31 @@ def process_signal():
 
         query = f"select round(1100000/(bid * lot)) as qty from public.allquotes_collat where code = '{code}'"
         quotes = sql.get_table.exec_query(query)
+
         qty = (quotes.mappings().all())[0]['qty']
+        cur_pos = get_pos(code)
+        # если открыто много - ничего не делаем, если открыто не в ту сторону-  закрырваем 3х
+
+        if state == 1: # если все всерьез
+            if direction * cur_pos > 0: # и надо еще купить
+                if abs(cur_pos) > abs(3*qty):
+                    state = 0
+            else: # в разные стороны - закрываем
+                qty = min(max(abs(qty), abs(cur_pos)), 3*qty) # между 1 и 3 лямами
+
+        # и обнуляем текущие ордера hft
+        if state == 1: # если после фильтрации все еще все всерьез
+            query = f"""
+            begin;
+            update public.orders_my  
+            set state = 0,
+            end_time = coalesce(end_time, now())
+            where left (comment,3) = 'HFT'
+            and state = 1
+            and code = '{code}';
+            commit;
+            """
+            sql.get_table.exec_query(query)
 
         query = f"""
             BEGIN;
@@ -153,6 +181,7 @@ def process_signal():
         print(query)
         sql.get_table.exec_query(query)
     print("process signal out", datetime.datetime.now())
+
 
 def store_jumps():
     query = "select * from public.jumps;"

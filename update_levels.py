@@ -22,7 +22,7 @@ engine = sql.get_table.engine
 
 
 def load_df(days_to_subtract=7):
-    df = sql.get_table.query_to_df("select * from df_all_candles_t")
+    df = sql.get_table.query_to_df("select * from df_all_candles_t where datetime > now() - interval '14 days'")
     df['t'] = pd.to_datetime(df['datetime'])
     df.drop(columns=['datetime'], inplace=True)
 

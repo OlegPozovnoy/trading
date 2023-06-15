@@ -93,15 +93,8 @@ def get_diff(classCode, secCode):
 
 def get_pos(secCode):
     query = f"""SELECT * FROM public.united_pos where code='{secCode}' LIMIT 1"""
-    print(query)
-    quotes = sql.get_table.exec_query(query)
-    q_res = quotes.mappings().all()
-    print(quotes.mappings().all())
-    if len(q_res) == 0:
-        res = 0
-    else:
-        res = q_res[0]['pos']
-    return res
+    q_res = sql.get_table.exec_query(query).mappings().all()
+    return 0 if len(q_res) == 0 else q_res[0]['pos']
 
 
 def normalize_price(price):
@@ -353,7 +346,7 @@ def process_orders(orderProcesser):
         #            is_fast=False):
     #    place_order(task[0][1], task[0][2], task[0][3], task[0][4], task[0][5], )
 
-    sleep(random.uniform(0, 0.1))
+    sleep(random.uniform(0.1, 0.3))
 
 
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
