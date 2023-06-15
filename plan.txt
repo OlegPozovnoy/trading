@@ -2,10 +2,7 @@ add futures trading
 add sec news trading (news embedding, last flows, predictor)
 add positional trading
 
-week: нейорсети
-weekend:
-найти mail,
+week: нейорсети - сделать от же что м в мейле
 сделать bert по новости,
-понять monitor, +
-сделать вставку ордеров, +
-перенести на др комп
+разобраться с решением Тимохи
+сделать ордера из монитора

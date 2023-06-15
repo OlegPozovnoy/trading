@@ -2,7 +2,6 @@ import datetime
 import os
 
 import pandas as pd
-import pytz
 
 import telegram
 import asyncio
@@ -10,8 +9,6 @@ import matplotlib.pyplot as plt
 import sql.get_table
 import config.sql_queries
 from datetime import datetime, timedelta
-
-import tools.pandas_full_view
 import tools.clean_processes
 
 # import sys
@@ -265,7 +262,7 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df_analys['std'] = (df_analys['volume'] - df_analys['volume_mean']) / df_analys['volume_std']
         df_analys['end_time'] = end_time
 
-        return df_analys[df_analys['std'] >= 4].sort_values('std', ascending=False)
+        return df_analys[df_analys['std'] >= 3].sort_values('std', ascending=False)
 
     df_minutes = get_volumes()
     df_minutes['timeframe'] = 'mins'
