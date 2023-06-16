@@ -343,6 +343,16 @@ def check_quotes_import():
         asyncio.run(telegram.send_message(f"tinkoff candles import error: no candles for the last 5 mins", urgent=True))
 
 
+def pos_orders_gen():
+    query = """
+    begin;
+    insert into public.orders_my (state, quantity, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time)
+    SELECT state, quantity, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time	FROM public.trd_pos
+    where comment not in (select comment from public.orders_my where state=1);
+    commit;
+    """
+    sql.get_table.exec_query(query)
+
 
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
@@ -358,6 +368,9 @@ if __name__ == '__main__':
     df_monitor = update_tables(filtered=False)
     print('df_monitor', df_monitor.head())
     print(df_monitor.code.drop_duplicates())
+
+    pos_orders_gen()
+    print("pos_orders_gen")
 
     df_gains, df_inc = get_gains()
     print('df_gains', df_gains.head())
