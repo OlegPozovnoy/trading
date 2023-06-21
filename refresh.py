@@ -80,7 +80,7 @@ def update():
     when (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit) then 1
     else -1 end as tpsl, 
     * from allquotes
-    where state = 1 and 
+    where end_time is null and 
     (
     (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit)
     or

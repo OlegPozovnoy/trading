@@ -10,7 +10,7 @@ print(urgent_list)
 
 res = ""
 for ticker in urgent_list:
-    from_date = datetime.datetime.today() - datetime.timedelta(days=1)
+    from_date = datetime.datetime.today() - datetime.timedelta(days=2)
     to_date = datetime.datetime.today()
 
     news_collection = client.trading['news']
