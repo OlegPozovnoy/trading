@@ -346,9 +346,9 @@ def check_quotes_import():
 def pos_orders_gen():
     query = """
     begin;
-    insert into public.orders_my (state, quantity, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time)
-    SELECT state, quantity, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time	FROM public.trd_pos
-    where comment not in (select comment from public.orders_my where state=1);
+    insert into public.orders_my (state, quantity, remains, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time)
+    SELECT state, quantity, 0, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time	FROM public.trd_pos
+    where comment not in (select comment from public.orders_my where end_time is null);
     commit;
     """
     sql.get_table.exec_query(query)
@@ -369,8 +369,8 @@ if __name__ == '__main__':
     print('df_monitor', df_monitor.head())
     print(df_monitor.code.drop_duplicates())
 
-    pos_orders_gen()
-    print("pos_orders_gen")
+    #pos_orders_gen()
+    #print("pos_orders_gen")
 
     df_gains, df_inc = get_gains()
     print('df_gains', df_gains.head())

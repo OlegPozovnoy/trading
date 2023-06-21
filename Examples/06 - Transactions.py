@@ -1,6 +1,7 @@
 import datetime
 import os
 import random
+import signal
 import sys
 from time import sleep
 import sql.get_table
@@ -196,10 +197,15 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
         'TYPE': 'L'}  # L = лимитная заявка (по умолчанию), M = рыночная заявка
 
     try:
+        signal.signal(signal.SIGALRM, timeout_exception)
+        signal.alarm(10)
         result = qpProvider.SendTransaction(transaction)
     except Exception as e:
         print(f"error: {str(e)}")
         return
+    finally:
+        signal.alarm(0)
+
     if 'lua_error' in dict(result):
         print(f"error: {result}")
         return
@@ -305,7 +311,8 @@ def actualize_order_my():
     """
     sql.get_table.exec_query(query)
 
-
+def timeout_exception():
+    raise Exception("Timeout")
 
 def process_orders(orderProcesser):
     clean_open_orders()
