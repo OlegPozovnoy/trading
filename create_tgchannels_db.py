@@ -173,7 +173,7 @@ async def upload_recent_news():
         except Exception as e:
             print(f"Checking {channel['title']}  {channel} \n{str(e)}" )
 
-start_refresh = compose_td_datetime("08:59:00")
+start_refresh = compose_td_datetime("05:59:00")
 end_refresh = compose_td_datetime("23:30:00")
 
 
