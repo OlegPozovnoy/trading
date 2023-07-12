@@ -111,7 +111,7 @@ async def import_news(channel, limit=None, max_msg_load=1000):
         print(f"channel:{channel}")
         if channel is None: return
 
-        chat_id = channel["tg_id"]
+        chat_id = int(channel["tg_id"])
         count = await app.get_chat_history_count(chat_id=chat_id)
 
         new_msg_count = count - channel['count']
