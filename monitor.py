@@ -32,7 +32,7 @@ def load_candles():
 
 def copy_colvals(df_monitor, colpairs, is_upd_only=False):
     for pairs in colpairs:
-        if is_upd_only == False:
+        if not is_upd_only:
             df_monitor.loc[df_monitor[pairs[1]].notnull(), pairs[0]] = df_monitor.loc[
                 df_monitor[pairs[1]].notnull(), pairs[1]]
         else:
@@ -73,7 +73,7 @@ def update_tables(filtered=False):
     print("df_monitor: moving new state to old state\n", df_monitor.head())
 
     # переносим not null новое в старое и переносим цену и стд
-    colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'), \
+    colpairs = [('old_price', 'new_price'), ('old_state', 'new_state'), ('old_start', 'new_start'),
                 ('old_end', 'new_end'), ('old_timestamp', 'new_timestamp'), ('new_price', 'price'), ('std', 'new_std'),
                 ('new_timestamp', 'timestamp')]
 
@@ -369,8 +369,8 @@ if __name__ == '__main__':
     print('df_monitor', df_monitor.head())
     print(df_monitor.code.drop_duplicates())
 
-    #pos_orders_gen()
-    #print("pos_orders_gen")
+    # pos_orders_gen()
+    # print("pos_orders_gen")
 
     df_gains, df_inc = get_gains()
     print('df_gains', df_gains.head())

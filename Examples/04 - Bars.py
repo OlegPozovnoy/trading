@@ -17,7 +17,6 @@ def SaveCandlesToFile(classCode='TQBR', secCodes=('SBER',), timeFrame='D', compr
     :param skipLastDate: Убрать бары на последнюю полученную дату
     :param fourPriceDoji: Оставить бары с дожи 4-х цен
     """
-    result_df = pd.DataFrame()
 
     interval = compression  # Для минутных временнЫх интервалов ставим кол-во минут
     if timeFrame == 'D':  # Дневной временной интервал

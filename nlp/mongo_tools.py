@@ -60,8 +60,8 @@ def update_tg_msg_count(username, count):
 def remove_tag_word(ticker, tag):
     instrument_collection = client.trading['trading']
     instrument = instrument_collection.find_one({'ticker': ticker})
-    print(set(instrument['namee']),set([tag]))
-    new_tags = list(set(instrument['namee']) - set([tag]))
+    print(set(instrument['namee']), {tag})
+    new_tags = list(set(instrument['namee']) - {tag})
     print(instrument, "->", new_tags)
     instrument_collection.update_one({'ticker': ticker}, {'$set': {'namee': new_tags}})
 
@@ -189,8 +189,9 @@ def remove_empty_tag_news():
             if len(item['tags']) == 0:
                 news_collection.delete_one(item)
 
-remove_news_duplicates()
-remove_empty_tag_news()
+def remove_news_duplicates():
+    remove_news_duplicates()
+    remove_empty_tag_news()
 #remove_channel('promsvyaz_am')
 #remove_channel_duplicates()
 #remove_news_duplicates()

@@ -14,12 +14,12 @@ global_reply = None
 engine = sql.get_table.engine
 
 
-class OrderProcesser():
+class OrderProcesser:
     def __init__(self):
         self.tasks_list = []
 
     def add_task(self,task, timeout):
-        if task[0] not in [item[0][0] for item in self.tasks_list]: #item[0] order item[0][0] - key
+        if task[0] not in [item[0][0] for item in self.tasks_list]:  #item[0] order item[0][0] - key
             self.tasks_list.append((task, datetime.datetime.now() + datetime.timedelta(seconds=timeout)))
             self.tasks_list = sorted(self.tasks_list, key=lambda x: x[1])
             return True # task is scheduled

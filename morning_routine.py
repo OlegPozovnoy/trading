@@ -8,6 +8,7 @@ import os
 
 import pandas as pd
 
+from nlp.mongo_tools import remove_news_duplicates
 from tinkoff_candles import import_new_tickers
 
 engine = sql.get_table.engine
@@ -144,5 +145,7 @@ if __name__ == '__main__':
         print('DB Cleaned', datetime.datetime.now())
         calc_bollinger()
         print('Bollinger recomputed', datetime.datetime.now())
+        remove_news_duplicates()
+        print("Mongodb duplicates removed")
     finally:
         print(datetime.datetime.now())

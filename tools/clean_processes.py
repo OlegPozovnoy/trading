@@ -1,7 +1,7 @@
-import os, psutil, datetime
-import random
+import os
+import psutil
+import datetime
 import signal
-from time import sleep
 
 
 def clean_proc(keyword, pid, mins_threshold):
@@ -14,7 +14,11 @@ def clean_proc(keyword, pid, mins_threshold):
     if len(cmd_list) > 0:
         for proc in cmd_list:
             uptime = datetime.datetime.now() - datetime.datetime.fromtimestamp(proc.create_time())
-            print(f'{proc.pid}: Script name: {proc.name()}, cmdline: {cmd_list} uptime: {uptime.total_seconds() / 60} threshold: {mins_threshold}')
+            print(f'\n{proc.pid}: Script name: {proc.name()}',
+                  f'\ncmdline: {cmd_list}',
+                  f'\nuptime: {uptime.total_seconds() / 60}',
+                  f'\nthreshold: {mins_threshold}')
+
             res.append((proc.pid, proc.name(), uptime.total_seconds()/60))
     else:
         return True  # can be launched
@@ -33,7 +37,6 @@ def clean_proc(keyword, pid, mins_threshold):
             print(f"Killing {item}")
             os.kill(item[0], signal.SIGTERM)
             killcount += 1
-            #os.system(f"pkill -9 -f {item[0]}") # too long
         elif item[2] > (pid_process[0][2] + 1./60):
             state = False  # something is running
 
@@ -42,10 +45,3 @@ def clean_proc(keyword, pid, mins_threshold):
     print(f"state: {state}")
     return state
 
-
-
-#sleep(random.random())
-#cmd_list = [proc for proc in psutil.process_iter() if f'/home/{os.getlogin()}/PycharmProjects/trading/' in ' '.join(proc.cmdline())]
-#if len([proc for proc in cmd_list if "refresh" in ' '.join(proc.cmdline())]) == 0:
-#    print("launching refresh...")
-#    os.system(f'/home/{os.getlogin()}/PycharmProjects/trading/bash/refresh.sh')
