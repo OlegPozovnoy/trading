@@ -99,7 +99,7 @@ def update_import_params():
 
 def import_new_tickers(refresh_tickers=False):
     df = update_import_params() if refresh_tickers else sql.get_table.query_to_df("select * from public.tinkoff_params")
-    startTime = time.time()
+    start_time = time.time()
     print(f"update import params", df.head())
     for idx, row in df.iterrows():
         try:
@@ -121,7 +121,7 @@ def import_new_tickers(refresh_tickers=False):
         except Exception as e:
             print("import tickers error:" ,row, str(e))
 
-    print(f'свечки залились за {(time.time() - startTime):.2f} с')
+    print(f'свечки залились за {(time.time() - start_time):.2f} с')
 
 
 if __name__ == "__main__":

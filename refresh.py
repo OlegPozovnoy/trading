@@ -110,8 +110,8 @@ def compose_td_datetime(curr_time):
     my_datetime = datetime.datetime.strptime(curr_time, "%H:%M:%S").time()
     return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
-def get_pos(secCode):
-    query = f"""SELECT * FROM public.united_pos where code='{secCode}' LIMIT 1"""
+def get_pos(sec_code):
+    query = f"""SELECT * FROM public.united_pos where code='{sec_code}' LIMIT 1"""
     q_res = sql.get_table.exec_query(query).mappings().all()
     return 0 if len(q_res) == 0 else q_res[0]['pos']
 

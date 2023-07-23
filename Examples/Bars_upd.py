@@ -12,8 +12,6 @@ engine = sql.get_table.engine
 qpProvider = None
 
 
-#qpProvider = QuikPy()
-
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
     for secCode in secCodes:  # Пробегаемся по всем тикерам - переделать на таблицы
@@ -68,10 +66,11 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
     fileBars = pd.concat([result_df, fileBars]).drop_duplicates(keep='last').sort_index()
     # engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     print("saving to DB ", ctime())
-    #fileBars.to_sql('df_all_candles', engine, if_exists='replace')
     print("saving to file ", ctime())
     fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
-    if candles_num < 30: record_10min_statistics(result_df)
+
+    if candles_num < 30:
+        record_10min_statistics(result_df)
 
     print("saved", ctime())
     print(f'- В файл {fileName} сохранено записей: {len(fileBars)}')
@@ -79,14 +78,16 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
 
 def record_10min_statistics(df):
     print("recording stats")
-    df=df.reset_index()
+    df = df.reset_index()
     df_filtered = df.groupby('security').apply(lambda x: x.iloc[:-3]).reset_index(drop=True)
-    df_filtered = df_filtered.groupby('security').agg(dt=('datetime', 'max'), cnt=('volume', 'count'), max_volume=('volume', 'max'),
-                                                      max_high=('high', 'max'), min_low=('low', 'min')).reset_index()
+    df_filtered = df_filtered \
+        .groupby('security') \
+        .agg(dt=('datetime', 'max'), cnt=('volume', 'count'), max_volume=('volume', 'max'),
+             max_high=('high', 'max'), min_low=('low', 'min')) \
+        .reset_index()
     df_filtered['spread'] = df_filtered['max_high'] - df_filtered['min_low']
 
-    #print(df_filtered.head(), df_filtered.columns)
-    df_filtered = df_filtered[['security', 'max_volume', 'spread','dt', 'cnt']]
+    df_filtered = df_filtered[['security', 'max_volume', 'spread', 'dt', 'cnt']]
     engine.execute("delete from public.df_stats")
     df_filtered.to_sql('df_stats', engine, if_exists='append')
 

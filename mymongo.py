@@ -83,7 +83,7 @@ def get_news_df(code, news_dt, mins_spread = 60, shift=timedelta(hours=-3)):
 
 
 
-def create_analytics(channel, code, news_dt, figtext=''):
+def create_analytics(channel, code, news_dt):
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     pd.set_option('display.expand_frame_repr', False)
@@ -123,5 +123,5 @@ def analysis_channel(username):
             channel = username
             news_dt = pytz.timezone('Europe/Moscow').localize(item['date'])
             text = str(item['caption']) + ' ' + str(item['text'])
-            _, analytics =  create_analytics(channel, code, news_dt, text)
+            _, analytics =  create_analytics(channel, code, news_dt)
 

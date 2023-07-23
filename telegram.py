@@ -33,7 +33,7 @@ async def test():
 async def test_func():
     async with Client("my_ccount", api_id, api_hash) as app:
         chat = await app.get_chat(-1001656693918)
-        count = await app.get_chat_history_count(chat_id=-1001656693918)
+        await app.get_chat_history_count(chat_id=-1001656693918)
         #print(chat)
         #print(chat, type(chat), str(chat))
         chat = json.loads(str(chat))
