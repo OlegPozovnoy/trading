@@ -75,8 +75,8 @@ async def send_all(biffer_size=1000):
                                     string_buffer = ""
                         os.remove(f)
 
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(str(e))
 
             if len(string_buffer) > biffer_size:
                 await app.send_message(stream_id, string_buffer)
@@ -90,5 +90,4 @@ if __name__ == "__main__":
     asyncio.run(send_all())
     print(datetime.datetime.now())
 
-# asyncio.run(test())
 # asyncio.run(send_message("Hello"))
