@@ -73,6 +73,8 @@ async def send_all(biffer_size=1000):
                                 if len(string_buffer) > biffer_size:
                                     await app.send_message(stream_id, string_buffer)
                                     string_buffer = ""
+                        os.remove(f)
+
                 except Exception:
                     pass
 
