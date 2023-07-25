@@ -82,6 +82,7 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
                                     string_buffer = ""
                                 else:
                                     string_buffer += next_message
+                        print(f"removing {f}")
                         os.remove(f)
 
                 except Exception as e:
