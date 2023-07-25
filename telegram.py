@@ -74,7 +74,7 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
                                     await app.send_message(stream_id, string_buffer[:max_buffer_size])
                                     string_buffer = string_buffer[max_buffer_size:]
 
-                                if len(string_buffer) + len(next_message) > max_buffer_size:
+                                if len(string_buffer) + len(next_message) > max_buffer_size and len(string_buffer) > 0:
                                     await app.send_message(stream_id, string_buffer)
                                     string_buffer = next_message
                                 elif len(string_buffer) + len(next_message) > min_buffer_size:
@@ -90,7 +90,9 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
             while len(string_buffer) > max_buffer_size:
                 await app.send_message(stream_id, string_buffer[:max_buffer_size])
                 string_buffer = string_buffer[max_buffer_size:]
-            await app.send_message(stream_id, string_buffer)
+
+            if len(string_buffer) > 0:
+                await app.send_message(stream_id, string_buffer)
 
 
 if __name__ == "__main__":
