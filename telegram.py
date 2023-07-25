@@ -53,7 +53,7 @@ async def send_photo(filepath, urgent=False):
         json.dump({'filepath': filepath}, f)
 
 
-async def send_all(biffer_size=1000):
+async def send_all(min_buffer_size=1000, max_buffer_size=4000):
     async with Client("my_ccount", api_id, api_hash) as app:
         for folder, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
             string_buffer = ""
@@ -69,17 +69,28 @@ async def send_all(biffer_size=1000):
                             if 'filepath' in data:
                                 await app.send_photo(stream_id, data['filepath'])
                             if 'msg' in data:
-                                string_buffer += str(filename[:17]) + '\n' + str(data['msg']) + '\n\n'
-                                if len(string_buffer) > biffer_size:
+                                next_message = str(filename[:17]) + '\n' + str(data['msg']) + '\n\n'
+                                while len(string_buffer) > max_buffer_size:
+                                    await app.send_message(stream_id, string_buffer[:max_buffer_size])
+                                    string_buffer = string_buffer[max_buffer_size:]
+
+                                if len(string_buffer) + len(next_message) > max_buffer_size:
                                     await app.send_message(stream_id, string_buffer)
+                                    string_buffer = next_message
+                                elif len(string_buffer) + len(next_message) > min_buffer_size:
+                                    await app.send_message(stream_id, string_buffer + next_message)
                                     string_buffer = ""
+                                else:
+                                    string_buffer += next_message
                         os.remove(f)
 
                 except Exception as e:
                     print(str(e))
 
-            if len(string_buffer) > biffer_size:
-                await app.send_message(stream_id, string_buffer)
+            while len(string_buffer) > max_buffer_size:
+                await app.send_message(stream_id, string_buffer[:max_buffer_size])
+                string_buffer = string_buffer[max_buffer_size:]
+            await app.send_message(stream_id, string_buffer)
 
 
 if __name__ == "__main__":
