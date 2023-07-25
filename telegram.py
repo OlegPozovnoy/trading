@@ -53,7 +53,7 @@ async def send_photo(filepath, urgent=False):
         json.dump({'filepath': filepath}, f)
 
 
-async def send_all(min_buffer_size=1000, max_buffer_size=4000):
+async def send_all(min_buffer_size=2000, max_buffer_size=4000):
     async with Client("my_ccount", api_id, api_hash) as app:
         for folder, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
             string_buffer = ""
