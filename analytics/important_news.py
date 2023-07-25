@@ -1,7 +1,7 @@
+import datetime
 from pymongo import MongoClient
 
 import sql.get_table
-import datetime
 
 client = MongoClient()
 
