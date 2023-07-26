@@ -1,7 +1,6 @@
+import json
 from time import time, ctime
 import os.path
-
-from Examples import Bars_upd_config
 
 import pandas as pd
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
@@ -10,7 +9,7 @@ import sql.get_table
 
 engine = sql.get_table.engine
 qpProvider = None
-
+settings_path = "./Examples/Bars_upd_config.json"
 
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
@@ -112,9 +111,11 @@ def update_all_quotes(to_remove=True, candles_num=4100):
     try:
         qpProvider = QuikPy()  # Вызываем конструктор QuikPy с подключением к локальному компьютеру с QUIK
 
+        with open(settings_path, 'r') as fp:
+            settings = json.load(fp)
         SaveCandlesToFile(
-            [(Bars_upd_config.config["equities"]["classCode"], Bars_upd_config.config["equities"]["secCodes"]),
-             (Bars_upd_config.config["futures"]["classCode"], Bars_upd_config.config["futures"]["secCodes"])],
+            [(settings["equities"]["classCode"], settings["equities"]["secCodes"]),
+             (settings["futures"]["classCode"], settings["futures"]["secCodes"])],
             fileName=fileName, candles_num=candles_num)
     finally:
         qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра

@@ -1,13 +1,18 @@
+import json
+import os
 import time
 import datetime
 import pandas as pd
+from dotenv import load_dotenv
 
 import sql.get_table
 
 from nlp.mongo_tools import remove_news_duplicates
 from tinkoff_candles import import_new_tickers
 
+load_dotenv(dotenv_path='./my.env')
 engine = sql.get_table.engine
+settings_path = os.environ['instrument_list_path']
 
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
@@ -108,27 +113,20 @@ def clean_tinkoff():
 
 
 def update_instrument_list():
+    setting = {'equities': {}, 'futures': {}}
+    setting['equities']['classCode'] = "TQBR"
+    setting['futures']['classCode'] = "SPBFUT"
+
     query_fut = "select distinct code from public.futquotes"
     query_sec = "select distinct code from public.secquotes"
 
-    fut_list = [x[0] for x in sql.get_table.exec_query(query_fut)]
-    sec_list = [x[0] for x in sql.get_table.exec_query(query_sec)]
+    setting['futures']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_fut)]
+    setting['equities']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_sec)]
 
-    setting = f"""config = {{
-        "equities": {{
-          "classCode" : "TQBR",
-            "secCodes" : {sec_list}
-        }},
-        "futures":{{
-            "classCode": "SPBFUT",
-            "secCodes": {fut_list}
-        }}
-    }}
-    """
-
-    f = open("./Examples/Bars_upd_config.py", "w")
-    f.write(setting)
-    print(setting)
+    settings_str = json.dumps(setting, indent=4)
+    with open(settings_path, "w") as fp:
+        fp.write(settings_str)
+    print("instrument to import: ", settings_str)
 
 
 if __name__ == '__main__':

@@ -204,7 +204,6 @@ if __name__ == '__main__':
         logger.info(datetime.datetime.now())
         try:
             update()
-
             sql.get_table.exec_query(query_sig_upd)
         except Exception as e:
             print(e)
