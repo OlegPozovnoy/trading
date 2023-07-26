@@ -1,12 +1,11 @@
 import json
-
-from pymongo import MongoClient
-from datetime import timedelta
-import sql.get_table
 import pandas as pd
 import matplotlib.pyplot as plt
 import pytz
+from pymongo import MongoClient
+from datetime import timedelta
 
+import sql.get_table
 from nlp.mongo_tools import get_news_from_channels
 
 client = MongoClient()
