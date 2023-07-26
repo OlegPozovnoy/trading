@@ -103,8 +103,8 @@ async def create_channels():
             res = await create_record("@" + channel)
             print(f"Created channel\n{res}")
             names_collection.insert_one(res)
-        except Exception:
-            pass
+        except Exception as ex:
+            print(str(ex))
 
 
 async def import_news(channel, limit=None, max_msg_load=1000):
