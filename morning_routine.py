@@ -1,47 +1,49 @@
-from sqlalchemy import create_engine
-import sql.get_table
-
-import Examples.Bars_upd
 import time
 import datetime
-import os
-
 import pandas as pd
+
+import sql.get_table
 
 from nlp.mongo_tools import remove_news_duplicates
 from tinkoff_candles import import_new_tickers
 
 engine = sql.get_table.engine
 
+
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
-    #engine = create_engine('postgresql://postgres:postgres@localhost:5432/test')
     df_ = sql.get_table.load_candles()
     df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
     df_['dt'] = df_['t'].dt.date
     df_['time'] = df_['t'].dt.time
 
     # get last close
-    df_bollinger = df_[df_['time'] <= end_cutoff].sort_values(['security', 'class_code', 'dt', 'time'], ascending=False)\
-        .groupby(['security', 'class_code', 'dt']).head(1).reset_index()
+    df_bollinger = df_[df_['time'] <= end_cutoff]\
+        .sort_values(['security', 'class_code', 'dt', 'time'], ascending=False)\
+        .groupby(['security', 'class_code', 'dt'])\
+        .head(1)\
+        .reset_index()
 
     # get last 20 values
-    df_bollinger = df_bollinger.sort_values(['security', 'class_code', 'dt'], ascending=False)\
-        .groupby(['security', 'class_code']).head(20).reset_index()
+    df_bollinger = df_bollinger\
+        .sort_values(['security', 'class_code', 'dt'], ascending=False)\
+        .groupby(['security', 'class_code'])\
+        .head(20)\
+        .reset_index()
 
     # calc
-    df_bollinger = df_bollinger.groupby(['security', 'class_code'])\
-        .agg(mean=('close', 'mean'), std=('close', 'std'), count=('close', 'count')).reset_index()
+    df_bollinger = df_bollinger\
+        .groupby(['security', 'class_code'])\
+        .agg(mean=('close', 'mean'), std=('close', 'std'), count=('close', 'count'))\
+        .reset_index()
 
     # custom cols
     df_bollinger['prct'] = df_bollinger['std'] / df_bollinger['mean']
     df_bollinger['up'] = df_bollinger['std'] * 2 + df_bollinger['mean']
     df_bollinger['down'] = -df_bollinger['std'] * 2 + df_bollinger['mean']
-    # save
-    df_bollinger.to_csv('./Data/bollinger.csv', sep='\t')
 
+    # save
     sql.get_table.exec_query("delete from public.df_bollinger")
     df_bollinger.to_sql('df_bollinger', engine, if_exists='append')
-    #print(df_bollinger[df_bollinger['class_code'] == 'SPBFUT'])
 
     df_ = df_.sort_values(['security', 'class_code', 'dt', 'time'], ascending=True)
     df_['prev_close'] = df_.groupby('security')['close'].shift()
@@ -63,11 +65,8 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     df_volumes['close_avg'] = df_volumes.groupby('security')['close'].transform(
         lambda x: x.rolling(10, 1, center=True).mean())
 
-    df_volumes.to_csv('./Data/volumes.csv', sep='\t')
-
     sql.get_table.exec_query("delete from public.df_volumes")
     df_volumes.to_sql('df_volumes', engine, if_exists='append')
-    #print(df_volumes.head(5))
 
 
 def clean_db():
@@ -89,6 +88,7 @@ def clean_db():
     engine.execute(sql_query)
     clean_tinkoff()
 
+
 def clean_tinkoff():
     # 20 days for bollinger bands calculation
     query = "delete FROM public.df_all_candles_t_arch where datetime < (now() - interval '90 days')"
@@ -103,9 +103,8 @@ def clean_tinkoff():
         SELECT  * FROM moved_rows;    
     """
     engine.execute(query)
-    query ="DELETE FROM df_all_candles_t_arch WHERE datetime < now() - interval '90 days'"
+    query = "DELETE FROM df_all_candles_t_arch WHERE datetime < now() - interval '90 days'"
     engine.execute(query)
-
 
 
 def update_instrument_list():
@@ -138,7 +137,6 @@ if __name__ == '__main__':
         print('Update import settings')
         update_instrument_list()
         print('Begin quotes reimport', datetime.datetime.now())
-        #Examples.Bars_upd.update_all_quotes(candles_num=20000)
         import_new_tickers(True)
         print('Bars updated', datetime.datetime.now())
         clean_db()
