@@ -10,13 +10,19 @@ def important_news():
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
+    urgent_list = ['SBER', 'SMLT', 'ALRS', 'MAGN', 'MGNT', 'LKOH', 'NLMK', 'CHMF']
+    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','GAZR','NOTK','SMLT'
+        ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
+    urgent_list = ['FIVE','MGNT','SBRF','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
+        ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
+
     res = ""
     for ticker in urgent_list:
-        from_date = datetime.datetime.today() - datetime.timedelta(days=7)
+        print(ticker)
+        from_date = datetime.datetime.today() - datetime.timedelta(days=2)
         to_date = datetime.datetime.today()
 
         news_collection = client.trading['news']
-        res = ""
         for post in news_collection\
                 .find({"tags": ticker, "date": {"$gte": from_date, "$lt": to_date}})\
                 .sort("date", -1):
@@ -44,5 +50,8 @@ def all_news():
     return res
 
 
-with open("recent_news.txt", "w") as f:
-    f.write(all_news())
+with open("important.txt", "w") as f:
+    f.write(important_news())
+
+# with open("recent_news.txt", "w") as f:
+#     f.write(all_news())
