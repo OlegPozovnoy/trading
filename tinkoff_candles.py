@@ -15,6 +15,9 @@ import sql.get_table
 from dotenv import load_dotenv
 
 import tools.clean_processes
+from tools.utils import async_timed
+
+import asyncio
 
 # import tools.pandas_full_view
 
@@ -25,16 +28,28 @@ TOKEN = os.environ["INVEST_TOKEN"]
 settings_path = os.environ['instrument_list_path']
 
 
-def candles_api_call(figi, start):
+@async_timed()
+async def candles_api_multi_call(df):
+    result, res = [], pd.DataFrame()
     with Client(TOKEN) as client:
-        candles = client.get_all_candles(
-            figi=figi,
-            from_=start,
-            to=now(),  # - timedelta(minutes=1),
-            interval=CandleInterval.CANDLE_INTERVAL_1_MIN,
-        )
-        res = pd.DataFrame(candles)
-        return res
+        for _, row in df.iterrows():
+            print(f"importing {row['name']} {row['last_row']}")
+            try:
+                new_item = client.get_all_candles(
+                    figi=row['figi'],
+                    from_=row['last_row'],
+                    to=now(),
+                    interval=CandleInterval.CANDLE_INTERVAL_1_MIN,
+                )
+                res = pd.DataFrame(new_item)
+                res['security'] = row['ticker']
+                res['class_code'] = row['class_code']
+                result.append(res)
+            except Exception as e:
+                print(str(e))
+        res = pd.concat(result, axis=0)
+    print(f"{len(res)} rows imported ")
+    return res
 
 
 def get_ticker(ticker_list):
@@ -68,7 +83,6 @@ def get_ticker(ticker_list):
 
 
 def df_postprocessing(final):
-    # print("postprocess before:", final.dtypes, final.head())
     for col in ['open', 'high', 'low', 'close']:
         final[col] = final[col].apply(lambda quotation: transform_candles(quotation))
         final[col] = final[col].astype('float')
@@ -76,7 +90,6 @@ def df_postprocessing(final):
     final['datetime'] = pd.to_datetime(final['time']).dt.tz_convert(tz="Europe/Moscow")
     final.drop(['time', 'is_complete'], axis=1, inplace=True)
     final.drop_duplicates(inplace=True)
-    # print("postprocess after:", final.dtypes, final.head())
     return final
 
 
@@ -103,31 +116,21 @@ def update_import_params():
     return df
 
 
-def import_new_tickers(refresh_tickers=False):
+@async_timed()
+async def import_new_tickers(refresh_tickers=False):
     df = update_import_params() if refresh_tickers else sql.get_table.query_to_df("select * from public.tinkoff_params")
-    start_time = time.time()
-    print(f"update import params", df.head())
-    for idx, row in df.iterrows():
-        try:
-            print("loading", row['name'], row['ticker'], row['figi'])
-            query = f"select max(datetime) as dt from public.df_all_candles_t where security='{row['ticker']}'"
-            last_row = sql.get_table.query_to_list(query)[0]['dt']
 
-            start = now() - timedelta(days=90) if last_row is None else last_row + timedelta(minutes=1, seconds=1)
+    query = f"select security, max(datetime) as last_row from public.df_all_candles_t group by security"
+    df_lastrec = sql.get_table.query_to_df(query)
+    df = df.merge(df_lastrec, left_on='ticker', right_on='security', how='left')
+    df['last_row'] = (df['last_row'].apply
+                      (lambda t: now() - timedelta(days=90) if t is None else t + timedelta(minutes=1, seconds=1)))
 
-            print(f'last_row: {last_row}, start:{start}')
-            candles = candles_api_call(row['figi'], start=start)
-            candles['security'] = row['ticker']
-            candles['class_code'] = row['class_code']
-
-            if len(candles) > 0:
-                print(f"{len(candles)} rows to append")
-                candles = df_postprocessing(candles)
-                candles.to_sql('df_all_candles_t', engine, if_exists='append', index=False)
-        except Exception as e:
-            print("import tickers error:", row, str(e))
-
-    print(f'свечки залились за {(time.time() - start_time):.2f} с')
+    candles = await candles_api_multi_call(df)
+    if len(candles) > 0:
+        print(f"{len(candles)} rows to append")
+        candles = df_postprocessing(candles)
+        candles.to_sql('df_all_candles_t', engine, if_exists='append', index=False)
 
 
 if __name__ == "__main__":
@@ -136,14 +139,11 @@ if __name__ == "__main__":
     if not tools.clean_processes.clean_proc("tinkoff_candles", os.getpid(), 3):
         print("something is already running")
         exit(0)
-
     time.sleep(1)
     try:
-        import_new_tickers(refresh_tickers=False)
+        asyncio.run(import_new_tickers(refresh_tickers=False))
     except Exception as ex:
         print("error", str(ex), datetime.datetime.now())
         sys.exit(1)
     finally:
         print(datetime.datetime.now())
-
-#
