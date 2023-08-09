@@ -19,7 +19,7 @@ ON fq.code = fqd.code
 WHEN MATCHED THEN
 UPDATE SET bid = fq.bid, ask = fq.ask, volume = fq.volume, openinterest = fq.openinterest, bidamount=fq.bidamount, askamount=fq.askamount, 
 bid_inc = fq.bid - fqd.bid, ask_inc = fq.ask-fqd.ask, volume_inc = fq.volume-fqd.volume, updated_at=fq.updated_at, last_upd=NOW(),
-volume_wa = coalesce(volume_wa,0)*59/60 + (fq.volume-fqd.volume)/60   
+volume_wa = coalesce(volume_wa,0)*59/60 + (fq.volume-fqd.volume)   
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW(), 0); 
@@ -44,7 +44,7 @@ ask_inc = fq.ask-fqd.ask,
 volume_inc = fq.volume-fqd.volume, 
 updated_at=fq.updated_at, 
 last_upd=NOW(),
-volume_wa = coalesce(volume_wa,0)*59/60 + (fq.volume-fqd.volume)/60   
+volume_wa = coalesce(volume_wa,0)*59/60 + (fq.volume-fqd.volume)   
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW(), 0);
