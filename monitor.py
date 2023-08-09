@@ -354,6 +354,12 @@ def pos_orders_gen():
     sql.get_table.exec_query(query)
 
 
+def update_diffhist():
+    query = "select * from public.diffhistview_t1510"
+    df = sql.get_table.query_to_df(query)
+    df.to_sql("diffhist", engine, if_exists='replace')
+
+
 if __name__ == '__main__':
     print("monitor started: ", datetime.now())
     check_quotes_import()
@@ -361,6 +367,8 @@ if __name__ == '__main__':
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         print("something is already running")
         exit(0)
+
+    update_diffhist()
 
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print("urgent_list:", urgent_list)

@@ -13,3 +13,5 @@ python-dotenv~=1.0.0
 Pyrogram==2.0.106
 scipy==1.11.1
 tinkoff~=0.1.1
+holidays==0.30
+prophet==1.1.4
