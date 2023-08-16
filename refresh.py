@@ -66,6 +66,7 @@ def update():
     sql.get_table.exec_query(query_fut_upd)
     sql.get_table.exec_query(query_sec_upd)
     #store_jumps()
+    store_jump_events()
     query_fut = "select max(updated_at), count(*) as cnt from public.futquotesdiff;"
     query_sec = "select max(updated_at), count(*) as cnt from public.secquotesdiff;"
 
@@ -190,6 +191,13 @@ def store_jumps():
     df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
     if len(df_jumps)>0:
         df_jumps.to_sql('df_jumps', engine, if_exists='append')
+
+
+def store_jump_events():
+    query = "select * from public.jumps_events;"
+    df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
+    if len(df_jumps)>0:
+        df_jumps.to_sql('events_jumps_hist', engine, if_exists='append')
 
 
 start_refresh = compose_td_datetime("09:00:00")
