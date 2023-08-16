@@ -20,10 +20,6 @@ max_amount=1
 pause=5
 
 
-
-
-logger.info(order_code)
-
 if barrier_up is None:
     order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
