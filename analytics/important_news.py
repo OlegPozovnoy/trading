@@ -6,20 +6,22 @@ import sql.get_table
 client = MongoClient()
 
 
-def important_news():
+def important_news(days=0.2):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
     urgent_list = ['SBER', 'SMLT', 'ALRS', 'MAGN', 'MGNT', 'LKOH', 'NLMK', 'CHMF']
     urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','GAZR','NOTK','SMLT'
         ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
-    urgent_list = ['FIVE','MGNT','SBRF','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
+    #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
+    #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
+    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','NOTK','SMLT'
+        ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
 
     res = ""
     for ticker in urgent_list:
         print(ticker)
-        from_date = datetime.datetime.today() - datetime.timedelta(days=2)
+        from_date = datetime.datetime.today() - datetime.timedelta(days=days)
         to_date = datetime.datetime.today()
 
         news_collection = client.trading['news']
