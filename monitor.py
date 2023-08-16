@@ -357,7 +357,7 @@ def pos_orders_gen():
 def update_diffhist():
     query = "select * from public.diffhistview_t1510"
     df = sql.get_table.query_to_df(query)
-    df.to_sql("diffhist", engine, if_exists='replace')
+    sql.get_table.df_to_sql(df, 'diffhist')
 
 
 if __name__ == '__main__':
