@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pyrogram import Client
 from pymongo import MongoClient
 
-from hft.discovery import record_new_watch
+from hft.discovery import record_new_watch, record_new_event
 from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels, remove_news_duplicates
 
@@ -154,6 +154,24 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                                 record_new_watch(res, channel['username'])
                             except Exception as e:
                                 print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
+
+                            if res['channel_username'] in ['markettwits','cbrstocks', 'ProfitGateClub', 'divonline']:
+                                keyword = ''
+                                fulltext = (res['text'] + res['caption']).lower()
+                                if "отчет" in fulltext:
+                                    keyword = "отчет"
+                                elif "дивиденд" in fulltext:
+                                    keyword = "дивиденд"
+                                elif "собрание" in fulltext:
+                                    keyword = "госа"
+                                elif "директор" in fulltext:
+                                    keyword = "директор"
+                                elif "госа" in fulltext:
+                                    keyword = "госа"
+
+                                record_new_event(res, channel['username'], keyword)
+
+
 
         if new_msg_count != 0:
             print("updating message count...")
