@@ -108,7 +108,7 @@ def transform_candles(quotation):
 def update_import_params():
     with open(settings_path, "r") as fp:
         settings = json.load(fp)
-    tickers = settings["futures"]["secCodes"] + settings["equities"]["secCodes"]  # +
+    tickers = settings["futures"]["secCodes"] + settings["equities"]["secCodes"]
     df = get_ticker(tickers)
     engine.execute("delete from public.tinkoff_params")
     df.to_sql("tinkoff_params", engine, if_exists='replace')
