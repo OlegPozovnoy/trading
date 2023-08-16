@@ -25,3 +25,18 @@ def record_new_watch(doc, news_channel):
             sql.get_table.exec_query(query)
 
 
+def record_new_event(doc, news_channel, keyword):
+    codes = doc['important_tags']
+    news_date = doc['date']
+    tstamp = datetime.datetime.now()
+
+    for code in codes:
+            query = f"""
+            BEGIN;
+            insert into public.event_news(code, date_discovery, news_time, channel_source) 
+            values('{code}','{tstamp}','{news_date}','{news_channel}','{keyword}');
+            COMMIT;
+            """
+            sql.get_table.exec_query(query)
+
+
