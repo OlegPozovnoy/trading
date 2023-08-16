@@ -20,11 +20,12 @@ max_amount=1
 pause=5
 
 
-order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+
 
 logger.info(order_code)
 
 if barrier_up is None:
+    order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
     values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,null,{max_amount},{pause}, '{code}')
     """
@@ -34,6 +35,7 @@ else:
     barriers = np.linspace(barrier_up, barrier_down, order_nums)
     logger.info(barriers)
     for barrier in barriers:
+        order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
         values ({state}, {int(quantity/order_nums)}, '{code+'_'+str(int(barrier))+'_'+order_code}', 0,{barrier},{max_amount},{pause}, '{code}')
         """
