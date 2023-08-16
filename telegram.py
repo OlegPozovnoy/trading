@@ -104,4 +104,6 @@ if __name__ == "__main__":
     asyncio.run(send_all())
     print(datetime.datetime.now())
 
-# asyncio.run(send_message("Hello"))
+
+#msg = """hello"""
+#asyncio.run(send_message(msg))

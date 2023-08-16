@@ -66,7 +66,10 @@ def update():
     sql.get_table.exec_query(query_fut_upd)
     sql.get_table.exec_query(query_sec_upd)
     #store_jumps()
-    store_jump_events()
+    try:
+        store_jump_events()
+    except:
+        pass
     query_fut = "select max(updated_at), count(*) as cnt from public.futquotesdiff;"
     query_sec = "select max(updated_at), count(*) as cnt from public.secquotesdiff;"
 
