@@ -68,7 +68,7 @@ def predict(sec):
     forecast = m.predict(future)
     fig1 = m.plot(forecast)
     fig1.suptitle(sec)
-    fig1.savefig(f'./analytics_images/fbprophet_{sec}.png', dpi=50)
+    fig1.savefig(f'./analytics_images/{sec}_fbprophet.png', dpi=50)
     forecast_past = process_forecast_past(sec, forecast)
     forecast_future = process_forecast_future(sec, forecast)
     return forecast_past, forecast_future
@@ -86,7 +86,7 @@ def process_forecast_past(sec, forecast):
     forecast_past['sec'] = sec
     fig1 = forecast_past.plot(y='additive_terms_prct', title=sec)
     fig = fig1.get_figure()
-    fig.savefig(f'./analytics_images/weekly_{sec}.png', dpi=50)
+    fig.savefig(f'./analytics_images/{sec}_weekly.png', dpi=50)
     return forecast_past
 
 
@@ -141,7 +141,7 @@ def get_beta(sec, base_asset='CRU3'):
     plt.scatter(X, Y)
     plt.plot(xfit, yfit);
     plt.title(f"{sec} vs {base_asset}: b:{beta} r2:{r2}")
-    plt.savefig(f'./analytics_images/lr_{sec}_{base_asset}.png', dpi=50)
+    plt.savefig(f'./analytics_images/{sec}_lr_{base_asset}.png', dpi=50)
     # plt.close('all')
     return beta, r2
 
@@ -223,7 +223,7 @@ def plot_news(sec):
     ax2.bar(df_tmp['dt'], df_tmp['weight'], color='red', align='center', width=0.2)
     ax2.xaxis_date()
     fig.autofmt_xdate(rotation=90)
-    plt.savefig(f'./analytics_images/vols_{sec}.png', dpi=50)
+    plt.savefig(f'./analytics_images/{sec}_vols.png', dpi=50)
 
 
 for ticker in tickers:
