@@ -33,7 +33,7 @@ def record_new_event(doc, news_channel, keyword):
     for code in codes:
             query = f"""
             BEGIN;
-            insert into public.event_news(code, date_discovery, news_time, channel_source) 
+            insert into public.event_news(code, date_discovery, news_time, channel_source, keyword) 
             values('{code}','{tstamp}','{news_date}','{news_channel}','{keyword}');
             COMMIT;
             """
