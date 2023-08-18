@@ -169,7 +169,7 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                                 elif "госа" in fulltext:
                                     keyword = "госа"
 
-                                record_new_event(res, channel['username'], keyword)
+                                record_new_event(res, channel['username'], keyword, res['text'] + res['caption'])
 
 
 
