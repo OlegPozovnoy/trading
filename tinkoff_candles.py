@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import time
 import sys
@@ -27,7 +28,8 @@ engine = sql.get_table.engine
 TOKEN = os.environ["INVEST_TOKEN"]
 settings_path = os.environ['instrument_list_path']
 
-
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 @async_timed()
 async def candles_api_multi_call(df):
     result, res = [], pd.DataFrame()
@@ -47,7 +49,7 @@ async def candles_api_multi_call(df):
                 result.append(res)
             except Exception as e:
                 print(str(e))
-        res = pd.concat(result, axis=0)
+        res = pd.concat(result, axis=0) if len(result) > 0 else pd.DataFrame()
     print(f"{len(res)} rows imported ")
     return res
 
@@ -109,10 +111,13 @@ def update_import_params():
     with open(settings_path, "r") as fp:
         settings = json.load(fp)
     tickers = settings["futures"]["secCodes"] + settings["equities"]["secCodes"]
+    if len(tickers) == 0:
+        logger.error("list of tickers for import in file is empty")
+        return
     df = get_ticker(tickers)
-    engine.execute("delete from public.tinkoff_params")
-    df.to_sql("tinkoff_params", engine, if_exists='replace')
-    print(f"missing tickers: {set(tickers) - set(df['ticker'])}")
+
+    sql.get_table.df_to_sql(df, "tinkoff_params")
+    logger.info(f"missing tickers: {set(tickers) - set(df['ticker'])}")
     return df
 
 
