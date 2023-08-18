@@ -1,18 +1,33 @@
+import asyncio
 import json
+import logging
 import os
+import sys
 import time
 import datetime
 import pandas as pd
 from dotenv import load_dotenv
 
 import sql.get_table
+import sql.async_exec
+import subprocess
 
 from nlp.mongo_tools import clean_mongo
 from tinkoff_candles import import_new_tickers
+from tools.utils import sync_timed, async_timed
 
 load_dotenv(dotenv_path='./my.env')
 engine = sql.get_table.engine
 settings_path = os.environ['instrument_list_path']
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
@@ -22,23 +37,23 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     df_['time'] = df_['t'].dt.time
 
     # get last close
-    df_bollinger = df_[df_['time'] <= end_cutoff]\
-        .sort_values(['security', 'class_code', 'dt', 'time'], ascending=False)\
-        .groupby(['security', 'class_code', 'dt'])\
-        .head(1)\
+    df_bollinger = df_[df_['time'] <= end_cutoff] \
+        .sort_values(['security', 'class_code', 'dt', 'time'], ascending=False) \
+        .groupby(['security', 'class_code', 'dt']) \
+        .head(1) \
         .reset_index()
 
     # get last 20 values
-    df_bollinger = df_bollinger\
-        .sort_values(['security', 'class_code', 'dt'], ascending=False)\
-        .groupby(['security', 'class_code'])\
-        .head(20)\
+    df_bollinger = df_bollinger \
+        .sort_values(['security', 'class_code', 'dt'], ascending=False) \
+        .groupby(['security', 'class_code']) \
+        .head(20) \
         .reset_index()
 
     # calc
-    df_bollinger = df_bollinger\
-        .groupby(['security', 'class_code'])\
-        .agg(mean=('close', 'mean'), std=('close', 'std'), count=('close', 'count'))\
+    df_bollinger = df_bollinger \
+        .groupby(['security', 'class_code']) \
+        .agg(mean=('close', 'mean'), std=('close', 'std'), count=('close', 'count')) \
         .reset_index()
 
     # custom cols
@@ -73,31 +88,25 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     sql.get_table.exec_query("delete from public.df_volumes")
     df_volumes.to_sql('df_volumes', engine, if_exists='append')
 
-
-def clean_db():
-    sql_query = """ 
-    DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
-    DELETE	FROM public.secquotes;
-    DELETE	FROM public.futquotes;
-    DELETE  FROM public.orders_in;
-    DELETE	FROM public.pos_eq;
-    DELETE	FROM public.pos_collat;
-    DELETE	FROM public.deals;
-    DELETE	FROM public.deorders;
-    DELETE	FROM public.df_monitor;
-    DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);
-    UPDATE public.orders_my set state=0, remains=0;
-    DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);
-    DELETE  FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);  
-    """
-    engine.execute(sql_query)
-    clean_tinkoff()
-
-
-def clean_tinkoff():
-    # 20 days for bollinger bands calculation
-    query = "delete FROM public.df_all_candles_t_arch where datetime < (now() - interval '90 days')"
-    engine.execute(query)
+@async_timed()
+async def clean_db():
+    sql_query_list = [
+        "DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
+        "DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
+        "DELETE FROM public.df_all_candles_t_arch WHERE datetime < now() - interval '90 days'",
+        "DELETE  FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
+        "DELETE  FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
+        "DELETE	FROM public.secquotes;",
+        "DELETE	FROM public.futquotes;",
+        "DELETE  FROM public.orders_in;",
+        "DELETE	FROM public.pos_eq;",
+        "DELETE	FROM public.pos_collat;",
+        "DELETE	FROM public.deals;",
+        "DELETE	FROM public.deorders;",
+        "DELETE	FROM public.df_monitor;",
+        "UPDATE public.orders_my set state=0, remains=0;"
+    ]
+    await sql.async_exec.exec_list(sql_query_list)
     query = """
         WITH moved_rows AS (
             DELETE FROM df_all_candles_t  a
@@ -107,8 +116,6 @@ def clean_tinkoff():
         INSERT INTO df_all_candles_t_arch  --specify columns if necessary
         SELECT  * FROM moved_rows;    
     """
-    engine.execute(query)
-    query = "DELETE FROM df_all_candles_t_arch WHERE datetime < now() - interval '90 days'"
     engine.execute(query)
 
 
@@ -123,6 +130,10 @@ def update_instrument_list():
     setting['futures']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_fut)]
     setting['equities']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_sec)]
 
+    if len(setting['futures']['secCodes']) + len(setting['equities']['secCodes']) == 0:
+        logger.error("cant update instruments: fut&secquotes are empty")
+        return
+
     settings_str = json.dumps(setting, indent=4)
     with open(settings_path, "w") as fp:
         fp.write(settings_str)
@@ -132,16 +143,19 @@ def update_instrument_list():
 if __name__ == '__main__':
     startTime = time.time()
     try:
-        print('Update import settings')
+        logger.info('Update import settings')
         update_instrument_list()
-        print('Begin quotes reimport', datetime.datetime.now())
-        import_new_tickers(True)
-        print('Bars updated', datetime.datetime.now())
-        clean_db()
-        print('DB Cleaned', datetime.datetime.now())
+        logger.info('Begin quotes reimport')
+        asyncio.run(import_new_tickers(True))
+        logger.info('Bars updated')
+        asyncio.run(clean_db())
+        logger.info('DB Cleaned')
         calc_bollinger()
-        print('Bollinger recomputed', datetime.datetime.now())
+        logger.info('Bollinger recomputed')
         clean_mongo()
-        print("Mongodb duplicates removed")
+        logger.info("Mongodb duplicates removed")
+        subprocess.run(["python", "morning_reports.py"])
+    except Exception as e:
+        logger.error(f"{e}")
     finally:
         print(datetime.datetime.now())

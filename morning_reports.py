@@ -42,6 +42,7 @@ def get_time_cutoff_df(end_cutoff):
         .groupby(['security', 'class_code', 'dt']) \
         .head(1) \
         .reset_index()
+    print(df_bollinger)
     df_bollinger['dtime'] = df_bollinger.apply(lambda x: datetime.datetime.combine(x['dt'], end_cutoff), axis=1)
     return df_bollinger
 
@@ -69,6 +70,7 @@ def predict(sec):
     fig1 = m.plot(forecast)
     fig1.suptitle(sec)
     fig1.savefig(f'./analytics_images/{sec}_fbprophet.png', dpi=50)
+    plt.close('all')
     forecast_past = process_forecast_past(sec, forecast)
     forecast_future = process_forecast_future(sec, forecast)
     return forecast_past, forecast_future
@@ -87,6 +89,7 @@ def process_forecast_past(sec, forecast):
     fig1 = forecast_past.plot(y='additive_terms_prct', title=sec)
     fig = fig1.get_figure()
     fig.savefig(f'./analytics_images/{sec}_weekly.png', dpi=50)
+    plt.close('all')
     return forecast_past
 
 
@@ -142,7 +145,7 @@ def get_beta(sec, base_asset='CRU3'):
     plt.plot(xfit, yfit);
     plt.title(f"{sec} vs {base_asset}: b:{beta} r2:{r2}")
     plt.savefig(f'./analytics_images/{sec}_lr_{base_asset}.png', dpi=50)
-    # plt.close('all')
+    plt.close('all')
     return beta, r2
 
 
@@ -224,6 +227,7 @@ def plot_news(sec):
     ax2.xaxis_date()
     fig.autofmt_xdate(rotation=90)
     plt.savefig(f'./analytics_images/{sec}_vols.png', dpi=50)
+    plt.close('all')
 
 
 for ticker in tickers:

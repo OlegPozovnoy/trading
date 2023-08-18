@@ -2,6 +2,8 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pandas as pd
 
+from tools.utils import sync_timed
+
 client = MongoClient()
 
 def activate_all_channels(is_active, username = None):
@@ -110,7 +112,7 @@ def renumerate_channels(is_active=False):
         out_id += 1
         instrument_collection.update_one(item, {'$set': {'out_id': out_id}})
 
-
+@sync_timed()
 def remove_news_duplicates():
     news_collection = client.trading['news']
 
@@ -132,7 +134,6 @@ def remove_news_duplicates():
             print(str(row["id"]), res.iloc[idx - 1]['date'], res.iloc[idx]['date'], res.iloc[idx - 1]['username'],
                   res.iloc[idx]['username'])
     print(f"{cnt} found {deleted} deleted")
-
 
 
 def remove_channel_duplicates():
@@ -181,7 +182,7 @@ def remove_channel_duplicates():
 
 # GENERAL
 #remove_field('news','is_active')
-
+@sync_timed()
 def remove_empty_tag_news():
     news_collection = client.trading['news']
 

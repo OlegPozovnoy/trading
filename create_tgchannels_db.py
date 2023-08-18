@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import asyncio
+import string
 
 from dotenv import load_dotenv
 from pyrogram import Client
@@ -169,7 +170,9 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                                 elif "госа" in fulltext:
                                     keyword = "госа"
 
-                                record_new_event(res, channel['username'], keyword, res['text'] + res['caption'])
+                                fulltext = res['text'] + res['caption']
+                                fulltext = [x for x in fulltext if x not in string.punctuation]
+                                record_new_event(res, channel['username'], keyword, fulltext)
 
 
 
