@@ -8,16 +8,17 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
-quantity=-500
-code = 'SRU3'
+quantity=37
+code = 'LKU3'
 
-barrier_up=14#None#2750
+barrier_up=None
+#barrier_up=14
 barrier_down=12#2700
 order_nums=10
 
-state=1
-max_amount=1
-pause=5
+state = 0
+max_amount = 1
+pause = 1
 
 
 if barrier_up is None:

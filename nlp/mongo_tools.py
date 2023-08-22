@@ -1,3 +1,6 @@
+import datetime
+import logging
+
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pandas as pd
@@ -5,6 +8,8 @@ import pandas as pd
 from tools.utils import sync_timed
 
 client = MongoClient()
+
+logger = logging.getLogger()
 
 def activate_all_channels(is_active, username = None):
     names_collection = client.trading['tg_channels']
@@ -156,6 +161,9 @@ def remove_channel_duplicates():
             print(str(row["id"]), res.iloc[idx - 1]['title'], res.iloc[idx]['title'])
     print(f"{cnt} found {deleted} deleted")
 
+
+
+
 #renumerate_channels()
 #instrument_collection = client.trading['tg_channels']
 #for item in instrument_collection.find({}):
@@ -190,12 +198,21 @@ def remove_empty_tag_news():
             if len(item['tags']) == 0:
                 news_collection.delete_one(item)
 
+
+def clean_old_news(days=90):
+    from_date = datetime.datetime.today() - datetime.timedelta(days=days)
+    news_collection = client.trading['news']
+    query = {"date": {"$lt": from_date}}
+    x = news_collection.delete_many(query)
+    logger.info(f"{x.deleted_count} documents deleted.")
+
+
 def clean_mongo():
+    clean_old_news(days=90)
     remove_news_duplicates()
     remove_empty_tag_news()
 #remove_channel('promsvyaz_am')
 #remove_channel_duplicates()
 #remove_news_duplicates()
-
 
 #add_tag_channel({"title":"MarketTwits"}, "urgent")
