@@ -6,7 +6,7 @@ import sql.get_table
 client = MongoClient()
 
 
-def important_news(days=0.2):
+def important_news(days=1):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
@@ -15,8 +15,8 @@ def important_news(days=0.2):
         ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
     #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
     #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
-    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
+    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
+        ,'NLMK','MAGN','CHMF','ALRS','PLZL','OZON','FLOT','FEES','IRAO']
 
     res = ""
     for ticker in urgent_list:

@@ -68,8 +68,8 @@ def update():
     #store_jumps()
     try:
         store_jump_events()
-    except:
-        pass
+    except Exception as e:
+        print(f"store jump events{e}")
     query_fut = "select max(updated_at), count(*) as cnt from public.futquotesdiff;"
     query_sec = "select max(updated_at), count(*) as cnt from public.secquotesdiff;"
 
@@ -106,9 +106,9 @@ def update():
             values(1,{-sltp_line['quantity']},'stop loss',0, {sltp_line['id']},{sltp_line['stop_loss']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
             """
             sql.get_table.exec_query(new_order)
+
+    activate_orders_by_events()
     return
-
-
 
 
 def compose_td_datetime(curr_time):
@@ -197,10 +197,25 @@ def store_jumps():
 
 
 def store_jump_events():
-    query = "select * from public.jumps_events;"
+    query = "select * from public.jump_events;"
     df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
     if len(df_jumps)>0:
         df_jumps.to_sql('events_jumps_hist', engine, if_exists='append')
+
+
+def activate_orders_by_events():
+    query = """with shape_update as (
+        update public.orders_event_activator oea
+        set is_activated = true,
+        activate_time = now()
+            where now() between start_date and end_date
+            and (ticker, coalesce(keyword,'')) IN (select code, coalesce(keyword,'') from public.event_news where news_time between oea.start_date and oea.end_date)
+            and is_activated = false
+        returning orders_my_id
+        )
+        update orders_my om
+        set state = 1 where state=0 and om.id in (select orders_my_id from shape_update);"""
+    engine.execute(query)
 
 
 start_refresh = compose_td_datetime("09:00:00")

@@ -215,11 +215,6 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
     df_levels['timestamp'] = datetime.now()
     df_all_levels['timestamp'] = datetime.now()
 
-    try:
-        engine.execute(config.sql_queries.config["drop_view"])
-    except:
-        pass
-
     sql.get_table.exec_query("delete from public.df_levels")
     sql.get_table.exec_query("delete from public.df_all_levels")
     sql.get_table.exec_query("delete from public.df_all_volumes")

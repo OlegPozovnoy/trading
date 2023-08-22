@@ -315,7 +315,7 @@ def check_quotes_import():
         asyncio.run(telegram.send_message(f"quotes import problems: 0 records", urgent=True))
 
     # check that tables are not empty
-    tables = ['pos_fut', 'pos_money', 'pos_eq', 'pos_collat']
+    tables = ['pos_fut', 'pos_money', 'pos_eq']#, 'pos_collat']
     for table in tables:
         query = f"select count(*) as cnt from public.{table}"
         cnt = sql.get_table.query_to_list(query)[0]['cnt']
