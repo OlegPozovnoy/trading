@@ -16,7 +16,7 @@ import sql.get_table
 from dotenv import load_dotenv
 
 import tools.clean_processes
-from tools.utils import async_timed
+from tools.utils import async_timed, sync_timed
 
 import asyncio
 
@@ -138,9 +138,20 @@ async def import_new_tickers(refresh_tickers=False):
         candles.to_sql('df_all_candles_t', engine, if_exists='append', index=False)
 
 
+@sync_timed()
+def update_diffhist():
+    query = "select * from public.diffhistview_t1510"
+    df = sql.get_table.query_to_df(query)
+    sql.get_table.df_to_sql(df, 'diffhist_t1510')
+
+    query = "select * from public.diffhistview_t5"
+    df = sql.get_table.query_to_df(query)
+    sql.get_table.df_to_sql(df, 'diffhist_t5')
+
+
 if __name__ == "__main__":
     startTime = time.time()
-    print(f"inkoff candles: {datetime.datetime.now()} {os.getpid()}")
+    print(f"tinkoff candles: {datetime.datetime.now()} {os.getpid()}")
     if not tools.clean_processes.clean_proc("tinkoff_candles", os.getpid(), 3):
         print("something is already running")
         exit(0)
@@ -151,4 +162,5 @@ if __name__ == "__main__":
         print("error", str(ex), datetime.datetime.now())
         sys.exit(1)
     finally:
+        update_diffhist()
         print(datetime.datetime.now())

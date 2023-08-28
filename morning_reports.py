@@ -196,7 +196,6 @@ news_collection = client.trading['news']
 news_filter = {"date": {"$gte": start_date}}
 res = []
 for item in news_collection.find(news_filter):
-    print(item['_id'], item['channel_title'], item['date'], item['tags'])
     for tag in item['tags']:
         res.append((item['_id'], item['channel_title'], item['date'], tag, 1 / len(item['tags'])))
 
