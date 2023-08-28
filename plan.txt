@@ -29,4 +29,4 @@ URGENT
 
 Механики ордеров:
 takeprofit stoploss: endtime=0 относится и к state=0 и 1: ставим state=0 и endtime и вставляем зеркальый ордер на quantity
-
+om.provider='tcs'

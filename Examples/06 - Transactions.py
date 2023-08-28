@@ -409,6 +409,10 @@ def actualize_order_my():
     # 3)выключаем ордера как только ремейнс достиг quantity
     query = """
     begin;
+    UPDATE public.orders_my set remains=0 where remains is null
+    commit;
+    
+    begin;
     UPDATE public.orders_my as om 
     SET  remains = ag.amount, 
          pending_conf = ag.amount_pending, 
@@ -417,6 +421,7 @@ def actualize_order_my():
     WHERE concat(om.comment::text, om.id) = ag.comment
     and om.state <> 0 and om.provider is null; 
     commit;
+    
     begin;
     UPDATE public.orders_my as om 
     SET  remains = ag.amount, 
@@ -426,6 +431,7 @@ def actualize_order_my():
     WHERE concat(om.comment::text, om.id) = ag.comment
     and om.state <> 0 and om.provider='tcs'; 
     commit;
+    
     begin;
     UPDATE public.orders_my
     set direction = coalesce(direction, sign(quantity - remains))
@@ -456,30 +462,54 @@ def process_orders(orderProcesser):
     print(f"orders:{orders}")
     for order in orders:
         print(order)
-        comment = order['comment'] + str(order['id'])
-        secCode = order['code']
-        price_bound = order['barrier']
         quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
 
-        price_bound_clause = ((price_bound is not None) and (quantity * (order['mid'] - price_bound) < 0)) or (
-                    price_bound is None)
+        price_bound_clause = ((order['barrier'] is not None) and (
+                    quantity * (order['mid'] - order['barrier']) < 0)) or (
+                                     order['barrier'] is None)
         direction_clause = ((order['direction'] * quantity) > 0)
 
-        if price_bound_clause and direction_clause:
+        is_execute, secCode, quantity, price_bound, max_amount, comment = get_order_params(order)
+
+        if price_bound_clause and direction_clause and is_execute:
             # добавляем в очередь блокировки с задержкой pause
             if_not_exist = orderProcesser.add_task(
-                (comment, secCode, quantity, price_bound, order['max_amount'], comment), order['pause'])  # key 1st
+                (comment, secCode, quantity, price_bound, max_amount, comment), order['pause'])  # key 1st
             if if_not_exist:
                 if order['provider'] == 'tcs':
-                    place_order_tcs(secCode, quantity, price_bound, order['max_amount'], comment)
+                    place_order_tcs(secCode, quantity, price_bound, max_amount, comment)
                 else:
-                    place_order(secCode, quantity, price_bound, order['max_amount'], comment)
+                    place_order(secCode, quantity, price_bound, max_amount, comment)
 
     # get tasks tthat are scheduled
     tasks_list = orderProcesser.do_tasks()
     print(f"tasks_list:{tasks_list}")
 
     sleep(random.uniform(0.1, 0.3))
+
+
+def get_order_params(order):
+    comment = order['comment'] + str(order['id'])
+    secCode = order['code']
+    price_bound = order['barrier']
+    quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
+
+    if order['order_type'] == 'flt':
+        current_barrier = (order['barrier_bound'] - order['barrier']) * (order['quantity'] - quantity) / order[
+            'quantity'] + order['barrier']
+        current_quantity = int(
+            (order['mid'] - current_barrier) / (order['barrier_bound'] - order['barrier']) * order['quantity'])
+        current_quantity = min(max(current_quantity, 0), quantity) if order['quantity'] > 0 else min(
+            max(current_quantity, quantity), 0)
+        return current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment
+    elif order['order_type'] == 'trl':
+        if (order['direction'] > 0 and order['max_5mins'] - order['barrier_bound'] > order['mid']) \
+                or (order['direction'] < 0 and order['min_5mins'] + order['barrier_bound'] < order['mid']):
+            return True, secCode, quantity, price_bound, order['max_amount'], comment
+        else:
+            return False, secCode, quantity, price_bound, order['max_amount'], comment
+    else:
+        return True, secCode, quantity, price_bound, order['max_amount'], comment
 
 
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
