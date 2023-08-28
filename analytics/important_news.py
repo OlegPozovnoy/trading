@@ -16,7 +16,7 @@ def important_news(days=1):
     #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
     #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
     urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','ALRS','PLZL','OZON','FLOT','FEES','IRAO']
+        ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
 
     res = ""
     for ticker in urgent_list:

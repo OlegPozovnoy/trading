@@ -25,8 +25,10 @@ def df_to_sql(df, table_name):
     except:
         pass
     finally:
-        df.to_sql(table_name, engine, if_exists='append')
-
+        try:
+            df.to_sql(table_name, engine, if_exists='append')
+        except:
+            df.to_sql(table_name, engine, if_exists='replace')
 
 def load_candles():
     return query_to_df("select * from df_all_candles_t")
