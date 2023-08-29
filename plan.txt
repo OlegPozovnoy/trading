@@ -32,5 +32,4 @@ takeprofit stoploss: endtime=0 относится и к state=0 и 1: стави
 om.provider='tcs' flt trl
 
 - реанимировать order discovery
-- сделать обьемы отдельной табличкой
 - event jump hist не работабт
