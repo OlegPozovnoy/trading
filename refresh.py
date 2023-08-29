@@ -244,7 +244,7 @@ def store_jump_events():
     query = "select * from public.jump_events;"
     df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
     if len(df_jumps)>0:
-        sql.get_table.df_to_sql(df_jumps, 'events_jumps_hist')
+        df_jumps.to_sql('events_jumps_hist', sql.get_table.engine, if_exists='append')
 
 
 start_refresh = compose_td_datetime("09:00:00")
