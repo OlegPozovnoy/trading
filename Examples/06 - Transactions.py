@@ -409,7 +409,7 @@ def actualize_order_my():
     # 3)выключаем ордера как только ремейнс достиг quantity
     query = """
     begin;
-    UPDATE public.orders_my set remains=0 where remains is null
+    UPDATE public.orders_my set remains=0 where remains is null;
     commit;
     
     begin;

@@ -68,27 +68,8 @@ def SaveCandlesToFile(class_sec, fileName, candles_num=0):
     print("saving to file ", ctime())
     fileBars.to_csv(fileName, sep='\t', date_format='%d.%m.%Y %H:%M')
 
-    if candles_num < 30:
-        record_10min_statistics(result_df)
-
     print("saved", ctime())
     print(f'- В файл {fileName} сохранено записей: {len(fileBars)}')
-
-
-def record_10min_statistics(df):
-    print("recording stats")
-    df = df.reset_index()
-    df_filtered = df.groupby('security').apply(lambda x: x.iloc[:-3]).reset_index(drop=True)
-    df_filtered = df_filtered \
-        .groupby('security') \
-        .agg(dt=('datetime', 'max'), cnt=('volume', 'count'), max_volume=('volume', 'max'),
-             max_high=('high', 'max'), min_low=('low', 'min')) \
-        .reset_index()
-    df_filtered['spread'] = df_filtered['max_high'] - df_filtered['min_low']
-
-    df_filtered = df_filtered[['security', 'max_volume', 'spread', 'dt', 'cnt']]
-    engine.execute("delete from public.df_stats")
-    df_filtered.to_sql('df_stats', engine, if_exists='append')
 
 
 def update_all_quotes(to_remove=True, candles_num=4100):
