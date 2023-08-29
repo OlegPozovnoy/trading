@@ -109,19 +109,6 @@ def update_tables(filtered=False):
 
 
 @sync_timed()
-def send_messages(df_monitor):
-    for idx, row in df_monitor.iterrows():
-        before = (round(row['old_price'], 4), row['old_state'], round(row['old_start'], 4), round(row['old_end'], 4))
-        after = (round(row['new_price'], 4), row['new_state'], round(row['new_start'], 4), round(row['new_end'], 4))
-
-        state_msg = f" {round(((row['new_price'] - row['old_price']) * 100 / row['old_price']), 2)} "
-        msg = f'{row["code"]} {state_msg}: {before} ->\n {after}'
-
-        asyncio.run(telegram.send_message(msg))
-        asyncio.run(telegram.send_photo(f'./level_images/{row["code"]}.png'))
-
-
-@sync_timed()
 def prepare_images(df_monitor_code_series):
     days_to_subtract = 7
     logger.info(f"preparing images {df_monitor_code_series}")
@@ -232,13 +219,13 @@ def send_gains(df_gains, urgent_list=None):
     if urgent_list is None:
         urgent_list = []
     for idx, row in df_gains.iterrows():
-        before = round(row['close_y'], 4)
-        after = round(row['close_x'], 4)
-        inc = round(row['inc'], 2)
+        #before = round(row['close_y'], 4)
+        #after = round(row['close_x'], 4)
+        #inc = round(row['inc'], 2)
 
-        msg = f'{row["security"]} {inc}: {before} -> {after}  {row["cdate_x"]}'
+        #msg = f'{row["security"]} {inc}: {before} -> {after}  {row["cdate_x"]}'
         is_urgent = (row["security"] in urgent_list)
-        asyncio.run(telegram.send_message(msg, is_urgent))
+        #asyncio.run(telegram.send_message(msg, is_urgent))
         asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
 
@@ -287,11 +274,13 @@ def send_abnormal_volumes(df_volumes, urgent_list=None):
     if urgent_list is None:
         urgent_list = []
     for idx, row in df_volumes.iterrows():
-        msg = f'{row["security"]} {row["timeframe"]} {round(row["std"], 1)}: \
-vol:{int(row["volume"])} avg:{int(row["volume_mean"])} std:{int(row["volume_std"])} {row["end_time"]}'
-        logger.debug(msg)
+        # msg = f'{row["security"]} {row["timeframe"]} {round(row["std"], 1)}: \
+        #    vol:{int(row["volume"])} avg:{int(row["volume_mean"])} std:{int(row["volume_std"])} {row["end_time"]}'
+        # logger.debug(msg)
         is_urgent = (row["security"] in urgent_list)
-        asyncio.run(telegram.send_message(msg, is_urgent))
+
+        #    asyncio.run(telegram.send_message(msg, is_urgent))
+
         if row["timeframe"] == 'mins':
             asyncio.run(telegram.send_photo(f'./level_images/{row["security"]}.png', is_urgent))
 
@@ -308,8 +297,9 @@ def get_bollinger():
 
 
 @sync_timed()
-def send_df(df):
-    asyncio.run(telegram.send_message(df.to_string(justify='left', index=False)))
+def send_df(df, is_urgent=False):
+    if len(df) > 0:
+        asyncio.run(telegram.send_message(df.to_string(justify='left', index=False), is_urgent))
 
 
 @sync_timed()
@@ -384,6 +374,22 @@ def pos_orders_gen():
     sql.get_table.exec_query(query)
 
 
+def format_volumes(df):
+    df['end_time'] = df['end_time'].apply(lambda x: x.strftime("%H:%M"))
+    df['std'] = df['std'].apply(lambda x: round(x, 1))
+    for col in ['volume_mean',   'volume_std',    'volume']:
+        df[col] = df[col].apply(lambda x: int(x))
+
+    return df[['security', 'std' ,'end_time','timeframe','volume_mean', 'volume_std'  ]]
+
+
+def format_jumps(df):
+    df['cdate_x'] = df['cdate_x'].apply(lambda x: x.strftime("%H:%M"))
+    df['inc'] = df['inc'].apply(lambda x: round(x, 2))
+    df['close_x'] = df['close_x'].apply(lambda x: round(x, 4))
+    return df[['security', 'inc','close_x', 'cdate_x']]
+
+
 if __name__ == '__main__':
     logger.info("monitor started: ")
     check_quotes_import()
@@ -404,14 +410,17 @@ if __name__ == '__main__':
 
     df_gains, df_inc = get_gains()
     logger.debug(f'df_gains: \n{df_gains.head()}')
+    send_df(format_jumps(df_gains[df_gains['security'].isin(urgent_list)]), True)
+    send_df(format_jumps(df_gains[~df_gains['security'].isin(urgent_list)]), False)
 
     df_volumes = get_abnormal_volumes()
+    send_df(format_volumes(df_volumes[df_volumes['security'].isin(urgent_list)]), True)
+    send_df(format_volumes(df_volumes[~df_volumes['security'].isin(urgent_list)]), False)
 
     df_bollinger = get_bollinger()
 
     if len(pd.concat([df_volumes['security'], df_gains['security']])) > 0:
         prepare_images(pd.concat([df_volumes['security'], df_gains['security']]).drop_duplicates())
-        # send_messages(df_monitor)
         send_gains(df_gains, urgent_list)
         send_abnormal_volumes(df_volumes, urgent_list)
 
