@@ -497,14 +497,21 @@ def get_order_params(order):
     if order['order_type'] == 'flt':
         current_barrier = (order['barrier_bound'] - order['barrier']) * (order['quantity'] - quantity) / order[
             'quantity'] + order['barrier']
+        logger.info(f"executed: {order['quantity'] - quantity}")
+        logger.info(f"current barrier: {current_barrier}")
         current_quantity = int(
             (order['mid'] - current_barrier) / (order['barrier_bound'] - order['barrier']) * order['quantity'])
+        logger.info(f"current quantity: {current_quantity}")
         current_quantity = min(max(current_quantity, 0), quantity) if order['quantity'] > 0 else min(
             max(current_quantity, quantity), 0)
+        logger.info(f"current quantity: {current_quantity}")
+        # current_quantity != 0
         return current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment
     elif order['order_type'] == 'trl':
-        if (order['direction'] > 0 and order['max_5mins'] - order['barrier_bound'] > order['mid']) \
-                or (order['direction'] < 0 and order['min_5mins'] + order['barrier_bound'] < order['mid']):
+        if (order['direction'] == -1 and order['max_5mins'] - order['barrier_bound'] > order['mid']) \
+                or (order['direction'] == 1 and order['min_5mins'] + order['barrier_bound'] < order['mid']):
+            logger.info(f"minmax: {order['max_5mins'] if order['direction'] == 1 else order['min_5mins']}")
+            logger.info(f"barrier_bound: {order['barrier_bound']} mid:{order['mid']}")
             return True, secCode, quantity, price_bound, order['max_amount'], comment
         else:
             return False, secCode, quantity, price_bound, order['max_amount'], comment

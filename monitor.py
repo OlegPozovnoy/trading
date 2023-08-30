@@ -411,11 +411,11 @@ if __name__ == '__main__':
     df_gains, df_inc = get_gains()
     logger.debug(f'df_gains: \n{df_gains.head()}')
     send_df(format_jumps(df_gains[df_gains['security'].isin(urgent_list)]), True)
-    send_df(format_jumps(df_gains[~df_gains['security'].isin(urgent_list)]), False)
+    send_df(format_jumps(df_gains), False)
 
     df_volumes = get_abnormal_volumes()
     send_df(format_volumes(df_volumes[df_volumes['security'].isin(urgent_list)]), True)
-    send_df(format_volumes(df_volumes[~df_volumes['security'].isin(urgent_list)]), False)
+    send_df(format_volumes(df_volumes), False)
 
     df_bollinger = get_bollinger()
 
