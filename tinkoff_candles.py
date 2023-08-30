@@ -144,7 +144,7 @@ def update_diffhist():
     df = sql.get_table.query_to_df(query)
     sql.get_table.df_to_sql(df, 'diffhist_t1510')
 
-    query = "select * from public.diffhistview_t5"
+    query = "select * from public.diffhistview_5" #тиньков не успевает
     df = sql.get_table.query_to_df(query)
     sql.get_table.df_to_sql(df, 'diffhist_t5')
 
