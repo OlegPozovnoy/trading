@@ -127,9 +127,11 @@ async def import_new_tickers(refresh_tickers=False):
 
     query = f"select security, max(datetime) as last_row from public.df_all_candles_t group by security"
     df_lastrec = sql.get_table.query_to_df(query)
+    if len(df_lastrec) == 0:
+        df_lastrec = pd.DataFrame(columns=['security','last_row'])
     df = df.merge(df_lastrec, left_on='ticker', right_on='security', how='left')
     df['last_row'] = (df['last_row'].apply
-                      (lambda t: now() - timedelta(days=90) if t is None else t + timedelta(minutes=1, seconds=1)))
+                      (lambda t: now() - timedelta(days=90) if pd.isnull(t) else t + timedelta(minutes=1, seconds=1)))
 
     candles = await candles_api_multi_call(df)
     if len(candles) > 0:
