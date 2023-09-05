@@ -6,7 +6,7 @@ import sql.get_table
 client = MongoClient()
 
 
-def important_news(days=1):
+def important_news(days=4):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 

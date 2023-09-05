@@ -149,7 +149,7 @@ if __name__ == '__main__':
         logger.info('Update import settings')
         update_instrument_list()
         logger.info('Begin quotes reimport')
-        asyncio.run(import_new_tickers(True))
+        #asyncio.run(import_new_tickers(True))
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')

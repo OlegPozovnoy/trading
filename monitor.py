@@ -257,7 +257,7 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df_analys['std'] = (df_analys['volume'] - df_analys['volume_mean']) / df_analys['volume_std']
         df_analys['end_time'] = end_time
 
-        return df_analys[df_analys['std'] >= 3].sort_values('std', ascending=False)
+        return df_analys[df_analys['std'] >= 2].sort_values('std', ascending=False)
 
     df_minutes = get_volumes()
     df_minutes['timeframe'] = 'mins'
@@ -390,6 +390,12 @@ def format_jumps(df):
     return df[['security', 'inc','close_x', 'cdate_x']]
 
 
+def cut_trailing(df, col_list):
+    for col in col_list:
+        df[col] = df[col].astype(str).replace(r'0+$', '', regex=True)
+    return df
+
+
 if __name__ == '__main__':
     logger.info("monitor started: ")
     check_quotes_import()
@@ -433,4 +439,12 @@ if __name__ == '__main__':
         df_bollinger['quote'] = df_bollinger['quote'].astype(str).replace(r'0+$', '', regex=True)
         logger.info(df_bollinger)
         send_df(df_bollinger)
+
+    send_df(cut_trailing(sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
+                         ['pnl', 'price_balance', 'volume'] ), True)
+
+    send_df(cut_trailing(sql.get_table.query_to_df(
+        "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
+    ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
+
     logger.info("monitor: ended")
