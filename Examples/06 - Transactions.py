@@ -493,7 +493,7 @@ def get_order_params(order):
     secCode = order['code']
     price_bound = order['barrier']
     quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
-
+    #logger.info(order)
     if order['order_type'] == 'flt':
         current_barrier = (order['barrier_bound'] - order['barrier']) * (order['quantity'] - quantity) / order[
             'quantity'] + order['barrier']
@@ -506,6 +506,7 @@ def get_order_params(order):
             max(current_quantity, quantity), 0)
         logger.info(f"current quantity: {current_quantity}")
         # current_quantity != 0
+        logger.info((current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment))
         return current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment
     elif order['order_type'] == 'trl':
         logger.info(f"{secCode} {order['direction']} minmax: {order['max_5mins'] if order['direction'] == 1 else order['min_5mins']}")
