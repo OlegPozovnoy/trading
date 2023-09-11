@@ -395,6 +395,12 @@ def cut_trailing(df, col_list):
         df[col] = df[col].astype(str).replace(r'0+$', '', regex=True)
     return df
 
+def normalize_money(df, col_list):
+    for col in col_list:
+        df[col] = df[col]/1000
+        df[col] = df[col].astype(int)
+    return df
+
 
 if __name__ == '__main__':
     logger.info("monitor started: ")
@@ -440,11 +446,15 @@ if __name__ == '__main__':
         logger.info(df_bollinger)
         send_df(df_bollinger)
 
-    send_df(cut_trailing(sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
-                         ['pnl', 'price_balance', 'volume'] ), True)
+    send_df(cut_trailing(
+        normalize_money(
+            sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
+        ['pnl', 'volume']),
+                ['pnl', 'price_balance', 'volume']), True)
 
-    send_df(cut_trailing(sql.get_table.query_to_df(
+
+    send_df(normalize_money(sql.get_table.query_to_df(
         "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
-    ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
+        ['money_prev', 'money','pos_current', 'pos_plan','pnl', 'pnl_prev']), True)
 
     logger.info("monitor: ended")
