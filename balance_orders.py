@@ -7,7 +7,7 @@ engine=sql.get_table.engine
 engine.execute("delete from public.orders_my where comment like 'BAL%%'")
 
 k_up = 2
-k_down = 3
+k_down = 4
 
 target_pos = [
 ('SRU3', 20),
@@ -46,9 +46,9 @@ df['k_down'] = k_down
 df['k_up'] = k_up
 
 df['target_volume'] = money_adjusted * df['k_down'] * df['vol']
-df['target_pos'] = df['target_volume']/df['collateral'] * df['price'] / df['yhat_lower']/df['k_down']
+df['target_pos'] = df['target_volume']/df['collateral'] * df['price'] / df['yhat_lower']
 df['target_pos_neutral'] = df['target_pos']/df['k_down'] * df['k_up']
-df['current_k'] = df['pos']/df['target_pos'] * df['k_down']
+df['current_k'] = df['pos']/df['target_pos']
 df.to_csv('balance_pos.csv', sep = '\t')
 
 for idx, row in df.iterrows():
