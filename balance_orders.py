@@ -48,7 +48,7 @@ df['k_up'] = k_up
 df['target_volume'] = money_adjusted * df['k_down'] * df['vol']
 df['target_pos'] = df['target_volume']/ df['yhat_lower']
 df['target_pos_neutral'] = df['target_pos']/df['k_down'] * df['k_up']
-df['current_k'] = df['pos']/df['target_pos']
+df['current_k'] = df['pos']/df['target_pos'] * df['k_down']
 df.to_csv('balance_pos.csv', sep = '\t')
 
 for idx, row in df.iterrows():
