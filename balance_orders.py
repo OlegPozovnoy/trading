@@ -7,15 +7,15 @@ engine=sql.get_table.engine
 engine.execute("delete from public.orders_my where comment like 'BAL%%'")
 
 k_up = 0
-k_down = 2
+k_down = 4
 
 target_pos = [
-('SRU3', 20),
+('SRZ3', 20),
 ('LKZ3', 6),
-('RNU3', 5.5),
+('RNZ3', 5.5),
 ('MGZ3', 10),
 ('NMZ3', 5.5),
-('MNU3', 13)
+('MNZ3', 13)
 ]
 
 df = pd.DataFrame(target_pos, index = range(len(target_pos)), columns=['code','vol'])
