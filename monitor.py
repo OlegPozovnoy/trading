@@ -181,7 +181,7 @@ def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
 
 
 @sync_timed()
-def get_gains(min_lag=10, threshold=0.5):
+def get_gains(min_lag=10, base_asset='MXZ3'):
     # возвращаем то чот выросло нв трешхолд процентов за минлаг минут
     df = load_candles()
     df['cdate'] = pd.to_datetime(df['datetime'])  # , format="%d.%m.%Y %H:%M")
@@ -199,14 +199,25 @@ def get_gains(min_lag=10, threshold=0.5):
     df_res = df_end.merge(df_start, how='inner', on='security')[
         ['security', 'class_code_x', 'close_x', 'close_y', 'cdate_x', 'cdate_y']]
     df_res['inc'] = (df_res['close_x'] / df_res['close_y'] - 1) * 100
-    logger.info(f"get_gains:df_res \n {df_res.head()}")
 
+    df_betas = sql.get_table.query_to_df(
+        f"SELECT sec, beta, r2, corr FROM public.analytics_beta where base_asset = '{base_asset}'")
+    base_inc = df_res[df_res['security'] == base_asset]['inc'].iloc[0]
+    df_res['base_inc'] = base_inc
+    df_res = df_res.merge(df_betas, left_on='security', right_on='sec', how='left')
+    df_res.drop('sec', axis=1, inplace=True)
+    logger.info(f"get_gains:df_res \n {df_res.head()}")
+    return df_res
+
+
+@sync_timed()
+def filter_gains(min_lag=10, threshold=0.5, base_asset='MXZ3'):
+    df_res = get_gains(min_lag, base_asset)
     df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
     df_inc = pd.concat([df_eq.head(5), df_eq.tail(5), df_fut.head(5), df_fut.tail(5)])[
         ['security', 'inc', 'close_x', 'cdate_x']] \
         .sort_values('inc').reset_index(drop=True)
-
     df_inc['cdate_x'] = df_inc['cdate_x'].apply(lambda x: x.strftime("%H:%M"))
     df_inc['inc'] = df_inc['inc'].round(2)
     logger.info(f"full df inc\n {df_inc}" )
@@ -243,7 +254,7 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df['ctime'] = df['cdate'].dt.time
         df['cdt'] = df['cdate'].dt.date
 
-        # считаем mean std volumes предыдущегго и текущего периодов
+        # считаем mean std volumes предыдущего и текущего периодов
         df_prev = df.loc[(df['cdate'].dt.time > start_time) & (df['cdate'].dt.time <= end_time) &
                          (df['cdate'].dt.date >= start_date) & (df['cdate'].dt.date < end_date)] \
             .groupby([df['cdate'].dt.date, 'security']).sum('volume').reset_index() \
@@ -256,6 +267,9 @@ def get_abnormal_volumes(include_daily=True, minutes_lookback=10, days_lookback=
         df_analys = df_prev.merge(df_now, how='inner', on='security')
         df_analys['std'] = (df_analys['volume'] - df_analys['volume_mean']) / df_analys['volume_std']
         df_analys['end_time'] = end_time
+
+        df_inc = get_gains(min_lag=minutes_lookback)
+        df_analys = df_analys.merge(df_inc[['security', 'inc', 'base_inc', 'beta', 'r2']], how='left', on='security')
 
         return df_analys[df_analys['std'] >= 2].sort_values('std', ascending=False)
 
@@ -387,13 +401,14 @@ def format_jumps(df):
     df['cdate_x'] = df['cdate_x'].apply(lambda x: x.strftime("%H:%M"))
     df['inc'] = df['inc'].apply(lambda x: round(x, 2))
     df['close_x'] = df['close_x'].apply(lambda x: round(x, 4))
-    return df[['security', 'inc','close_x', 'cdate_x']]
+    return df[['security', 'inc','close_x', 'cdate_x', 'base_inc',  'beta', 'r2']]
 
 
 def cut_trailing(df, col_list):
     for col in col_list:
         df[col] = df[col].astype(str).replace(r'0+$', '', regex=True)
     return df
+
 
 def normalize_money(df, col_list):
     for col in col_list:
@@ -420,7 +435,7 @@ if __name__ == '__main__':
     # pos_orders_gen()
     # print("pos_orders_gen")
 
-    df_gains, df_inc = get_gains()
+    df_gains, df_inc = filter_gains()
     logger.debug(f'df_gains: \n{df_gains.head()}')
     send_df(format_jumps(df_gains[df_gains['security'].isin(urgent_list)]), True)
     send_df(format_jumps(df_gains), False)

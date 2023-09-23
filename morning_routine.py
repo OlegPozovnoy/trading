@@ -107,7 +107,6 @@ async def clean_db():
         "DELETE	FROM public.deals;",
         "DELETE	FROM public.deorders;",
         "DELETE	FROM public.df_monitor;",
-        "UPDATE public.orders_my set state=0, remains=0;"
     ]
     await sql.async_exec.exec_list(sql_query_list)
     query = """
