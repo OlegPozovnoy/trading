@@ -6,23 +6,34 @@ engine=sql.get_table.engine
 
 engine.execute("delete from public.orders_my where comment like 'BAL%%'")
 
-k_up = 0
-k_down = 4
+k_up = 3
+k_down = 5
 
 target_pos = [
-('SRZ3', 20),
-('LKZ3', 6),
-('RNZ3', 5.5),
+('SRZ3', 25),
+('TIZ3', 3),
+('VBZ3', 5),
+
+('FVZ3', 5),
+('MNZ3', 10),
+
+('LKZ3', 3),
+('RNZ3', 5),
+
 ('MGZ3', 10),
-('NMZ3', 5.5),
-('MNZ3', 13)
+('NMZ3', 3),
+('CHZ3', 3),
+
+('YNZ3', 5),
+
+('ALZ3', 3)
 ]
 
 df = pd.DataFrame(target_pos, index = range(len(target_pos)), columns=['code','vol'])
 df['vol'] = df['vol']/sum([v[1] for v in target_pos])
 
 current_pos = sql.get_table.query_to_df("SELECT code, pos, volume FROM public.united_pos")
-df = df.merge(current_pos, how='inner', on = 'code')
+df = df.merge(current_pos, how='left', on='code')
 df = df.fillna(0)
 
 
