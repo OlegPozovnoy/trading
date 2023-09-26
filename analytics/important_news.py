@@ -6,17 +6,21 @@ import sql.get_table
 client = MongoClient()
 
 
-def important_news(days=4):
+def important_news(days=30):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
     urgent_list = ['SBER', 'SMLT', 'ALRS', 'MAGN', 'MGNT', 'LKOH', 'NLMK', 'CHMF']
     urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','GAZR','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
+        ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL',
+                   'RTSM', 'SNGP', 'POLY', 'HYDR', 'AFLT', 'PHOR', 'MTLR', 'PIKK', 'AFKS', 'POSI']
     #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
     #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
-    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
+    # urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
+    #     ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
+    # "SRZ3"     "LKZ3"     "NMZ3"     "RNZ3"     "MGZ3"     "MNZ3"     "FVZ3"     "YNZ3"
+    # urgent_list = ['SBRF','LKOH','NLMK','ROSN','TCSI','MAGN','MGNT','FIVE','YNDF','TRNF','VTBR']
+
 
     res = ""
     for ticker in urgent_list:
