@@ -391,10 +391,14 @@ def pos_orders_gen():
 def format_volumes(df):
     df['end_time'] = df['end_time'].apply(lambda x: x.strftime("%H:%M"))
     df['std'] = df['std'].apply(lambda x: round(x, 1))
+    df['beta'] = df['beta'].apply(lambda x: round(x, 1))
     for col in ['volume_mean',   'volume_std',    'volume']:
         df[col] = df[col].apply(lambda x: int(x))
 
-    return df[['security', 'std' ,'end_time','timeframe','volume_mean', 'volume_std'  ]]
+    for col in ['inc', 'base_inc',  'beta', 'r2' ]:
+        df[col] = df[col].apply(lambda x: round(x,2))
+
+    return df[['security', 'std' ,'end_time','timeframe','volume_mean', 'volume_std','inc', 'beta', 'base_inc',   'r2'  ]]
 
 
 def format_jumps(df):
@@ -406,7 +410,7 @@ def format_jumps(df):
 
 def cut_trailing(df, col_list):
     for col in col_list:
-        df[col] = df[col].astype(str).replace(r'0+$', '', regex=True)
+        df[col] = df[col].astype(float).astype(str).replace(r'0+$', '', regex=True)
     return df
 
 

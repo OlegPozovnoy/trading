@@ -9,7 +9,7 @@ logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
 quantity=-740
-code = 'CRU3'
+code = 'CRZ3'
 
 barrier_up=None
 #barrier_up=14
