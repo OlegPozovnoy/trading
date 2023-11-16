@@ -3,11 +3,10 @@ import re
 import pymorphy2
 
 
-from pymongo import MongoClient
+from nlp import client
 from datetime import datetime, timedelta
 
 
-client = MongoClient()
 morph = pymorphy2.MorphAnalyzer()
 
 

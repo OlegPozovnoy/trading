@@ -1,11 +1,9 @@
 import datetime
 import subprocess
 
-from pymongo import MongoClient
-
 import sql.get_table
+from nlp import client
 
-client = MongoClient()
 
 
 def important_news(days=1):

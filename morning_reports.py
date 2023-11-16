@@ -12,8 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
-from pymongo import MongoClient
 import pandas as pd
+from nlp import client
 
 load_dotenv(dotenv_path='./my.env')
 settings_path = os.environ['instrument_list_path']
@@ -196,7 +196,6 @@ df_news['wd'] = df_news['dt'].apply(lambda x: x.weekday())
 df_news = df_news[df_news['wd'] < 5]
 df_news = df_news[['close', 'volume', 'security', 'dt']]
 
-client = MongoClient()
 
 start_date = datetime.datetime.combine(min(df_news['dt']), datetime.datetime.min.time())
 
