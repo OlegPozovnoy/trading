@@ -1,5 +1,7 @@
 import os
 import json
+import subprocess
+
 from dotenv import load_dotenv
 import logging
 import sql
@@ -231,3 +233,5 @@ def plot_news(sec):
 
 for ticker in tickers:
     plot_news(ticker)
+
+subprocess.run(["python", "balance_orders.py"])

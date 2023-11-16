@@ -121,7 +121,7 @@ async def clean_db():
     engine.execute(query)
 
 
-def update_instrument_list():
+def update_instrument_list(update_sec=True):
     setting = {'equities': {}, 'futures': {}}
     setting['equities']['classCode'] = "TQBR"
     setting['futures']['classCode'] = "SPBFUT"
@@ -130,7 +130,7 @@ def update_instrument_list():
     query_sec = "select distinct code from public.secquotes"
 
     setting['futures']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_fut)]
-    setting['equities']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_sec)]
+    setting['equities']['secCodes'] = [x[0] for x in sql.get_table.exec_query(query_sec)] if update_sec else []
 
     if len(setting['futures']['secCodes']) + len(setting['equities']['secCodes']) == 0:
         logger.error("cant update instruments: fut&secquotes are empty")
