@@ -19,7 +19,6 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 query_fut_upd = f"""
-BEGIN;
 MERGE INTO public.futquotesdiff fqd
 USING public.futquotes fq
 ON fq.code = fqd.code
@@ -32,12 +31,10 @@ max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE F
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid); 
-COMMIT;
 """
 
 
 query_sec_upd=f"""
-BEGIN;
 MERGE INTO public.secquotesdiff fqd
 USING public.secquotes fq
 ON fq.code = fqd.code
@@ -59,7 +56,6 @@ max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE F
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid);
-COMMIT;
 """
 
 
@@ -69,7 +65,6 @@ select * from public.signal;
 """
 
 query_orders_by_events = """
-        begin;
         with shape_update as (
         update orders_event_activator oea
         set is_activated = true,
@@ -102,7 +97,6 @@ query_orders_by_events = """
         )
         update orders_my om
         set state = 1 where state=0 and om.activate_jump in (select id from shape_update);
-        commit;
 """
 
 
@@ -218,22 +212,18 @@ def process_signal():
         # и обнуляем текущие ордера hft
         if state == 1: # если после фильтрации все еще все всерьез
             query = f"""
-            begin;
             update public.orders_my  
             set state = 0,
             end_time = coalesce(end_time, now())
             where left (comment,3) = 'HFT'
             and state = 1
             and code = '{code}';
-            commit;
             """
             sql.get_table.exec_query(query)
 
         query = f"""
-            BEGIN;
             insert into public.orders_my (state, quantity, comment, remains, barrier, max_amount, pause, code, end_time, start_time)
             values({state},{qty*direction},'{comment}',0,{barrier}, {qty/2},1,'{code}','{end_time}', now());
-            COMMIT;
             """
         logger.debug(query)
         sql.get_table.exec_query(query)
