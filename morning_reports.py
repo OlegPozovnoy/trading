@@ -155,8 +155,11 @@ def build_beta_df():
     result = []
     for sec in df_pivot['security'].unique():
         for base_asset in check_list:
-            beta, r2 = get_beta(sec, base_asset)
-            result.append((sec, base_asset, beta, r2))
+            try:
+                beta, r2 = get_beta(sec, base_asset)
+                result.append((sec, base_asset, beta, r2))
+            except:
+                pass
     res = (pd.DataFrame(result, columns=['sec', 'base_asset', 'beta', 'r2']))
     return res
 
@@ -166,10 +169,13 @@ def build_corr():
     df = df_pivot.pivot(index='dtime', columns='security', values='close')
 
     for asset in check_list:
-        next_df = df.corr()[asset].reset_index()
-        next_df['base_asset'] = asset
-        next_df.columns = ['sec', 'corr', 'base_asset']
-        res.append(next_df)
+        try:
+            next_df = df.corr()[asset].reset_index()
+            next_df['base_asset'] = asset
+            next_df.columns = ['sec', 'corr', 'base_asset']
+            res.append(next_df)
+        except:
+            pass
     return pd.concat(res, axis=0)
 
 
