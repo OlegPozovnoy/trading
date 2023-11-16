@@ -156,7 +156,7 @@ def get_trans_id():
     return str(int((datetime.datetime.utcnow() - datetime.datetime(2023, 1, 1)).total_seconds() * 1000000) % 1000000000)
 
 
-def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.001):
+def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012):
     global global_reply
     global engine
     global reply
@@ -211,6 +211,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
         'TYPE': 'L'}  # L = лимитная заявка (по умолчанию), M = рыночная заявка
 
     try:
+        print("Sending transaction", transaction)
         signal.signal(signal.SIGALRM, timeout_exception)
         signal.alarm(10)
         result = qpProvider.SendTransaction(transaction)
@@ -248,7 +249,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     order_out.to_sql('orders_out', engine, if_exists='append')
 
 
-def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.001):
+def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012):
     global engine
     global client
     global account_id
@@ -470,6 +471,7 @@ def process_orders(orderProcesser):
         direction_clause = ((order['direction'] * quantity) > 0)
 
         is_execute, secCode, quantity, price_bound, max_amount, comment = get_order_params(order)
+        print(secCode, price_bound_clause, direction_clause, is_execute)
 
         if price_bound_clause and direction_clause and is_execute:
             # добавляем в очередь блокировки с задержкой pause
