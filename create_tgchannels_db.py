@@ -6,7 +6,7 @@ import string
 
 from dotenv import load_dotenv
 from pyrogram import Client
-from pymongo import MongoClient
+
 
 from hft.discovery import record_new_watch, record_new_event
 from nlp.lang_models import check_doc_importance, build_news_tags
@@ -14,7 +14,7 @@ from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate
 
 import tools.clean_processes
 from refresh import compose_td_datetime
-
+from nlp import client
 
 load_dotenv(dotenv_path='./my.env')
 
@@ -24,7 +24,6 @@ api_hash = os.environ['tg_api_hash']
 channel_id = os.environ['tg_channel_id']
 channel_id_urgent = os.environ['tg_channel_id_urgent']
 
-client = MongoClient()
 conf_path = './tg_import_config.json'
 
 # channels = [
