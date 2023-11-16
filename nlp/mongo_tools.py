@@ -1,13 +1,12 @@
 import datetime
 import logging
 
-from pymongo import MongoClient
 from bson.objectid import ObjectId
 import pandas as pd
 
 from tools.utils import sync_timed
+from nlp import client
 
-client = MongoClient()
 
 logger = logging.getLogger()
 
