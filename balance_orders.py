@@ -39,12 +39,13 @@ df['k_down'] = df['k_down'].fillna(k_down)
 df['k_up'] = df['k_up'].fillna(k_up)
 df['sid'] = df.apply(lambda x: ''.join(random.choices(string.ascii_uppercase, k=3)), axis=1)
 query = """
-select code, leverage, collateral, price, ds as snapshot_date, yhat_lower, yhat_upper,yhat, sigma, trend_rel_pct from
+select fq.code, leverage*coalesce(multiplier,1) as leverage, collateral, price, ds as snapshot_date, yhat_lower, yhat_upper,yhat, sigma, trend_rel_pct, coalesce(multiplier,1) as multiplier from
 (SELECT code, bid/collateral as leverage, collateral, (bid+ask)/2 as price from futquotes) fq
 inner join 
 (SELECT  * FROM public.analytics_future) af
 on fq.code = af.sec
-
+left join
+pos_volmult on left(fq.code,2) = pos_volmult.code
 """
 df_data = sql.get_table.query_to_df(query)
 df = df.merge(df_data, how='inner', on='code')
@@ -59,7 +60,7 @@ money = sql.get_table.query_to_list("SELECT pos_current + pos_plan + pnl as mone
 money_adjusted = money * (1 - cash_part) + sum(df['money_adjustment'])
 
 df['target_volume'] = money_adjusted * df['k_down'] * df['vol']
-df['target_pos'] = df['target_volume'] / (df['yhat_lower'] * (df['vol'] > 0) + df['yhat_upper'] * (df['vol'] <= 0))/df['volume'] * df['price'] * df['pos']
+df['target_pos'] = df['target_volume'] / (df['yhat_lower'] * (df['vol'] > 0) + df['yhat_upper'] * (df['vol'] <= 0))/df['multiplier']
 df['target_pos_neutral'] = df['target_pos'] / df['k_down'] * df['k_up']
 df['current_k'] = df['pos'] / df['target_pos'] * df['k_down']
 df['code2'] = df['code']
