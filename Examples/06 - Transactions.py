@@ -409,11 +409,8 @@ def actualize_order_my():
     # 2)проставляем direction там где нет
     # 3)выключаем ордера как только ремейнс достиг quantity
     query = """
-    begin;
     UPDATE public.orders_my set remains=0 where remains is null;
-    commit;
     
-    begin;
     UPDATE public.orders_my as om 
     SET  remains = ag.amount, 
          pending_conf = ag.amount_pending, 
@@ -421,9 +418,7 @@ def actualize_order_my():
     FROM public.autoorders_grouped as ag
     WHERE concat(om.comment::text, om.id) = ag.comment
     and om.state <> 0 and om.provider is null; 
-    commit;
     
-    begin;
     UPDATE public.orders_my as om 
     SET  remains = ag.amount, 
          pending_conf = ag.amount_pending, 
@@ -431,16 +426,13 @@ def actualize_order_my():
     FROM public.autoorders_grouped_tcs as ag
     WHERE concat(om.comment::text, om.id) = ag.comment
     and om.state <> 0 and om.provider='tcs'; 
-    commit;
     
-    begin;
     UPDATE public.orders_my
     set direction = coalesce(direction, sign(quantity - remains))
     where state <> 0 and remains is not null; 
     UPDATE public.orders_my
     set state = 0
     where state <> 0 and direction * (quantity - remains) <= 0; 
-    commit;
     """
     sql.get_table.exec_query(query)
 
