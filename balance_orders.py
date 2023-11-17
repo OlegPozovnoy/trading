@@ -59,7 +59,7 @@ money = sql.get_table.query_to_list("SELECT pos_current + pos_plan + pnl as mone
 money_adjusted = money * (1 - cash_part) + sum(df['money_adjustment'])
 
 df['target_volume'] = money_adjusted * df['k_down'] * df['vol']
-df['target_pos'] = df['target_volume'] / (df['yhat_lower'] * (df['vol'] > 0) + df['yhat_upper'] * (df['vol'] <= 0))
+df['target_pos'] = df['target_volume'] / (df['yhat_lower'] * (df['vol'] > 0) + df['yhat_upper'] * (df['vol'] <= 0))/df['volume'] * df['price'] * df['pos']
 df['target_pos_neutral'] = df['target_pos'] / df['k_down'] * df['k_up']
 df['current_k'] = df['pos'] / df['target_pos'] * df['k_down']
 df['code2'] = df['code']
