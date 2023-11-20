@@ -1,23 +1,36 @@
 import datetime
 import subprocess
 
-import sql.get_table
+#import sql.get_table
 from nlp import client
 
 
 
 def important_news(days=1):
-    urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
-    print(urgent_list)
+    #urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
+    #print(urgent_list)
 
     urgent_list = ['SBER', 'SMLT', 'ALRS', 'MAGN', 'MGNT', 'LKOH', 'NLMK', 'CHMF']
     urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','GAZR','NOTK','SMLT'
         ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','MOEX','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL',
                    'RTSM', 'SNGP', 'POLY', 'HYDR', 'AFLT', 'PHOR', 'MTLR', 'PIKK', 'AFKS', 'POSI']
 
-    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','TRNF','TATN','GAZR','NOTK','SMLT'
-        ,'NLMK','MAGN','CHMF','GMKN','ALRS','PLZL','OZON','FLOT','IRAO','MTSI','YNDF',
-                   'RTSM', 'POLY', 'HYDR', 'PHOR', 'MTLR']
+
+    urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','GAZR','NOTK','SMLT'
+        ,'NLMK','MAGN','CHMF','GMKN','RUAL','ALRS','PLZL','OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL',
+                   'RTSM', 'SNGP', 'POLY', 'HYDR', 'AFLT', 'PHOR', 'MTLR', 'PIKK', 'AFKS', 'POSI', 'SGZH','RTKM','BSPB','BELU']
+
+    urgent_list = ['AFKS', 'AFLT', 'ALRS', 'BELU', 'BSPB', 'CHMF', 'FEES', 'FIVE', 'FLOT', 'GAZR', 'GMKN', 'HYDR',
+                   'IRAO', 'LKOH', 'MAGN', 'MAIL', 'MGNT', 'MTLR', 'MTSI', 'NLMK', 'NOTK', 'OZON', 'PHOR', 'PIKK',
+                   'PLZL', 'POLY', 'POSI', 'ROSN', 'RTKM', 'RTSM', 'RUAL', 'SBRF', 'SGZH', 'SIBN', 'SMLT', 'SNGP',
+                   'SNGR', 'TATN', 'TCSI', 'TRNF', 'VTBR', 'YNDF']
+
+    urgent_list.sort()
+    print(urgent_list)
+
+    #urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','TRNF','TATN','GAZR','NOTK','SMLT'
+    #    ,'NLMK','MAGN','CHMF','GMKN','ALRS','PLZL','OZON','FLOT','IRAO','MTSI','YNDF',
+    #               'RTSM', 'POLY', 'HYDR', 'PHOR', 'MTLR']
     #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
     #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
     # urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
@@ -65,5 +78,8 @@ with open("important.txt", "w") as f:
     f.write(important_news())
 
 subprocess.run(["python", "send_email.py"])
+
+print(len(important_news().split()), important_news())
+
 # with open("recent_news.txt", "w") as f:
 #     f.write(all_news())

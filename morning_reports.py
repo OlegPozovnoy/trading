@@ -239,4 +239,5 @@ def plot_news(sec):
 for ticker in tickers:
     plot_news(ticker)
 
-subprocess.run(["python", "balance_orders.py"])
+exec(open("balance_orders.py").read())
+#subprocess.run(["python", "balance_orders.py"])
