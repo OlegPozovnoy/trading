@@ -156,7 +156,8 @@ if __name__ == '__main__':
         logger.info('Bollinger recomputed')
         clean_mongo()
         logger.info("Mongodb duplicates removed")
-        subprocess.run(["python", "morning_reports.py"])
+        exec(open("morning_reports.py").read())
+        #subprocess.run(["python", "morning_reports.py"])
     except Exception as e:
         logger.error(f"{e}")
     finally:
