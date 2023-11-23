@@ -9,24 +9,27 @@ import string
 engine = sql.get_table.engine
 
 cash_part = 0
-k_up = 3
+k_up = 2
 k_down = 5
 
 target_pos = [
-    ('SRZ3', 25, 5, 3),
+    ('SRZ3', 25, 5, 2),
     ('MXZ3', 25),
-    ('VBZ3', 3),
+#    ('CRZ3', -10,10,0),
+#    ('VBZ3', 3,5,0),
 
-    ('MNZ3', 0.1),
+    ('MNZ3', 0.1,5,0),
 
-    ('LKZ3', 0.1),
-    ('RNZ3', 0.1),
-    ('GZZ3', 0.1),
+    ('LKZ3', 0.1,5,2),
+    ('RNZ3', 0.1,5,0),
+    ('GZZ3', 0.1,5,0),
+    ('SNZ3', 0.1,5,0),
 
     ('MGZ3', 10),
     ('CHZ3', 5),
 
-    ('ALZ3', 3)
+    ('FLZ3', 3,5,2),
+    ('ALZ3', 3,5,0)
 ]
 
 df = pd.DataFrame(target_pos, index=range(len(target_pos)), columns=['code', 'vol', 'k_down', 'k_up'])
