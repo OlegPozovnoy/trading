@@ -32,3 +32,18 @@ def df_to_sql(df, table_name):
 
 def load_candles():
     return query_to_df("select * from df_all_candles_t")
+
+
+def load_candles_cutoff(cutofftimes):
+    result = pd.DataFrame()
+    for cutofftime in cutofftimes:
+        query = f"""
+        select close, volume, security, class_code, datetime, dt, time from (
+        SELECT close, volume, security, class_code, datetime, cast(datetime as date) as dt, datetime::time as time,
+        ROW_NUMBER() over(partition by security, cast(datetime as date) order by datetime::time desc) as candle_num
+        FROM public.df_all_candles_t 
+        where datetime::time<='{str(cutofftime)}'::time
+        ) t where candle_num =1
+        """
+        result = pd.concat([result,query_to_df(query)], axis=0)
+    return result
