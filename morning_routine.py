@@ -152,10 +152,10 @@ if __name__ == '__main__':
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')
-        calc_bollinger()
-        logger.info('Bollinger recomputed')
         clean_mongo()
         logger.info("Mongodb duplicates removed")
+        calc_bollinger()
+        logger.info('Bollinger recomputed')
         exec(open("morning_reports.py").read())
         #subprocess.run(["python", "morning_reports.py"])
     except Exception as e:
