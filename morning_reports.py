@@ -31,7 +31,7 @@ with open(settings_path, "r") as fp:
 tickers = settings["futures"]["secCodes"] + settings["equities"]["secCodes"]
 logger.info(tickers)
 
-df_ = sql.get_table.load_candles()
+df_ = sql.get_table.load_candles_cutoff(cutofftimes=cutoffs)
 df_ = df_[df_['security'].isin(tickers)]
 df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
 df_['dt'] = df_['t'].dt.date

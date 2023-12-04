@@ -31,7 +31,7 @@ logger.addHandler(handler)
 
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
-    df_ = sql.get_table.load_candles()
+    df_ = sql.get_table.load_candles_cutoff([end_cutoff])
     df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
     df_['dt'] = df_['t'].dt.date
     df_['time'] = df_['t'].dt.time
@@ -146,9 +146,9 @@ if __name__ == '__main__':
     startTime = time.time()
     try:
         logger.info('Update import settings')
-        #update_instrument_list()
+        update_instrument_list()
         logger.info('Begin quotes reimport')
-        #asyncio.run(import_new_tickers(True))
+        asyncio.run(import_new_tickers(True))
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')
