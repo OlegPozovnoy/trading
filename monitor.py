@@ -181,7 +181,7 @@ def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
 
 
 @sync_timed()
-def get_gains(min_lag=10, base_asset='MXZ3'):
+def get_gains(min_lag=10, base_asset='MXH4'):
     # возвращаем то чот выросло нв трешхолд процентов за минлаг минут
     df = load_candles()
     df['cdate'] = pd.to_datetime(df['datetime'])  # , format="%d.%m.%Y %H:%M")
@@ -211,7 +211,7 @@ def get_gains(min_lag=10, base_asset='MXZ3'):
 
 
 @sync_timed()
-def filter_gains(min_lag=10, threshold=0.5, base_asset='MXZ3'):
+def filter_gains(min_lag=10, threshold=0.5, base_asset='MXH4'):
     df_res = get_gains(min_lag, base_asset)
     df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
