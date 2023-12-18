@@ -379,11 +379,9 @@ def check_quotes_import_5min():
 @sync_timed()
 def pos_orders_gen():
     query = """
-    begin;
     insert into public.orders_my (state, quantity, remains, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time)
     SELECT state, quantity, 0, comment, stop_loss, take_profit, barrier, max_amount, pause, code, direction, start_time	FROM public.trd_pos
     where comment not in (select comment from public.orders_my where end_time is null);
-    commit;
     """
     sql.get_table.exec_query(query)
 

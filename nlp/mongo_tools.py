@@ -130,6 +130,8 @@ def remove_news_duplicates():
     res = res.reset_index(drop=True)
 
     cnt, deleted = 0, 0
+
+    res.to_csv("news_duplicates.csv", sep='\t')
     for idx, row in res[::-1].iterrows():
         if idx > 0 and (res.iloc[idx - 1]['date'] == res.iloc[idx]['date']) and (
                 res.iloc[idx - 1]['username'] == res.iloc[idx]['username']):

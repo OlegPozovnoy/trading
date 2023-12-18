@@ -79,8 +79,7 @@ query_orders_by_events = """
         )
         update orders_my om
         set state = 1 where state=0 and om.activate_news in (select id from shape_update);
-        commit;
-        begin;
+
         with shape_update as (
         update orders_event_activator_jumps oeaj
         set is_activated = true,
