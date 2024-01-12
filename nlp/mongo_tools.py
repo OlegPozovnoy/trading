@@ -3,6 +3,7 @@ import logging
 
 from bson.objectid import ObjectId
 import pandas as pd
+from tqdm import tqdm
 
 from tools.utils import sync_timed
 from nlp import client
@@ -120,12 +121,11 @@ def renumerate_channels(is_active=False):
 def remove_news_duplicates():
     news_collection = client.trading['news']
 
-    res = pd.DataFrame()
+    df_list=[]
+    for item in tqdm(news_collection.find()):
+        df_list.append([item['_id'], item['date'], item['channel_username']])
 
-    for item in news_collection.find():
-        add = pd.DataFrame({'id': item['_id'], 'date': item['date'], 'username': item['channel_username']}, index=[0])
-        res = pd.concat([res, add])
-
+    res = pd.DataFrame(df_list, columns=['id', 'date', 'username'])
     res.sort_values(['date', 'username'], inplace=True)
     res = res.reset_index(drop=True)
 
@@ -145,12 +145,11 @@ def remove_news_duplicates():
 def remove_channel_duplicates():
     news_collection = client.trading['tg_channels']
 
-    res = pd.DataFrame()
-
+    df_list=[]
     for item in news_collection.find():
-        add = pd.DataFrame({'id': item['_id'], 'title': item['title']}, index=[0])
-        res = pd.concat([res, add])
+        df_list.append([item['_id'], item['title']])
 
+    res = pd.DataFrame(df_list, columns=['id','title'])
     res.sort_values(['title'], inplace=True)
     res = res.reset_index(drop=True)
 
@@ -217,3 +216,4 @@ def clean_mongo():
 #remove_news_duplicates()
 
 #add_tag_channel({"title":"MarketTwits"}, "urgent")
+clean_mongo()

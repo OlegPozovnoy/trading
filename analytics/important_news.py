@@ -25,6 +25,9 @@ def important_news(days=1):
                    'PLZL', 'POLY', 'POSI', 'ROSN', 'RTKM', 'RTSM', 'RUAL', 'SBRF', 'SGZH', 'SIBN', 'SMLT', 'SNGP',
                    'SNGR', 'TATN', 'TCSI', 'TRNF', 'VTBR', 'YNDF']
 
+    urgent_list = ['CHMF', 'MAGN', 'NLMK', 'FIVE', 'SNGR', 'VTBR', 'MGNT', 'TRNF', 'FLOT', 'ROSN',
+                   'POSI', 'OZON', 'ALRS', 'YNDF', 'MTLR', 'HYDR', 'SGZH', 'PLZL', 'GAZP']
+
     urgent_list.sort()
     print(urgent_list)
 
