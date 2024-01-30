@@ -216,4 +216,4 @@ def clean_mongo():
 #remove_news_duplicates()
 
 #add_tag_channel({"title":"MarketTwits"}, "urgent")
-clean_mongo()
+#clean_mongo()

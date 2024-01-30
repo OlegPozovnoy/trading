@@ -156,7 +156,7 @@ def get_trans_id():
     return str(int((datetime.datetime.utcnow() - datetime.datetime(2023, 1, 1)).total_seconds() * 1000000) % 1000000000)
 
 
-def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012):
+def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.002):
     global global_reply
     global engine
     global reply
@@ -452,7 +452,7 @@ def process_orders(orderProcesser):
     quotes = sql.get_table.exec_query(query)
     orders = (quotes.mappings().all())
 
-    print(f"orders:{orders}")
+    #print(f"orders:{orders}")
     for order in orders:
         print(order)
         quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
@@ -463,7 +463,7 @@ def process_orders(orderProcesser):
         direction_clause = ((order['direction'] * quantity) > 0)
 
         is_execute, secCode, quantity, price_bound, max_amount, comment = get_order_params(order)
-        print(secCode, price_bound_clause, direction_clause, is_execute)
+        print(f"{secCode}\nis_barrier_ok: {price_bound_clause}\nis_direction_ok: {direction_clause}\nto_execute: {is_execute}\nqty:{quantity}\nmid:{order['mid']}\nbarrier:{order['barrier']}\n\n")
 
         if price_bound_clause and direction_clause and is_execute:
             # добавляем в очередь блокировки с задержкой pause
