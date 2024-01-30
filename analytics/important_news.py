@@ -28,20 +28,10 @@ def important_news(days=1):
     urgent_list = ['CHMF', 'MAGN', 'NLMK', 'FIVE', 'SNGR', 'VTBR', 'MGNT', 'TRNF', 'FLOT', 'ROSN',
                    'POSI', 'OZON', 'ALRS', 'YNDF', 'MTLR', 'HYDR', 'SGZH', 'PLZL', 'GAZP']
 
+    #urgent_list = ['SBRF', 'SNGP', 'ALRS', 'CHMF', 'FLOT', 'GAZR','LKOH',  'MAGN','NLMK','ROSN', 'RTKM']
+    #urgent_list = ['SBRF', 'SNGP', 'ALRS', 'FLOT', 'LKOH',  'NLMK','ROSN', 'RTKM', 'YNDF']
     urgent_list.sort()
     print(urgent_list)
-
-    #urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','TRNF','TATN','GAZR','NOTK','SMLT'
-    #    ,'NLMK','MAGN','CHMF','GMKN','ALRS','PLZL','OZON','FLOT','IRAO','MTSI','YNDF',
-    #               'RTSM', 'POLY', 'HYDR', 'PHOR', 'MTLR']
-    #urgent_list = ['FIVE','MGNT','SBRF','VTBR','ROSN','LKOH','SIBN','TRNF','TATN','NOTK','SMLT'
-    #    ,'NLMK','MAGN','CHMF','RUAL','ALRS', 'OZON','FLOT','FEES','IRAO','MTSI','YNDF','MAIL']
-    # urgent_list = ['FIVE','MGNT','VTBR','SBRF','TCSI','ROSN','LKOH','SIBN','SNGR','TRNF','TATN','NOTK','SMLT'
-    #     ,'NLMK','MAGN','CHMF','OZON','FLOT','FEES']
-    # "SRZ3"     "LKZ3"     "NMZ3"     "RNZ3"     "MGZ3"     "MNZ3"     "FVZ3"     "YNZ3"
-    # urgent_list = ['SBRF','LKOH','NLMK','ROSN','TCSI','MAGN','MGNT','FIVE','YNDF','TRNF','VTBR']
-    # urgent_list = ['SBRF', 'LKOH', 'NLMK', 'ROSN', 'TCSI', 'MAGN', 'MGNT', 'FIVE', 'YNDF', 'TRNF', 'VTBR']
-    # urgent_list = ['MGNT']
 
     res = ""
     for ticker in urgent_list:

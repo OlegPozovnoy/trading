@@ -19,6 +19,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 query_fut_upd = f"""
+--begin;
 MERGE INTO public.futquotesdiff fqd
 USING public.futquotes fq
 ON fq.code = fqd.code
@@ -26,15 +27,17 @@ WHEN MATCHED THEN
 UPDATE SET bid = fq.bid, ask = fq.ask, volume = fq.volume, openinterest = fq.openinterest, bidamount=fq.bidamount, askamount=fq.askamount, 
 bid_inc = fq.bid - fqd.bid, ask_inc = fq.ask-fqd.ask, volume_inc = fq.volume-fqd.volume, updated_at=fq.updated_at, last_upd=NOW(),
 volume_wa = coalesce(volume_wa,0)* 119/120 + (fq.volume-fqd.volume)/120,   
-min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
-max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
+min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
+max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid); 
+--commit;
 """
 
 
 query_sec_upd=f"""
+--begin;
 MERGE INTO public.secquotesdiff fqd
 USING public.secquotes fq
 ON fq.code = fqd.code
@@ -51,20 +54,24 @@ volume_inc = fq.volume-fqd.volume,
 updated_at=fq.updated_at, 
 last_upd=NOW(),
 volume_wa = coalesce(volume_wa,0)*119/120 + (fq.volume-fqd.volume)/120,
-min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
-max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
+min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
+max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
 WHEN NOT MATCHED THEN
 INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
 VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid);
+--commit;
 """
 
 
 query_sig_upd = """
+--begin;
 insert into public.signal_arch(tstz, code, date_discovery, channel_source, news_time, min_val, max_val, mean_val, volume, board, min, max, last_volume, count)
 select * from public.signal;
+--commit;
 """
 
 query_orders_by_events = """
+--        begin;
         with shape_update as (
         update orders_event_activator oea
         set is_activated = true,
@@ -96,6 +103,15 @@ query_orders_by_events = """
         )
         update orders_my om
         set state = 1 where state=0 and om.activate_jump in (select id from shape_update);
+--        commit;
+"""
+
+query_ba_upd = """
+insert into deals_ba_hist 
+select * from deals_ba_view;
+DELETE from deals_ba_t1;
+insert into deals_ba_t1 
+select * from deals_ba;
 """
 
 
@@ -150,6 +166,8 @@ def update():
             values(1,{-sltp_line['remains']},'stop loss',0, {sltp_line['id']},{sltp_line['stop_loss']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
             """
             sql.get_table.exec_query(new_order)
+
+    sql.get_table.exec_query(query_ba_upd)
     return
 
 

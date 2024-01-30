@@ -109,6 +109,7 @@ async def clean_db():
         "DELETE	FROM public.df_monitor;",
     ]
     await sql.async_exec.exec_list(sql_query_list)
+    print("bulk of queries is executed")
     query = """
         WITH moved_rows AS (
             DELETE FROM df_all_candles_t  a

@@ -10,26 +10,31 @@ engine = sql.get_table.engine
 
 cash_part = 0
 k_up = 2
-k_down = 5
+k_down = 4
+
+default_state = 1
 
 target_pos = [
-    ('SRZ3', 25, 5, 2),
-    ('MXZ3', 25),
+#    ('SRH4', 40, 5, 4.9),
+#    ('CRH4', -40,20,19.9),
+#    ('MXZ3', 1),
 #    ('CRZ3', -10,10,0),
 #    ('VBZ3', 3,5,0),
 
-    ('MNZ3', 0.1,5,0),
+#    ('MNZ3', 3, 5, 0),
 
-    ('LKZ3', 0.1,5,2),
-    ('RNZ3', 0.1,5,0),
-    ('GZZ3', 0.1,5,0),
-    ('SNZ3', 0.1,5,0),
+#    ('LKZ3', 3, 5, 2),
+#    ('RNZ3', 0.1,5,0),
+#    ('NMH4', 0.1,5,0),
+#    ('SNH4', 1 , 0.01,0),
+#    ('RIH4', 1, 0.01, 0),
 
-    ('MGZ3', 10),
-    ('CHZ3', 5),
+#    ('MGZ3', 5,5,4.9),
+#    ('CHZ3', 5,5,4.9),
 
-    ('FLZ3', 3,5,2),
-    ('ALZ3', 3,5,0)
+    ('FLH4', 1 ,0.01, 0),
+#    ('YNH4', 1, 0.01, 0),
+#    ('ALH4', 3,5,4.9)
 ]
 
 df = pd.DataFrame(target_pos, index=range(len(target_pos)), columns=['code', 'vol', 'k_down', 'k_up'])
@@ -91,7 +96,7 @@ for idx, row in df.iterrows():
             barrier_bound = row['yhat_lower']
 
         query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code,  order_type, barrier_bound)
-                    values(1,{quantity}, 'BAL_UP_{row['code']}_{row['sid']}',0,{barrier},1,5,'{row['code']}', 'flt', {barrier_bound})
+                    values({default_state}, {quantity}, 'BAL_UP_{row['code']}_{row['sid']}',0,{barrier},1,10,'{row['code']}', 'flt', {barrier_bound})
         """
         print(query)
         engine.execute(query)
@@ -109,13 +114,14 @@ for idx, row in df.iterrows():
             barrier_bound = row['yhat_lower']
 
         else:  # увеличение позиции = sell
+            print(row['k_down'], row['k_up'], current_k)
             barrier = row['yhat_upper'] - (row['yhat_upper'] - row['yhat']) / 2 * (row['k_down'] - current_k) / (
                         row['k_down'] - row['k_up'])
 
             barrier_bound = row['yhat_upper']
 
         query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code,  order_type, barrier_bound)
-                    values(1,{quantity}, 'BAL_DOWN_{row['code']}_{row['sid']}',0,{barrier},1,5,'{row['code']}', 'flt', {barrier_bound})
+                    values({default_state}, {quantity}, 'BAL_DOWN_{row['code']}_{row['sid']}',0,{barrier},1,10,'{row['code']}', 'flt', {barrier_bound})
         """
         print(query)
         engine.execute(query)
