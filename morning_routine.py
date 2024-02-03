@@ -107,6 +107,9 @@ async def clean_db():
         "DELETE	FROM public.deals;",
         "DELETE	FROM public.deorders;",
         "DELETE	FROM public.df_monitor;",
+        "insert into deals_myhist select * from deals",
+        "delete FROM public.futquotesdiff where right(code,2) <> 'H4'",
+        "insert into deals_imp_arch select * from deals_imp on conflict (deal_id) do nothing"
     ]
     await sql.async_exec.exec_list(sql_query_list)
     print("bulk of queries is executed")
