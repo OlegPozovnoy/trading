@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 
 engine = create_engine(
-    'postgresql://postgres:postgres@localhost:5432/test')  # insufficient data in "D" message // pool_pre_ping=True
+    'postgresql://postgres:postgres@localhost:5432/test').execution_options(autocommit=True)  # insufficient data in "D" message // pool_pre_ping=True
 logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 

@@ -96,6 +96,7 @@ async def clean_db():
         "DELETE FROM public.df_all_candles_t_arch WHERE datetime < now() - interval '90 days'",
         "DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
+        "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE	FROM public.futquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE FROM public.orders_in;",
@@ -107,9 +108,9 @@ async def clean_db():
         "DELETE	FROM public.deals;",
         "DELETE	FROM public.deorders;",
         "DELETE	FROM public.df_monitor;",
-        "insert into deals_myhist select * from deals",
         "delete FROM public.futquotesdiff where right(code,2) <> 'H4'",
-        "insert into deals_imp_arch select * from deals_imp on conflict (deal_id) do nothing"
+        "insert into deals_imp_arch select * from deals_imp on conflict (deal_id) do nothing",
+        "insert into deals_myhist select * from deals on conflict (deal_id) do nothing"
     ]
     await sql.async_exec.exec_list(sql_query_list)
     print("bulk of queries is executed")
@@ -161,7 +162,6 @@ if __name__ == '__main__':
         calc_bollinger()
         logger.info('Bollinger recomputed')
         exec(open("morning_reports.py").read())
-        #subprocess.run(["python", "morning_reports.py"])
     except Exception as e:
         logger.error(f"{e}")
     finally:
