@@ -97,7 +97,8 @@ async def clean_db():
         "DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
-        "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
+        #"DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
+        "DELETE	FROM public.secquotes;",
         "DELETE	FROM public.futquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE FROM public.orders_in;",
         "DELETE FROM public.orders_out;",
@@ -108,9 +109,9 @@ async def clean_db():
         "DELETE	FROM public.deals;",
         "DELETE	FROM public.deorders;",
         "DELETE	FROM public.df_monitor;",
-        "delete FROM public.futquotesdiff where right(code,2) <> 'H4'",
-        "insert into deals_imp_arch select * from deals_imp on conflict (deal_id) do nothing",
-        "insert into deals_myhist select * from deals on conflict (deal_id) do nothing"
+        "delete FROM public.futquotesdiff where right(code,2) <> 'M4'",
+        "insert into deals_imp_arch select * from deals_imp on conflict (deal_id,tradedate) do nothing",
+        "insert into deals_myhist select * from deals on conflict (deal_id,tradedate) do nothing"
     ]
     await sql.async_exec.exec_list(sql_query_list)
     print("bulk of queries is executed")

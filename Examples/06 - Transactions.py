@@ -156,7 +156,7 @@ def get_trans_id():
     return str(int((datetime.datetime.utcnow() - datetime.datetime(2023, 1, 1)).total_seconds() * 1000000) % 1000000000)
 
 
-def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.002):
+def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0015):
     global global_reply
     global engine
     global reply
@@ -166,8 +166,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
 
-    print(quotes)
-    print(diff)
+    print(f"Processing order: {secCode} {quantity} \nquotes:{quotes} \ndiff:{diff}")
 
     if quotes['ask'] > quotes['bid'] * (1 + maxspread):
         print(f"spread is too high: {quotes['bid']} {quotes['ask']} {quotes['ask'] / quotes['bid'] - 1}")
@@ -470,6 +469,7 @@ def process_orders(orderProcesser):
             if_not_exist = orderProcesser.add_task(
                 (comment, secCode, quantity, price_bound, max_amount, comment), order['pause'])  # key 1st
             if if_not_exist:
+                print("PLACING ORDER!!!")
                 if order['provider'] == 'tcs':
                     place_order_tcs(secCode, quantity, price_bound, max_amount, comment)
                 else:
