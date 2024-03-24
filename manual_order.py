@@ -8,17 +8,17 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
-quantity= -3000
-code = 'CRH4'
+quantity= -50
+code ='MXM4'
 
-barrier_up= 12.487#28250#307250#13.22#None#309000#12.95#16400
+barrier_up=330500#28250#307250#13.22#None#309000#12.95#16400
 #barrier_up=14
 barrier_down= None#29050 #28850 #12#2700
 order_nums=1
 
 state = 1
-max_amount = 10
-pause = 5
+max_amount = 1
+pause = 3
 
 def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause):
     if barrier_up is None and barrier_down is None:

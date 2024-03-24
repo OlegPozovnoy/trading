@@ -181,7 +181,7 @@ def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
 
 
 @sync_timed()
-def get_gains(min_lag=10, base_asset='MXH4'):
+def get_gains(min_lag=10, base_asset='MXM4'):
     # возвращаем то чот выросло нв трешхолд процентов за минлаг минут
     df = load_candles()
     df['cdate'] = pd.to_datetime(df['datetime'])  # , format="%d.%m.%Y %H:%M")
@@ -211,7 +211,7 @@ def get_gains(min_lag=10, base_asset='MXH4'):
 
 
 @sync_timed()
-def filter_gains(min_lag=10, threshold=0.5, base_asset='MXH4'):
+def filter_gains(min_lag=10, threshold=0.5, base_asset='MXM4'):
     df_res = get_gains(min_lag, base_asset)
     df_fut = df_res[df_res['class_code_x'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code_x'] != 'SPBFUT'].sort_values('inc').reset_index()
@@ -446,7 +446,7 @@ if __name__ == '__main__':
     send_df(format_volumes(df_volumes[df_volumes['security'].isin(urgent_list)]), True)
     send_df(format_volumes(df_volumes), False)
 
-    df_bollinger = get_bollinger()
+    #df_bollinger = get_bollinger()
 
     if len(pd.concat([df_volumes['security'], df_gains['security']])) > 0:
         prepare_images(pd.concat([df_volumes['security'], df_gains['security']]).drop_duplicates())
@@ -456,12 +456,12 @@ if __name__ == '__main__':
     df_inc['close_x'] = df_inc['close_x'].astype(str).replace(r'0+$', '', regex=True)
     send_df(df_inc)
 
-    if len(df_bollinger) > 0:
-        logger.info("sending bollinger")
-        df_bollinger['quote'] = df_bollinger['quote'].round(8)
-        df_bollinger['quote'] = df_bollinger['quote'].astype(str).replace(r'0+$', '', regex=True)
-        logger.info(df_bollinger)
-        send_df(df_bollinger)
+    #if len(df_bollinger) > 0:
+    #    logger.info("sending bollinger")
+    #    df_bollinger['quote'] = df_bollinger['quote'].round(8)
+    #    df_bollinger['quote'] = df_bollinger['quote'].astype(str).replace(r'0+$', '', regex=True)
+    #    logger.info(df_bollinger)
+    #    send_df(df_bollinger)
 
     send_df(cut_trailing(
         normalize_money(

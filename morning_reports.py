@@ -17,7 +17,7 @@ from nlp import client
 
 load_dotenv(dotenv_path='./my.env')
 settings_path = os.environ['instrument_list_path']
-check_list = ['RIH4', 'CRH4', 'MXH4', 'SiH4']
+check_list = ['RIM4', 'CRM4', 'MXM4', 'SiM4']
 cutoffs = [datetime.time(10, 0, 0),
            datetime.time(12, 0, 0),
            datetime.time(14, 0, 0),
@@ -126,7 +126,7 @@ logger.info(res_past)
 sql.get_table.df_to_sql(res_past, 'analytics_past')
 
 
-def get_beta(sec, base_asset='CRH4'):
+def get_beta(sec, base_asset='CRM4'):
     xdf = df_pivot[df_pivot['security'] == base_asset][['dtime', 'close']]
     ydf = df_pivot[df_pivot['security'] == sec][['dtime', 'close']]
 
