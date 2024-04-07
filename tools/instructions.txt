@@ -1,0 +1,8 @@
+https://blog.devart.com/configure-postgresql-to-allow-remote-connection.html
+
+SELECT bs, code, sum(price*amount)/sum(amount) as price, sum(amount) as amount, sum(volume) as volume, tradedate
+	FROM public.deals_myhist
+group by bs, code, tradedate
+order by code, tradedate, bs
+
+wg-quick up laptop

@@ -20,6 +20,15 @@ def activate_all_channels(is_active, username = None):
         res = names_collection.update_one(document, {'$set': {'is_active': is_active}})
         print(res)
 
+
+def deactivate_channel(username, is_active=0):
+    names_collection = client.trading['tg_channels']
+
+    for document in names_collection.find({'username':username}):
+        res = names_collection.update_one(document, {'$set': {'is_active': is_active}})
+        print(res)
+
+
 def remove_field(db, field_name):
     names_collection = client.trading[db]
     names_collection.update_many({}, {'$unset': {f'{field_name}': ''}}, False)
@@ -217,3 +226,30 @@ def clean_mongo():
 
 #add_tag_channel({"title":"MarketTwits"}, "urgent")
 #clean_mongo()
+
+
+def channel_stats():
+    channel_collection = client.trading['tg_channels']
+    news_collection = client.trading['news']
+    df_list=[]
+    for channel in channel_collection.find():
+        username = channel['username']
+        isactive = channel['is_active']
+        title = channel['title']
+        description = channel['description']
+        members_count = channel['members_count']
+
+        query = {'channel_username': username}
+        cnt = 0
+        date = None
+        for news_item in news_collection.find(query):
+            cnt+=1
+            date = news_item['date'] if date is None else max(date, news_item['date'])
+        df_list.append([username, isactive, cnt, date,title,description,members_count])
+
+    res = pd.DataFrame(df_list, columns=['username', 'isactive', 'cnt', 'date','title','description','members_count'])
+    res = res.reset_index(drop=True)
+    res.to_csv("channel_stats.csv", sep='\t')
+
+
+channel_stats()
