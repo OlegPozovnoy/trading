@@ -31,6 +31,12 @@ logger.addHandler(handler)
 
 
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
+    """
+    df_bollinger: Calculate and store bollinger
+    df_volumes: Calc avg+3*std volumes (rolling 10 mins). Error, df_volumes should be from full dataset
+    :param end_cutoff: bollinger quotes time
+    :return:
+    """
     df_ = sql.get_table.load_candles_cutoff([end_cutoff])
     df_['t'] = pd.to_datetime(df_['datetime'], format='%d.%m.%Y %H:%M')
     df_['dt'] = df_['t'].dt.date
@@ -65,28 +71,100 @@ def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     sql.get_table.exec_query("delete from public.df_bollinger")
     df_bollinger.to_sql('df_bollinger', engine, if_exists='append')
 
-    df_ = df_.sort_values(['security', 'class_code', 'dt', 'time'], ascending=True)
-    df_['prev_close'] = df_.groupby('security')['close'].shift()
-    df_['price_diff'] = df_['close'] - df_['prev_close']
 
-    df_volumes = df_.groupby(['security', 'class_code', 'time']) \
-        .agg(mean=('volume', 'mean'), std=('volume', 'std'), count=('volume', 'count'), close=('price_diff', 'std')) \
-        .reset_index()
+@sync_timed()
+def calc_volumes():
+    """
+    updates df_volumes: all avg std smoothed by 10 mins to get jumps
+    :return:
+    """
+    volumes_query = """
+    TRUNCATE TABLE df_volumes;
+    insert into df_volumes
+    (with t_main as 
+    (
+	SELECT close, 
+	close - lag(close, 1) OVER (PARTITION BY security ORDER BY datetime) AS diff,
+	(close - lag(close, 1) OVER (PARTITION BY security ORDER BY datetime))/close as diff_prct,
+	volume, security, class_code, datetime,
+	CURRENT_DATE + datetime::time without time zone AS tm,
+    EXTRACT(dow FROM datetime)::text AS wd,
+	close*volume as money_volume,
+	date(datetime) as dt
+	FROM public.df_all_candles_t
+	where
+	EXTRACT(dow FROM datetime) <> ALL (ARRAY[0::numeric, 6::numeric])
+	and datetime < CURRENT_DATE
+	and class_code <> 'TQPI'
+    )
+    select 
+	t1.security,
+	t1.class_code, 
+	t1.tm, 
+	t1.points_num,
+	
+	t1.volume_std,
+	avg(volume_std) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as volume_std_10,
+	
+	t1.volume/t2.cnt_days as volume_avg, 
+	avg(t1.volume/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as volume_avg_10,	
+	
+	t1.money_volume/t2.cnt_days as money_volume_avg,
+	avg(t1.money_volume/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as money_volume_avg_10,	
+	
+	t1.diff_mean,
+	avg(t1.diff_mean) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as diff_mean_10,	
+	
+	t1.diff_std,
+	avg(t1.diff_std) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as diff_std_10,	
 
-    df_volumes['prct'] = df_volumes['std'] / df_volumes['mean']
-    df_volumes['up'] = df_volumes['std'] * 3 + df_volumes['mean']
+	t1.diff_prct_mean,
+	avg(t1.diff_prct_mean) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as diff_prct_mean_10,	
+	
+	t1.diff_prct_std,
+	avg(t1.diff_prct_std) over (partition by t1.security order by t1.tm asc 
+	rows BETWEEN 9 PRECEDING and current row) as diff_prct_std_10,	
+	
+	t2.cnt_days,
+	t2.max_dt,
+	t2.max_datetime,
+	t_close.close,
+	coalesce(volume_last, 0) as volume_last,
+	coalesce(money_volume_last, 0) as money_volume_last
+	from
+    (select security, class_code, tm, sum(volume) as volume, sum(money_volume) as money_volume, 
+	count(*) as points_num, STDDEV(volume) as volume_std, 
+	avg(diff) as diff_mean, STDDEV(diff) as diff_std, 
+	avg(diff_prct) as diff_prct_mean, STDDEV(diff_prct) as diff_prct_std 
+	from t_main 
+	group by security, class_code, tm) 
+	as t1
+    left join
+    (
+    select security, class_code, count(distinct dt) as cnt_days, max(dt) as max_dt, max(datetime) as max_datetime from t_main
+    group by security,class_code) 
+        as t2
+    on t1.security = t2.security 
+    left join
+    (select security, class_code, close, datetime from t_main) as t_close
+    on t1.security = t_close.security 
+        and t2.max_datetime = t_close.datetime
+    left join
+    (select security, class_code, tm,dt, volume as volume_last, volume*close as money_volume_last from t_main) 
+        as t_lastvol
+    on t1.security = t_lastvol.security 
+        and t2.max_dt = t_lastvol.dt
+        and t1.tm = t_lastvol.tm
+	)
+    """
+    sql.get_table.exec_query(volumes_query)
 
-    df_volumes['mean_avg'] = df_volumes.groupby('security')['mean'].transform(
-        lambda x: x.rolling(10, 1, center=True).mean())
-    df_volumes['std_avg'] = df_volumes.groupby('security')['std'].transform(
-        lambda x: x.rolling(10, 1, center=True).mean())
-    df_volumes['up_avga'] = df_volumes['std_avg'] * 3 + df_volumes['mean_avg']
-
-    df_volumes['close_avg'] = df_volumes.groupby('security')['close'].transform(
-        lambda x: x.rolling(10, 1, center=True).mean())
-
-    sql.get_table.exec_query("delete from public.df_volumes")
-    df_volumes.to_sql('df_volumes', engine, if_exists='append')
 
 @async_timed()
 async def clean_db():
@@ -97,7 +175,7 @@ async def clean_db():
         "DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
-        #"DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
+        # "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE	FROM public.secquotes;",
         "DELETE	FROM public.futquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE FROM public.orders_in;",
@@ -127,7 +205,12 @@ async def clean_db():
     engine.execute(query)
 
 
-def update_instrument_list(update_sec=True):
+def update_instrument_list(update_sec=True) -> None:
+    """
+    save futquotes secquotes tables instruments to settings json
+    :param update_sec: False if we set equities empty
+    :return: None
+    """
     setting = {'equities': {}, 'futures': {}}
     setting['equities']['classCode'] = "TQBR"
     setting['futures']['classCode'] = "SPBFUT"
@@ -152,9 +235,9 @@ if __name__ == '__main__':
     startTime = time.time()
     try:
         logger.info('Update import settings')
-        update_instrument_list()
+        # update_instrument_list()
         logger.info('Begin quotes reimport')
-        asyncio.run(import_new_tickers(True))
+        asyncio.run(import_new_tickers(False))
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')
@@ -162,6 +245,8 @@ if __name__ == '__main__':
         logger.info("Mongodb duplicates removed")
         calc_bollinger()
         logger.info('Bollinger recomputed')
+        calc_volumes()
+        logger.info('volumes updated')
         exec(open("morning_reports.py").read())
     except Exception as e:
         logger.error(f"{e}")
