@@ -103,8 +103,8 @@ def calc_volumes():
 	t1.tm, 
 	t1.points_num,
 	
-	t1.volume_std,
-	avg(volume_std) over (partition by t1.security order by t1.tm asc 
+	t1.volume_std*t1.points_num/t2.cnt_days as volume_std,
+	avg(volume_std*t2.cnt_days/t1.points_num) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as volume_std_10,
 	
 	t1.volume/t2.cnt_days as volume_avg, 
@@ -115,20 +115,20 @@ def calc_volumes():
 	avg(t1.money_volume/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as money_volume_avg_10,	
 	
-	t1.diff_mean,
-	avg(t1.diff_mean) over (partition by t1.security order by t1.tm asc 
+	t1.diff_mean*t1.points_num/t2.cnt_days as diff_mean,
+	avg(t1.diff_mean*t1.points_num/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as diff_mean_10,	
 	
-	t1.diff_std,
-	avg(t1.diff_std) over (partition by t1.security order by t1.tm asc 
+	t1.diff_std*t1.points_num/t2.cnt_days as diff_std,
+	avg(t1.diff_std*t1.points_num/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as diff_std_10,	
 
-	t1.diff_prct_mean,
-	avg(t1.diff_prct_mean) over (partition by t1.security order by t1.tm asc 
+	t1.diff_prct_mean*t1.points_num/t2.cnt_days as diff_prct_mean,
+	avg(t1.diff_prct_mean*t1.points_num/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as diff_prct_mean_10,	
 	
-	t1.diff_prct_std,
-	avg(t1.diff_prct_std) over (partition by t1.security order by t1.tm asc 
+	t1.diff_prct_std*t1.points_num/t2.cnt_days as diff_prct_std,
+	avg(t1.diff_prct_std*t1.points_num/t2.cnt_days) over (partition by t1.security order by t1.tm asc 
 	rows BETWEEN 9 PRECEDING and current row) as diff_prct_std_10,	
 	
 	t2.cnt_days,
