@@ -50,7 +50,7 @@ if __name__ == '__main__':
     try:
         send_df(cut_trailing(
             normalize_money(
-                sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
+                sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos order by 1 asc"),
                 ['pnl', 'volume']),
             ['pnl', 'price_balance', 'volume']), True)
 
