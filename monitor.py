@@ -26,7 +26,7 @@ if __name__ == '__main__':
     try:
         monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
     except Exception as e:
-        logger.error('Error', str(e))
+        logger.error('monitor_import', str(e))
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         df_monitor = update_df_monitor()
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
-        logger.error('Error', str(e))
+        logger.error('update_df_monitor', str(e))
 
     try:
         send_df(cut_trailing(
@@ -52,13 +52,13 @@ if __name__ == '__main__':
             "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
             ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
     except Exception as e:
-        logger.error('Error', str(e))
+        logger.error('normalize_money', str(e))
 
     try:
         intresting_gains = monitor_gains_main(urgent_list)
         send_all_graph(intresting_gains)
     except Exception as e:
-        logger.error('Error', str(e))
+        logger.error('monitor_gains_main/send_all_graph', str(e))
 
     logger.info("monitor: ended")
 
