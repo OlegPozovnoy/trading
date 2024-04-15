@@ -65,14 +65,18 @@ def update_df_monitor():
     # 1) всегда апдейтим нулл
     # 2) ушли вниз
     # 3) ушли вверх
-    df_monitor['to_update'] = (df_monitor['new_state'].isnull()) | \
-                                (df_monitor['old_start'].notna() &
-                                    ((df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) |
-                                     (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end'])))
-
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
 
+    df_monitor['to_update'] = df_monitor['new_state'].isnull()
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
+
+    try:
+        df_monitor['to_update'] = df_monitor['old_start'].notna() & \
+                                  ((df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) |
+                                   (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end']))
+        df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
+    except:
+        pass
 
     logger.info("updated new and old columns")
 
