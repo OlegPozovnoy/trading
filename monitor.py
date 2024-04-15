@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     try:
         intresting_gains = monitor_gains_main(urgent_list)
-        send_all_graph(intresting_gains)
+        send_all_graph(intresting_gains,urgent_list)
     except Exception as e:
         logger.error('monitor_gains_main/send_all_graph', traceback.print_exc())
         telegram.send_message(f'monitor_gains_main/send_all_graph: {traceback.print_exc()}', True)
