@@ -45,7 +45,7 @@ if __name__ == '__main__':
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
         #logger.error('update_df_monitor', traceback.print_exc())
-        asyncio.run(telegram.send_message(f'update_df_monitor failed: {traceback.print_exc()}', True))
+        asyncio.run(telegram.send_message(f'update_df_monitor failed: {traceback.format_exc()}', True))
 
     try:
         send_df(cut_trailing(
@@ -59,14 +59,14 @@ if __name__ == '__main__':
             ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
     except Exception as e:
         #logger.error('normalize_money', traceback.print_exc())
-        asyncio.run(telegram.send_message(f'normalize_money failed: {traceback.print_exc()}', True))
+        asyncio.run(telegram.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
 
     try:
         intresting_gains = monitor_gains_main(urgent_list)
         send_all_graph(intresting_gains,urgent_list)
     except Exception as e:
         #logger.error('monitor_gains_main/send_all_graph', traceback.print_exc())
-        asyncio.run(telegram.send_message(f'monitor_gains_main/send_all_graph: {traceback.print_exc()}', True))
+        asyncio.run(telegram.send_message(f'monitor_gains_main/send_all_graph: {traceback.format_exc()}', True))
 
     logger.info("monitor: ended")
 
