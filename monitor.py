@@ -1,4 +1,6 @@
 import os
+import traceback
+
 import sql.get_table
 import telegram
 import tools.clean_processes
@@ -27,8 +29,8 @@ if __name__ == '__main__':
     try:
         monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
     except Exception as e:
-        logger.error('monitor_import', str(e))
-        telegram.send_message(f'monitor_import failed: {str(e)}', True)
+        logger.error('monitor_import', traceback.print_exc())
+        telegram.send_message(f'monitor_import failed: {traceback.print_exc()}', True)
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")
@@ -41,8 +43,8 @@ if __name__ == '__main__':
         df_monitor = update_df_monitor()
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
-        logger.error('update_df_monitor', str(e))
-        telegram.send_message(f'update_df_monitor failed: {str(e)}', True)
+        logger.error('update_df_monitor', traceback.print_exc())
+        telegram.send_message(f'update_df_monitor failed: {traceback.print_exc()}', True)
 
     try:
         send_df(cut_trailing(
@@ -55,15 +57,15 @@ if __name__ == '__main__':
             "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
             ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
     except Exception as e:
-        logger.error('normalize_money', str(e))
-        telegram.send_message(f'normalize_money failed: {str(e)}', True)
+        logger.error('normalize_money', traceback.print_exc())
+        telegram.send_message(f'normalize_money failed: {traceback.print_exc()}', True)
 
     try:
         intresting_gains = monitor_gains_main(urgent_list)
         send_all_graph(intresting_gains)
     except Exception as e:
-        logger.error('monitor_gains_main/send_all_graph', str(e))
-        telegram.send_message(f'monitor_gains_main/send_all_graph: {str(e)}', True)
+        logger.error('monitor_gains_main/send_all_graph', traceback.print_exc())
+        telegram.send_message(f'monitor_gains_main/send_all_graph: {traceback.print_exc()}', True)
 
     logger.info("monitor: ended")
 
