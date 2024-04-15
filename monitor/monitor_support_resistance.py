@@ -112,4 +112,4 @@ def pos_orders_gen():
     sql.get_table.exec_query(query)
 
 
-update_df_monitor()
+
