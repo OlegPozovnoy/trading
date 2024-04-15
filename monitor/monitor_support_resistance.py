@@ -66,17 +66,17 @@ def update_df_monitor():
     # 2) ушли вниз
     # 3) ушли вверх
     colpairs = [('new_state', 'state'), ('new_start', 'start'), ('new_end', 'end')]
-
-    df_monitor['to_update'] = df_monitor['new_state'].isnull()
-    df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
+    to_update = df_monitor['new_state'].isnull()
 
     try:
-        df_monitor['to_update'] = df_monitor['old_start'].notna() & \
-                                  ((df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) |
-                                   (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end']))
-        df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
+        to_update = to_update | df_monitor['old_start'].notna() & \
+                    ((df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) |
+                     (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end']))
     except:
         pass
+
+    df_monitor['to_update'] = to_update
+    df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
 
     logger.info("Updated new and old columns. Here's the resulting dataset")
 
@@ -88,7 +88,6 @@ def update_df_monitor():
 
     sql.get_table.df_to_sql(df_monitor[columns], "df_monitor")
     logger.info("saved df to df_monitor table. Selecting after saving")
-    logger.info(sql.get_table.query_to_df("select * from public.df_monitor"))
     return df_monitor[df_monitor['to_update']]
 
 
