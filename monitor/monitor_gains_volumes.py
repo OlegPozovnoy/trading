@@ -36,7 +36,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, mins_lookback=10, daily_lookback=54
             WHERE 
                 EXTRACT(DOW FROM datetime) <> ALL (ARRAY[0::numeric, 6::numeric])
                 AND class_code <> 'TQPI'
-                AND CURRENT_DATE + datetime::time WITHOUT TIME ZONE > NOW() - INTERVAL '{minutes_lookback} minutes'
+                AND CURRENT_DATE + datetime::time WITHOUT TIME ZONE BETWEEN NOW() - INTERVAL '{minutes_lookback} minutes' and NOW()
                 AND CURRENT_DATE - {days_lookback} <= DATE(datetime)
             GROUP BY security, DATE(datetime)
         )
