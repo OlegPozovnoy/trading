@@ -38,3 +38,7 @@ if __name__ == '__main__':
         logger.error(f"{e}")
     finally:
         print(datetime.datetime.now())
+
+
+#insert into public.deals_imp_arch select * from mos.deals_imp_arch on conflict (deal_id, tradedate) do nothing
+#

@@ -1,5 +1,5 @@
 import datetime
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 import asyncio
 from pyrogram import Client
 import json
@@ -8,7 +8,9 @@ import os
 import tools.clean_processes
 import sql.get_table
 
-load_dotenv(dotenv_path='./my.env')
+#load_dotenv(dotenv_path='./my.env')
+load_dotenv(find_dotenv('my.env'),verbose=True)
+print('finddotenv', find_dotenv('my.env'))
 
 key = os.environ['tg_key']
 api_id = os.environ['tg_api_id']
@@ -16,8 +18,8 @@ api_hash = os.environ['tg_api_hash']
 channel_id = int(os.environ['tg_channel_id'])
 channel_id_urgent = int(os.environ['tg_channel_id_urgent'])
 
-URGENT_PATH = './tg_buffer/urgent/'
-NORMAL_PATH = './tg_buffer/normal/'
+URGENT_PATH = os.path.join(os.environ['root_path'], 'tg_buffer/urgent/')
+NORMAL_PATH = os.path.join(os.environ['root_path'], 'tg_buffer/normal/')
 
 engine = sql.get_table.engine
 

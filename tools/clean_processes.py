@@ -5,19 +5,24 @@ import signal
 
 
 def clean_proc(keyword, pid, mins_threshold):
+    """
+    :param keyword: word mask of process
+    :param pid: caller pid
+    :param mins_threshold:minutes to wait before kill
+    :return: True - can launch the program, False - something already running
+    """
     cmd_list = [proc for proc in psutil.process_iter() if f'/home/{os.getlogin()}/PycharmProjects/trading/' in ' '.join(proc.cmdline())]
     cmd_list = [proc for proc in cmd_list if keyword in ' '.join(proc.cmdline())]
-    print(f"filter by {keyword} step2 {cmd_list}")
+    print(f"\nprocesses filtered by keyword '{keyword}': \n{cmd_list} \nthreshold: {mins_threshold} mins")
 
     res = []
 
     if len(cmd_list) > 0:
         for proc in cmd_list:
             uptime = datetime.datetime.now() - datetime.datetime.fromtimestamp(proc.create_time())
-            print(f'\n{proc.pid}: Script name: {proc.name()}',
-                  f'\ncmdline: {cmd_list}',
-                  f'\nuptime: {uptime.total_seconds() / 60}',
-                  f'\nthreshold: {mins_threshold}')
+            print(f'\npid: {proc.pid}',
+                  f'\nscript name: {proc.name()}',
+                  f'\nuptime: {(uptime.total_seconds() / 60):.2f}')
 
             res.append((proc.pid, proc.name(), uptime.total_seconds()/60))
     else:
@@ -27,21 +32,23 @@ def clean_proc(keyword, pid, mins_threshold):
     if len(pid_process) == 0:
         print(f"calling process {pid} is not found")
         raise ValueError
-    print(f"res: {res}\n pid_process(caller):{pid_process}")
+    print(f"\nall processes: {res}\ncaller_pid:{pid_process}")
 
     state = True
     killcount = 0
+    print(f"\nLooking for processes to kill, our process in pid {pid_process[0][0]} uptime {pid_process[0][2]:.2f}")
     for item in res:
-        print(f"False: {item[2]} {pid_process[0][2] + 1. / 60}")
+        print(f"checking {item}")
         if item[2] > mins_threshold:
-            print(f"Killing {item}")
+            print(f"too long, killing {item}")
             os.kill(item[0], signal.SIGTERM)
             killcount += 1
         elif item[2] > (pid_process[0][2] + 1./60):
-            state = False  # something is running
+            print(f"process {item} is already running, shotting down")
+            state = False
 
     if keyword == "create_tgchanne" and len(res) - killcount >=5:
         state = False
-    print(f"state: {state}")
+    print(f"returning: Is allowed to start = {state}")
     return state
 

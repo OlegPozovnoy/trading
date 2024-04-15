@@ -14,30 +14,20 @@ k_down = 4
 
 default_state = 1
 
+# pos_invested, invest_at_bottom, invest_at_top
+# тут только фьючи
 target_pos = [
-#    ('SRH4', 40, 5, 4.9),
-#    ('CRH4', -40,20,19.9),
-#    ('MXZ3', 1),
-#    ('CRZ3', -10,10,0),
-#    ('VBZ3', 3,5,0),
-
-#    ('MNZ3', 3, 5, 0),
-
-#    ('LKZ3', 3, 5, 2),
-#    ('RNZ3', 0.1,5,0),
-#    ('NMH4', 0.1,5,0),
-#    ('SNH4', 1 , 0.01,0),
-#    ('RIH4', 1, 0.01, 0),
-
-#    ('MGZ3', 5,5,4.9),
-#    ('CHZ3', 5,5,4.9),
-
-    ('FLH4', 1 ,0.01, 0),
-#    ('YNH4', 1, 0.01, 0),
-#    ('ALH4', 3,5,4.9)
+('FLH4', 1, 0.01, 0),
+('SBER', 1.4, 5.5, 3.7),
+('LKOH', 3.3, 3.6, 2.4),
+('SMLT', 2.5, 3, 2),
+('GAZP', 1.4, 5.3, 3.5),
+('ROSN', 2, 3.8, 2.6)
 ]
 
 df = pd.DataFrame(target_pos, index=range(len(target_pos)), columns=['code', 'vol', 'k_down', 'k_up'])
+
+# считаем удельный вес
 df['vol'] = df['vol'] / sum([abs(v[1]) for v in target_pos])
 
 current_pos = sql.get_table.query_to_df("SELECT code, pos, volume FROM public.united_pos")
@@ -47,7 +37,9 @@ df['k_down'] = df['k_down'].fillna(k_down)
 df['k_up'] = df['k_up'].fillna(k_up)
 df['sid'] = df.apply(lambda x: ''.join(random.choices(string.ascii_uppercase, k=3)), axis=1)
 query = """
-select fq.code, leverage*coalesce(multiplier,1) as leverage, collateral, price, ds as snapshot_date, yhat_lower, yhat_upper,yhat, sigma, trend_rel_pct, coalesce(multiplier,1) as multiplier from
+select fq.code, leverage*coalesce(multiplier,1) as leverage, collateral, price, ds as snapshot_date, 
+yhat_lower, yhat_upper,yhat, sigma, trend_rel_pct, coalesce(multiplier,1) as multiplier 
+from
 (SELECT code, bid/collateral as leverage, collateral, (bid+ask)/2 as price from futquotes) fq
 inner join 
 (SELECT  * FROM public.analytics_future) af
