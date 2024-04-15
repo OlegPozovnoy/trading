@@ -86,7 +86,7 @@ def update_df_monitor():
 
     logger.info(df_monitor[columns].head())
 
-    sql.get_table.df_to_sql(df_monitor[columns], "public.df_monitor")
+    sql.get_table.df_to_sql(df_monitor[columns], "df_monitor")
     logger.info("saved df to df_monitor table. Selecting after saving")
     logger.info(sql.get_table.query_to_df("select * from public.df_monitor"))
     return df_monitor[df_monitor['to_update']]
