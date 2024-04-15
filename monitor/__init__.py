@@ -39,8 +39,8 @@ def send_sec_graph(df_gains, urgent_list=None):
     if urgent_list is None:
         urgent_list = []
     for idx, row in df_gains.items():
-        is_urgent = (row["security"] in urgent_list)
-        path = os.path.join(IMAGES_PATH, f'{row["security"]}.png')
+        is_urgent = (row in urgent_list)
+        path = os.path.join(IMAGES_PATH, f'{row}.png')
         asyncio.run(telegram.send_photo(path, is_urgent))
 
 
