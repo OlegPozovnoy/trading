@@ -22,7 +22,11 @@ def normalize_money(df, col_list):
 
 if __name__ == '__main__':
     logger.info("monitor started: ")
-    monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
+
+    try:
+        monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
+    except Exception as e:
+        logger.error('Error', str(e))
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")
@@ -31,23 +35,31 @@ if __name__ == '__main__':
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     logger.info("urgent_list:" + str(urgent_list))
 
-    df_monitor = update_df_monitor()
-    logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
+    try:
+        df_monitor = update_df_monitor()
+        logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
+    except Exception as e:
+        logger.error('Error', str(e))
 
-    monitor_gains_main(urgent_list)
-    intresting_gains = monitor_gains_main(urgent_list)
+    try:
+        send_df(cut_trailing(
+            normalize_money(
+                sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
+                ['pnl', 'volume']),
+            ['pnl', 'price_balance', 'volume']), True)
 
-    send_df(cut_trailing(
-        normalize_money(
-            sql.get_table.query_to_df("select code, pos, pnl, price_balance, volume from public.united_pos"),
-            ['pnl', 'volume']),
-        ['pnl', 'price_balance', 'volume']), True)
+        send_df(normalize_money(sql.get_table.query_to_df(
+            "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
+            ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
+    except Exception as e:
+        logger.error('Error', str(e))
 
-    send_df(normalize_money(sql.get_table.query_to_df(
-        "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
-        ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
+    try:
+        intresting_gains = monitor_gains_main(urgent_list)
+        send_all_graph(intresting_gains)
+    except Exception as e:
+        logger.error('Error', str(e))
 
-    send_all_graph(intresting_gains)
     logger.info("monitor: ended")
 
 
