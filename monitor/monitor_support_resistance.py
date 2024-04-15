@@ -69,9 +69,9 @@ def update_df_monitor():
     to_update = df_monitor['new_state'].isnull()
 
     try:
-        to_update = to_update | df_monitor['old_start'].notna() & \
+        to_update = to_update | (df_monitor['old_start'].notna() & \
                     ((df_monitor['new_price'] + df_monitor['std'] < df_monitor['old_start']) |
-                     (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end']))
+                     (df_monitor['new_price'] - df_monitor['std'] > df_monitor['old_end'])))
     except:
         pass
 
