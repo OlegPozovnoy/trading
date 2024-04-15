@@ -217,15 +217,13 @@ def clean_old_news(days=90):
 
 
 def clean_mongo():
+    """
+    clean_old_news(days=90), remove_news_duplicates(), remove_empty_tag_news()
+    :return:
+    """
     clean_old_news(days=90)
     remove_news_duplicates()
     remove_empty_tag_news()
-#remove_channel('promsvyaz_am')
-#remove_channel_duplicates()
-#remove_news_duplicates()
-
-#add_tag_channel({"title":"MarketTwits"}, "urgent")
-#clean_mongo()
 
 
 def channel_stats():
@@ -252,4 +250,3 @@ def channel_stats():
     res.to_csv("channel_stats.csv", sep='\t')
 
 
-channel_stats()

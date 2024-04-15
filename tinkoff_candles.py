@@ -123,6 +123,11 @@ def update_import_params():
 
 @async_timed()
 async def import_new_tickers(refresh_tickers=False):
+    """
+    Refresh df_all_candles_t table
+    :param refresh_tickers: True if we take tickers from settings json, False if from tinkoff_params
+    :return: None
+    """
     df = update_import_params() if refresh_tickers else sql.get_table.query_to_df("select * from public.tinkoff_params")
 
     query = f"select security, max(datetime) as last_row from public.df_all_candles_t group by security"

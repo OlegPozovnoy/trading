@@ -12,8 +12,15 @@ IMPORT FOREIGN SCHEMA public
     FROM SERVER moscow
     INTO mos
 
-insert into public.deals_imp_arch select * from mos.deals_imp_arch on conflict (deal_id, tradedate) do nothing
-insert into public.deals_myhist select * from mos.deals_myhist on conflict (deal_id,tradedate) do nothing
+insert into public.deals_imp_arch select * from mos.deals_imp_arch where tradedate > (CURRENT_DATE-9)
+on conflict (deal_id, tradedate) do nothing;
+
+insert into public.deals_myhist select * from mos.deals_myhist where tradedate > (CURRENT_DATE-9)
+on conflict (deal_id,tradedate) do nothing;
+
+truncate public.tinkoff_params;
+insert into public.tinkoff_params select * from mos.tinkoff_params;
+
 
 select
   table_name,
