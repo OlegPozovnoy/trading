@@ -4,6 +4,8 @@ import sql.get_table
 from monitor import logger
 from tools.utils import sync_timed
 
+pd.set_option('display.max_columns', None)
+
 
 @sync_timed()
 def update_df_monitor():
@@ -28,14 +30,18 @@ def update_df_monitor():
         WHERE bid > 0
     ),
     filtered_levels AS (
-        SELECT l.code, l.name AS state, q.price AS price, l.start, 
+        SELECT coalesce(l.code,q.code) as code, l.name AS state, q.price AS price, l.start, 
             l.end, l.std AS new_std, NOW() AS timestamp 
         FROM public.df_all_levels l
         INNER JOIN current_prices q 
         ON l.code = q.code 
         WHERE l.start <= q.price AND l.end > q.price
     )
-    SELECT t1.*, t2.state, t2.price, t2.start, t2.end, t2.new_std, t2.timestamp  
+    SELECT coalesce(t1.code, t2.code) as code, 
+    t1.old_state, t1.old_price, t1.old_start, t1.old_end,
+    t1.new_state, t1.new_price, t1.new_start, t1.new_end, 
+    t1.std, t1.old_timestamp, t1.new_timestamp,
+    t2.state, t2.price, t2.start, t2.end, t2.new_std, t2.timestamp  
     FROM public.df_monitor t1
     FULL JOIN filtered_levels t2 ON t1.code = t2.code
     ORDER BY t2.code DESC;
@@ -68,11 +74,12 @@ def update_df_monitor():
     df_monitor = copy_colvals(df_monitor, colpairs, is_upd_only=True)
 
     logger.info("updated new and old columns")
-    logger.info(df_monitor.head())
 
-    columns = ['index', 'code', 'old_state', 'old_price', 'old_start', 'old_end',
+    columns = ['code', 'old_state', 'old_price', 'old_start', 'old_end',
                'new_state', 'new_price', 'new_start', 'new_end', 'std',
                'old_timestamp', 'new_timestamp']
+
+    logger.info(df_monitor[columns].head())
 
     sql.get_table.df_to_sql(df_monitor[columns], "public.df_monitor")
     logger.info("saved df to df_monitor table")
@@ -99,3 +106,5 @@ def pos_orders_gen():
     """
     sql.get_table.exec_query(query)
 
+
+update_df_monitor()
