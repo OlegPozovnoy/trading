@@ -52,11 +52,11 @@ if __name__ == '__main__':
         select code, pos, pnl, price_balance, volume from public.united_pos 
         union
         select 'ZTOTAL' , 0 ,sum(pnl), 0, sum(volume) from public.united_pos
-        order by 1 asc
+        order by 1 asc;
         """
         send_df(cut_trailing(
             normalize_money(
-                sql.get_table.query_to_df("query"),
+                sql.get_table.query_to_df(query),
                 ['pnl', 'volume']),
             ['pnl', 'price_balance', 'volume']), True)
 
