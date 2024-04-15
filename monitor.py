@@ -1,5 +1,6 @@
 import os
 import sql.get_table
+import telegram
 import tools.clean_processes
 from monitor import send_df, logger, send_all_graph
 from monitor.monitor_gains_volumes import monitor_gains_main
@@ -27,6 +28,7 @@ if __name__ == '__main__':
         monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
     except Exception as e:
         logger.error('monitor_import', str(e))
+        telegram.send_message(f'monitor_import failed: {str(e)}', True)
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")
@@ -40,6 +42,7 @@ if __name__ == '__main__':
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
         logger.error('update_df_monitor', str(e))
+        telegram.send_message(f'update_df_monitor failed: {str(e)}', True)
 
     try:
         send_df(cut_trailing(
@@ -53,12 +56,14 @@ if __name__ == '__main__':
             ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
     except Exception as e:
         logger.error('normalize_money', str(e))
+        telegram.send_message(f'normalize_money failed: {str(e)}', True)
 
     try:
         intresting_gains = monitor_gains_main(urgent_list)
         send_all_graph(intresting_gains)
     except Exception as e:
         logger.error('monitor_gains_main/send_all_graph', str(e))
+        telegram.send_message(f'monitor_gains_main/send_all_graph: {str(e)}', True)
 
     logger.info("monitor: ended")
 
