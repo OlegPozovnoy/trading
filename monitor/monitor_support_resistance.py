@@ -78,7 +78,7 @@ def update_df_monitor():
     except:
         pass
 
-    logger.info("updated new and old columns")
+    logger.info("Updated new and old columns. Here's the resulting dataset")
 
     columns = ['code', 'old_state', 'old_price', 'old_start', 'old_end',
                'new_state', 'new_price', 'new_start', 'new_end', 'std',
@@ -87,7 +87,8 @@ def update_df_monitor():
     logger.info(df_monitor[columns].head())
 
     sql.get_table.df_to_sql(df_monitor[columns], "public.df_monitor")
-    logger.info("saved df to df_monitor table")
+    logger.info("saved df to df_monitor table. Selecting after saving")
+    logger.info(sql.get_table.query_to_df("select * from public.df_monitor"))
     return df_monitor[df_monitor['to_update']]
 
 
