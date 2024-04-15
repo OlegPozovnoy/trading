@@ -23,13 +23,16 @@ def query_to_list(query):
 
 def df_to_sql(df, table_name):
     try:
+        print('clean table')
         engine.execute(f"delete from {table_name}")
     except:
-        pass
+        print('1', traceback.format_exc())
     finally:
         try:
+            print('try append table')
             df.to_sql(table_name, engine, if_exists='append')
         except:
+            print('try replace table')
             print(traceback.format_exc())
             df.to_sql(table_name, engine, if_exists='replace')
 
