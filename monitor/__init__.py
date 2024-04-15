@@ -27,6 +27,7 @@ logger.addHandler(handler)
 
 
 def send_all_graph(interesting_sec, urgent_list):
+    print(interesting_sec, urgent_list)
     if len(interesting_sec) > 0:
         prepare_images(interesting_sec.drop_duplicates())
         send_sec_graph(interesting_sec.drop_duplicates(), urgent_list)
