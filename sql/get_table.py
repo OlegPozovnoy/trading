@@ -1,3 +1,5 @@
+import traceback
+
 from sqlalchemy import create_engine
 import logging
 import pandas as pd
@@ -28,6 +30,7 @@ def df_to_sql(df, table_name):
         try:
             df.to_sql(table_name, engine, if_exists='append')
         except:
+            print(traceback.format_exc())
             df.to_sql(table_name, engine, if_exists='replace')
 
 def load_candles():
