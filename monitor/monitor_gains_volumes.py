@@ -54,7 +54,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, mins_lookback=10, daily_lookback=54
             WHERE dt = CURRENT_DATE
         ) cur
         ON hist.security = cur.security
-        WHERE (volume - volume_mean) / volume_std > 1
+        WHERE (volume - volume_mean) / volume_std > 2
         order by std desc;
         """
         return sql.get_table.query_to_df(query)
