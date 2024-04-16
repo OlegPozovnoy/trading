@@ -9,21 +9,21 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
-#schema = 'mos'
+schema = 'mos'
 if 'schema' not in locals():
     schema = 'public'
 
-quantity = 6657
-code = 'RUAL'
+quantity = -26
+code = 'LKM4'
 
-barrier_up = 42  # 28250#307250#13.22#None#309000#12.95#16400
+barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
 # barrier_up=14
 barrier_down = None  # 29050 #28850 #12#2700
 order_nums = 1
 
 state = 1
 max_amount = 1
-pause = 1
+pause = 5
 
 
 def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause):
