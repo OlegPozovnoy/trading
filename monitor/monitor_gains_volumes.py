@@ -66,16 +66,14 @@ def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, dail
         return sql.get_table.query_to_df(query)
 
     df_minutes = get_abnormal_volumes(urgent_list, mins_lookback, days_lookback)
-    print('df_minutes', df_minutes.columns)
-    print('df_inc_mins', df_inc_mins.columns)
+
     if len(df_minutes) > 0:
         df_minutes = df_minutes.merge(df_inc_mins[['security', 'inc', 'base_inc', 'beta', 'r2']], how='left',
                                       on='security')
     df_minutes['timeframe'] = 'mins'
 
     df_daily = get_abnormal_volumes(urgent_list, daily_lookback, days_lookback)
-    print('df_daily', df_daily.columns)
-    print('df_inc_days', df_inc_days.columns)
+
     if len(df_daily) > 0:
         df_daily = df_daily.merge(df_inc_days[['security', 'inc', 'base_inc', 'beta', 'r2']], how='left', on='security')
     df_daily['timeframe'] = 'days'

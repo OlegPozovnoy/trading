@@ -78,8 +78,8 @@ if __name__ == '__main__':
             normalize_money(pos_df, ['pnl', 'volume']),
             ['pnl', 'price_balance', 'volume'])
 
-        send_df(pos_df[['code', 'pos', 'pnl', 'price_balance']], True)
-        send_df(pos_df[['code', 'std', 'inc', 'beta', 'base_inc', 'r2']], True)
+        send_df(pos_df[['code', 'pos', 'pnl', 'price_balance', 'volume']], True)
+        send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], True)
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
