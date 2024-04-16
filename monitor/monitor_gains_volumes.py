@@ -25,7 +25,7 @@ def monitor_gains_main(urgent_list):
 
     df_volumes_highstd = df_volumes_highstd[df_volumes_highstd["timeframe"] == 'mins']
     return pd.concat(
-        [df_volumes_highstd, df_thr['security']]).drop_duplicates(), df_volumes
+        [df_volumes_highstd['security'], df_thr['security']]).drop_duplicates(), df_volumes
 
 
 @sync_timed()
