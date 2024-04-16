@@ -36,6 +36,9 @@ def send_all_graph(interesting_sec, urgent_list):
 
 @sync_timed()
 def send_sec_graph(df_gains, urgent_list=None):
+    logger.info("DEBUG send_sec_graph")
+    logger.info(df_gains)
+    logger.info(urgent_list)
     if urgent_list is None:
         urgent_list = []
     for idx, row in df_gains.items():
