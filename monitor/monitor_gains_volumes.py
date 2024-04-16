@@ -31,7 +31,7 @@ def monitor_gains_main(urgent_list):
 def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, daily_lookback=540, days_lookback=14):
     # 540 это -9 часов, чтобы это сработало в 9 утра
     def get_abnormal_volumes(urgent_list, minutes_lookback, days_lookback=days_lookback):
-        urgent_filter = "OR cur.security in ('" + "'.'".join(urgent_list) + "')"
+        urgent_filter = "OR cur.security in ('" + "','".join(urgent_list) + "')"
         query = f"""
         WITH t_main AS (
             SELECT security, DATE(datetime) AS dt, SUM(volume) AS volume
