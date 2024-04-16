@@ -23,8 +23,9 @@ def monitor_gains_main(urgent_list):
     send_df(format_jumps(df_thr[df_thr['security'].isin(urgent_list)]), True)
     send_df(format_jumps(df_thr), False)
 
+    df_volumes_highstd = df_volumes_highstd[df_volumes_highstd["timeframe"] == 'mins']
     return pd.concat(
-        [df_volumes[df_volumes["timeframe"] == 'mins']['security'], df_thr['security']]).drop_duplicates(), df_volumes
+        [df_volumes_highstd, df_thr['security']]).drop_duplicates(), df_volumes
 
 
 @sync_timed()
