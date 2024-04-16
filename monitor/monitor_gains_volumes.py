@@ -10,7 +10,7 @@ def monitor_gains_main(urgent_list):
     df_gains_540 = get_all_gains(540)
 
     df_thr, df_top5 = get_filtered_gains(df_gains_10, threshold=0.5)
-    df_volumes = get_volumes_df(df_gains_10, df_gains_540, mins_lookback=10, daily_lookback=540, days_lookback=14)
+    df_volumes = get_volumes_df(df_gains_10, df_gains_540, urgent_list, mins_lookback=10, daily_lookback=540, days_lookback=14)
     print('df_volumes', df_volumes.columns)
 
     df_top5['close_x'] = df_top5['close_x'].astype(str).replace(r'0+$', '', regex=True)
@@ -64,7 +64,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, dail
         """
         return sql.get_table.query_to_df(query)
 
-    df_minutes = get_abnormal_volumes(mins_lookback, days_lookback)
+    df_minutes = get_abnormal_volumes(urgent_list, mins_lookback, days_lookback)
     print('df_minutes', df_minutes.columns)
     print('df_inc_mins', df_inc_mins.columns)
     if len(df_minutes) > 0:
@@ -72,7 +72,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, dail
                                       on='security')
     df_minutes['timeframe'] = 'mins'
 
-    df_daily = get_abnormal_volumes(daily_lookback, days_lookback)
+    df_daily = get_abnormal_volumes(urgent_list, daily_lookback, days_lookback)
     print('df_daily', df_daily.columns)
     print('df_inc_days', df_inc_days.columns)
     if len(df_daily) > 0:
