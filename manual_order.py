@@ -9,7 +9,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
-schema = 'mos'
+#schema = 'mos'
 if 'schema' not in locals():
     schema = 'public'
 
