@@ -57,7 +57,6 @@ if __name__ == '__main__':
         asyncio.run(telegram.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
 
     volume_tf = pd.DataFrame()
-    intresting_gains = pd.Series()
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
         logger.info("df_volumes")
@@ -84,7 +83,7 @@ if __name__ == '__main__':
 
         send_df(pos_df[['code', 'pos', 'pnl', 'price_balance']], True)
         send_df(pos_df[['code', 'std', 'inc', 'beta', 'base_inc', 'r2']], True)
-
+        logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
         asyncio.run(telegram.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
