@@ -12,7 +12,7 @@ from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
 from monitor.monitor_imports import monitor_import
 from monitor.monitor_support_resistance import update_df_monitor
 
-
+pd.set_option('display.max_columns', None)
 def cut_trailing(df, col_list):
     for col in col_list:
         df[col] = df[col].astype(float).astype(str).replace(r'0+$', '', regex=True)
@@ -57,7 +57,11 @@ if __name__ == '__main__':
     volume_tf = pd.DataFrame()
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
-        volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])['security', 'std', 'inc', 'beta', 'base_inc', 'r2']
+        logger.info("df_volumes")
+        logger.info(df_volumes.head())
+        volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
+        logger.info(volume_tf.head())
+        volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
         asyncio.run(telegram.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
 
