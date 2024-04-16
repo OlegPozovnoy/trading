@@ -60,7 +60,7 @@ telegram
 
 update_levels - добавить события подхода к поддержке
 superset
-balance orders
+balance orders - учесть плиты
 
 
 tinkoff_candles
