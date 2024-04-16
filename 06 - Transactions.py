@@ -9,7 +9,7 @@ from _decimal import Decimal
 import logging
 import os
 import uuid
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 from tinkoff.invest import (
     Client,
@@ -18,7 +18,9 @@ from tinkoff.invest import (
     PostOrderResponse,
 )
 
-load_dotenv(dotenv_path='./../my.env')
+#load_dotenv(dotenv_path='./../my.env')
+load_dotenv(find_dotenv('my.env', True))
+
 
 TOKEN = os.environ["TOKEN_WRITE"]
 

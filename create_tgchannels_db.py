@@ -3,20 +3,20 @@ import json
 import os
 import asyncio
 import string
+import traceback
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from pyrogram import Client
-
 
 from hft.discovery import record_new_watch, record_new_event
 from nlp.lang_models import check_doc_importance, build_news_tags
-from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels, remove_news_duplicates
+from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
 
 import tools.clean_processes
 from refresh import compose_td_datetime
 from nlp import client
 
-load_dotenv(dotenv_path='./my.env')
+load_dotenv(find_dotenv('my.env', True))
 
 key = os.environ['tg_key']
 api_id = os.environ['tg_api_id']
@@ -25,86 +25,6 @@ channel_id = os.environ['tg_channel_id']
 channel_id_urgent = os.environ['tg_channel_id_urgent']
 
 conf_path = './tg_import_config.json'
-
-# channels = [
-#     "AK47pfl"
-#     , "cbrstocks"
-#     , "smartlabnews"
-#     , "ruinvestingcom"
-#     , "economika"
-#     , "bcsinvestidea"
-#     , "finamalert"
-#     , "StockNews100"
-#     , "renat_vv"
-#     , "russianmacro"
-#     , "MarketDumki"
-#     , "ProfitGate"
-#     , "stockexchanger"
-#     , "bitkogan"
-#     , "SvetaFXTradingBlog"
-#     , "yivashchenko"
-#     , "RusBafet_VIP"
-#     , "dohod"
-#     , "brent_crude_oil"
-#     , "usertrader3"
-#     , "macroresearch"
-#     , "Sharqtradein"
-#     , "trader_chernyh"
-#     , "alfawealth"
-#     , "altorafund"
-#     , "bondovik"
-#     , "buyside", "Brent_Crude_Oil", "xtxixty", "altorafund", "mozgovikresearch", "finpizdec", "markettwits",
-#     "alfawealth", "alfa_investments",
-#     "bitkogan_hotline", "StockNews100", "usamarke1", "taurenin", "marketsnapshot", -1001656693918]
-
-
-# channels = ['divonline', 'dohod', 'smfanton', 'divonline', 'usamarke1', 'particular_trader', 'investheroes',
-#             'finrangecom', 'zabfin', 'invest_or_lost','PravdaInvest', 'private_investor', 'Tradermoex',
-#             'investarter', 'trader_nt','atlant_signals', 'openinvestor', 'arsageranews', 'rynok_znania',
-#             'trekinvest','ltrinvestment', 'INVESTR_RU', 'FTMTrends', 'Risk_zakharov', 'if_stocks',
-#             'tinkoff_invest_official', 'SberInvestments', 'omyinvestments', 'selfinvestor',
-#             'antonchehovanalitk', 'investorylife', 'investokrat', 'truecon', 'scapitalrussia',
-#             'rodinfinance', 'warwisdom', 'GBEanalytix', 'truevalue', 'FinamPrem', 'ingosinvest',
-#             'alorbroker', 'RSHB_Invest', 'FREEDOMFINANCE', 'open_invest', 'bcs_express',
-#             'tinkoff_analytics_official', 'vadya93_official', 'AROMATH', 'romanandreev_trader',
-#             'martynovtim', 'invest_budka', 'invest_fynbos', 'razb0rka', 'kuzmlab', 'harmfulinvestor',
-#             'meatinvestor'
-#
-#             ]
-
-channels = ['Alfacapital_ru', 'finam_invest', 'FinamInvestLAB', 'promsvyaz_am',
-            'gpb_investments', 'aton1991', 'mkb_investments', 'iticapital_invest'
-            ]
-
-async def create_record(chat_id):
-    async with Client("my_ccount", api_id, api_hash) as app:
-        chat = await app.get_chat(chat_id)
-        # count = await app.get_chat_history_count(chat_id=chat_id)
-        # print(chat)
-        chat = json.loads(str(chat))
-        result = dict()
-        result["tg_id"] = chat['id']
-        result['is_active'] = 1
-        result["title"] = chat['title'].strip()
-        result["username"] = chat.get('username', '').strip()
-        result['description'] = chat.get('description', '').strip()
-        result['members_count'] = chat['members_count']
-        result['count'] = 0  # count - 100 # to import 100 messages after creation
-        # print(result)
-        return result
-
-
-async def create_channels():
-    global channels
-    channels = set(channels)
-    names_collection = client.trading['tg_channels']
-    for channel in channels:
-        try:
-            res = await create_record("@" + channel)
-            print(f"Created channel\n{res}")
-            names_collection.insert_one(res)
-        except Exception as ex:
-            print(str(ex))
 
 
 async def import_news(channel, limit=None, max_msg_load=1000):
@@ -155,7 +75,8 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                             except Exception as e:
                                 print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
 
-                            if res['channel_username'] in ['markettwits','cbrstocks', 'ProfitGateClub', 'divonline','chekhov_vip']:
+                            if res['channel_username'] in ['markettwits', 'cbrstocks', 'ProfitGateClub', 'divonline',
+                                                           'chekhov_vip']:
                                 keyword = ''
                                 fulltext = (res['text'] + res['caption']).lower()
                                 if "отчет" in fulltext:
@@ -173,14 +94,16 @@ async def import_news(channel, limit=None, max_msg_load=1000):
                                 fulltext = "".join([x for x in fulltext if x not in string.punctuation])
                                 record_new_event(res, channel['username'], keyword, fulltext)
 
-
-
         if new_msg_count != 0:
             print("updating message count...")
             update_tg_msg_count(channel['username'], count)
 
 
 async def upload_recent_news():
+    """
+    Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
+    :return:
+    """
     conf = json.load(open(conf_path, 'r'))
     conf['last_id'] += 1
     json.dump(conf, open(conf_path, 'w'))
@@ -188,7 +111,8 @@ async def upload_recent_news():
     active_channels = get_active_channels()
     renumerate_channels(is_active=True)
 
-    ids_list = list(range((conf['last_id']-1)*conf['non_urgent_channels'], conf['last_id']*conf['non_urgent_channels']))
+    ids_list = list(
+        range((conf['last_id'] - 1) * conf['non_urgent_channels'], conf['last_id'] * conf['non_urgent_channels']))
 
     for channel in active_channels:
         try:
@@ -197,9 +121,9 @@ async def upload_recent_news():
         except Exception as e:
             print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
 
+
 start_refresh = compose_td_datetime("0:0:00")
 end_refresh = compose_td_datetime("23:30:00")
-
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
@@ -212,5 +136,5 @@ if __name__ == "__main__":
         try:
             asyncio.run(upload_recent_news())
         except Exception as e:
-            print(e)
+            print(traceback.format_exc())
         print(datetime.datetime.now())

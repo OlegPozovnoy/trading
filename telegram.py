@@ -1,4 +1,6 @@
 import datetime
+from time import sleep
+
 from dotenv import load_dotenv, find_dotenv
 import asyncio
 from pyrogram import Client
@@ -8,9 +10,7 @@ import os
 import tools.clean_processes
 import sql.get_table
 
-#load_dotenv(dotenv_path='./my.env')
-load_dotenv(find_dotenv('my.env'),verbose=True)
-print('finddotenv', find_dotenv('my.env'))
+load_dotenv(find_dotenv('my.env', True),verbose=True)
 
 key = os.environ['tg_key']
 api_id = os.environ['tg_api_id']
@@ -103,6 +103,10 @@ if __name__ == "__main__":
     if not tools.clean_processes.clean_proc("telegram", os.getpid(), 3):
         print("something is already running")
         exit(0)
+
+    # waiting till monitor will do the job
+    sleep(15)
+
     asyncio.run(send_all())
     print(datetime.datetime.now())
 

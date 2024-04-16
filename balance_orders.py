@@ -16,6 +16,8 @@ default_state = 1
 
 # pos_invested, invest_at_bottom, invest_at_top
 # тут только фьючи
+# Переделать
+# 1)сколько я хочу 2) само плечо 3) процент плеча
 target_pos = [
 ('FLH4', 1, 0.01, 0),
 ('SBER', 1.4, 5.5, 3.7),
