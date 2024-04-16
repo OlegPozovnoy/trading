@@ -50,7 +50,7 @@ def send_sec_graph(df_gains, urgent_list=None):
 @sync_timed()
 def send_df(df, is_urgent=False):
     if len(df) > 0:
-        asyncio.run(telegram.send_message(df.to_string(justify='left', index=False), is_urgent))
+        asyncio.run(telegram.send_message(df.to_string(justify='left', index=False).expandtabs(), is_urgent))
 
 
 @sync_timed()
