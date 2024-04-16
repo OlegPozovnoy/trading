@@ -13,6 +13,8 @@ from monitor.monitor_imports import monitor_import
 from monitor.monitor_support_resistance import update_df_monitor
 
 pd.set_option('display.max_columns', None)
+
+
 def cut_trailing(df, col_list):
     for col in col_list:
         df[col] = df[col].astype(float).astype(str).replace(r'0+$', '', regex=True)
@@ -74,9 +76,10 @@ if __name__ == '__main__':
         """
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
+        pos_df = pos_df[['code', 'pos', 'pnl', 'price_balance', 'std', 'inc', 'beta', 'base_inc', 'r2']]
 
         send_df(cut_trailing(
-            normalize_money(pos_df,['pnl', 'volume']),
+            normalize_money(pos_df, ['pnl', 'volume']),
             ['pnl', 'price_balance', 'volume']), True)
         send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
