@@ -50,8 +50,8 @@ def send_sec_graph(df_gains, urgent_list=None):
 @sync_timed()
 def send_df(df, is_urgent=False):
     if len(df) > 0:
-        asyncio.run(telegram.send_message(df.to_string(justify='left', index=False).expandtabs(), is_urgent))
-
+        #asyncio.run(telegram.send_message(df.to_string(justify='left', index=False).expandtabs(), is_urgent))
+        asyncio.run(telegram.send_message(df.to_csv(index=False, sep='\t').expandtabs(), is_urgent))
 
 @sync_timed()
 def prepare_images(df_monitor_code_series, days_to_subtract=7):
