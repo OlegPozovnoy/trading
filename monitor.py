@@ -59,10 +59,7 @@ if __name__ == '__main__':
     volume_tf = pd.DataFrame()
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
-        logger.info("df_volumes")
-        logger.info(df_volumes.head())
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
-        logger.info(volume_tf.head())
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
         asyncio.run(telegram.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
