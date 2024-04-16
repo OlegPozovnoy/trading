@@ -56,12 +56,17 @@ create_tgchannels_db
 morning_routine
 telegram
 
+
+
 update_levels - добавить события подхода к поддержке
 superset
 balance orders
 
+
 tinkoff_candles
+чекать плиты
 refresh
 Transactions
+
 
 tgorders
