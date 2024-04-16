@@ -50,6 +50,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, dail
             FROM t_main
             WHERE dt < CURRENT_DATE
             GROUP BY security
+            HAVING STDDEV(volume) > 0
         ) hist
         INNER JOIN 
         (SELECT security, volume 

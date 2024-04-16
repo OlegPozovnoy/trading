@@ -77,7 +77,6 @@ def get_ticker(ticker_list):
                 )
 
     tickers_df = pd.DataFrame(tickers)
-    tickers_df.to_csv("./Data/alltickers.csv", sep='\t')
     exchange_filter = tickers_df["exchange"].str.startswith('MOEX') | tickers_df["exchange"].str.startswith('FORTS')
     tickers_df = tickers_df[exchange_filter]
     tickers_df = tickers_df[tickers_df["ticker"].isin(ticker_list)]

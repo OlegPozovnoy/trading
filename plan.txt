@@ -49,4 +49,19 @@ tcs+
 в пятницу нетто продажи спекуляций и нет паники в долгосроке
 добавить волюм в ургент поз
 volume по отсечке
-весь конфиг в папку
+
+
+monitor
+create_tgchannels_db
+morning_routine
+telegram
+
+update_levels - добавить события подхода к поддержке
+superset
+balance orders
+
+tinkoff_candles
+refresh
+Transactions
+
+tgorders

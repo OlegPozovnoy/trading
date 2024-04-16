@@ -1,21 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-# https://www.geeksforgeeks.org/how-to-schedule-python-scripts-as-cron-jobs-with-crontab/
 import asyncio
 import os
-
 import pandas as pd
 import numpy as np
-import config.sql_queries
 from datetime import datetime, timedelta
 from scipy.signal import find_peaks
 
 import time
 import sql.get_table
 import telegram
-import pytz
-
 import tools.clean_processes
 
 engine = sql.get_table.engine
@@ -211,24 +205,17 @@ def compress_all_levels(df_all_levels):
 
 
 def update_db_tables(df_levels, df_all_levels, df_all_volumes):
-
     df_levels['timestamp'] = datetime.now()
     df_all_levels['timestamp'] = datetime.now()
 
-    sql.get_table.exec_query("delete from public.df_levels")
-    sql.get_table.exec_query("delete from public.df_all_levels")
-    sql.get_table.exec_query("delete from public.df_all_volumes")
-
-    df_levels.to_sql('df_levels', engine, if_exists='append')
-    df_all_levels.to_sql('df_all_levels', engine, if_exists='append')
-    # engine.execute(config.sql_queries.config["create_view"])
-    df_all_volumes.to_sql('df_all_volumes', engine, if_exists='append')
+    sql.get_table.df_to_sql(df_levels, 'df_levels')
+    sql.get_table.df_to_sql(df_all_levels, 'df_all_levels')
+    sql.get_table.df_to_sql(df_all_volumes, 'df_all_volumes')
 
 
 if __name__ == '__main__':
     startTime = time.time()
 
-    print(time.ctime())
     if not tools.clean_processes.clean_proc("update_levels", os.getpid(), 5):
         print("something is already running")
         exit(0)
