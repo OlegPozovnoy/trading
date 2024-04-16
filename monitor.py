@@ -74,7 +74,7 @@ if __name__ == '__main__':
             ['pnl', 'mktprice', 'volume', 'lower', 'upper'])
 
         send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'ordnum', 'actnum']], True)
-        send_df(pos_df[['code', 'mktprice',  'lower', 'upper', 'levels', 'new_state']], True)
+        send_df(pos_df[['code',  'levels', 'mktprice',  'lower', 'upper', 'new_state']], True)
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], True)
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
