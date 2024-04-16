@@ -16,27 +16,19 @@ engine = sql.get_table.engine
 
 
 def load_df(days_to_subtract=7):
-    df = sql.get_table.query_to_df("select * from df_all_candles_t where datetime > now() - interval '14 days'")
-    df['t'] = pd.to_datetime(df['datetime'])
-    df.drop(columns=['datetime'], inplace=True)
-
-    df['week'] = df['t'].dt.isocalendar().week
-    df['day'] = df['t'].dt.day
-    current_week = datetime.today().isocalendar().week
-    current_day = datetime.today()
-
-    df = df[(df['volume'] > 0) & (df['close'] > 0)]
-
-    # Adjust start date
-    start_date = (datetime.today() - timedelta(days=days_to_subtract))
-    start_date = start_date.replace(tzinfo=df['t'][0].tzinfo)
-    df = df[df['t'] > start_date]
-
-    # adjust past week volume
-    df.loc[df['week'] != current_week, 'volume'] = df.loc[df['week'] != current_week, 'volume'] / 2
-    df.loc[df['day'] == current_day, 'volume'] = df.loc[df['day'] == current_day, 'volume'] * 2
-    return df
-
+    query = f"""
+    SELECT close, 
+	close - lag(close, 1) OVER (PARTITION BY security ORDER BY datetime) AS diff,
+	case 
+	when EXTRACT('week' FROM datetime) <> EXTRACT('week' FROM CURRENT_DATE) then 	volume/2
+	when date(datetime) = date(now()) then volume * 2
+	else volume end 
+	as volume,
+	security
+	FROM public.df_all_candles_t
+    where datetime > NOW() - interval '{days_to_subtract} days'
+    """
+    return sql.get_table.query_to_df(query)
 
 def build_levels(df_):
     df_levels = pd.DataFrame()
@@ -47,7 +39,7 @@ def build_levels(df_):
 
         df = df_[df_['security'] == eq]
         df = df.reset_index()
-        std = np.std((df['close'] - df['close'].shift(1)))
+        std = np.std(df['diff'])
         print(eq, std)
         np_close = np.array(df['close'])
 
@@ -55,37 +47,36 @@ def build_levels(df_):
         volumes = []
         mult = 100
 
+        # делим минимум и максимум на 100 частей, идем по ним и усредняем
         for x in np.linspace(np.min(np_close), np.max(np_close), mult):
             price_range.append(x)
-            volumes.append(np.dot(df['volume'], ((np_close > x - std) & (np_close < x + std))))
+            volumes.append(np.dot(df['volume'], ((np_close - std < x) & ( x > np_close + std))))
         volumes = np.convolve(volumes, np.ones(10), mode='same')
 
+        # вставляем значение пика и обьем
         idx, _ = find_peaks(volumes)
         peaks = list(zip([price_range[t] for t in idx], [volumes[t] for t in idx]))
 
+        # вставляем по бокам минимум и максимум
         peaks.insert(0, (np.min(np_close), 0))
         peaks.insert(len(peaks), (np.max(np_close), 0))
 
+        # идем снизу вверх, если есть пики на расстоянии 2 std - убиваем пик с наименьшим обьемом
         for _ in range(1, len(peaks)):
             for i in range(1, len(peaks)):
                 if peaks[i][0] - peaks[i - 1][0] < 2 * std:
-                    # print(peaks)
                     if peaks[i][1] < peaks[i - 1][1]:
-                        # print("del", i)
                         del peaks[i]
                     else:
-                        # print("del", i - 1)
                         del peaks[i - 1]
-                    # print("after:", peaks)
                     break
-
-        # print(peaks)
 
         df_eq = pd.DataFrame(peaks, columns=['price', 'volume'])
         df_eq['std'] = std
         df_eq['sec'] = eq
-        df_eq[['min_start', 'max_start', 'end', 'sl', 'mid', 'down', 'prev_end', 'next_sl']] = None  ##
+        df_eq[['min_start', 'max_start', 'end', 'sl', 'mid', 'down', 'prev_end', 'next_sl']] = None
 
+        # параметры когда закрывать позицию max_level - покупаем не раньше, close level - начинаем закрывать, sl_level - пробили поддержку
         max_level = 0.3
         close_level = 0.9
         sl_level = 0.8
@@ -126,6 +117,7 @@ def build_levels(df_):
         df_all_levels = pd.concat([df_all_levels, df_eq_all_levels])
         df_all_volumes = pd.concat([df_all_volumes, df_price_volume])
 
+        # вероятность стартовать в случайной точке и достичь end а не stop loss
         df_levels['implied_prob'] = ((df_levels['min_start'] + df_levels['max_start']) / 2 - df_levels['sl']) / (
                 df_levels['end'] - df_levels['sl'])
     return df_levels, df_all_levels, df_all_volumes

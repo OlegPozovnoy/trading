@@ -65,20 +65,16 @@ if __name__ == '__main__':
         asyncio.run(telegram.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
 
     try:
-        query = """
-        select code, pos, pnl, price_balance, volume from public.united_pos 
-        union
-        select 'ZTOTAL' , 0 ,sum(pnl), 0, sum(volume) from public.united_pos
-        order by 1 asc;
-        """
+        query = "select * from public.trd_mypos"
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
 
         pos_df = cut_trailing(
             normalize_money(pos_df, ['pnl', 'volume']),
-            ['pnl', 'price_balance', 'volume'])
+            ['pnl', 'mktprice', 'volume', 'lower', 'upper'])
 
-        send_df(pos_df[['code', 'pos', 'pnl', 'price_balance', 'volume']], True)
+        send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'ordnum', 'actnum']], True)
+        send_df(pos_df[['code', 'mktprice',  'lower', 'upper', 'levels', 'new_state']], True)
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], True)
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
