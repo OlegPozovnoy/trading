@@ -45,6 +45,8 @@ if __name__ == '__main__':
 
     try:
         df_monitor = update_df_monitor()
+        df_monitor = df_monitor[df_monitor['code'].isin(urgent_list)]
+        send_df(df_monitor[['code', 'old_state', 'new_state']], True)
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
         asyncio.run(telegram.send_message(f'update_df_monitor failed: {traceback.format_exc()}', True))
@@ -59,6 +61,7 @@ if __name__ == '__main__':
     volume_tf = pd.DataFrame()
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
+        intresting_gains = pd.concat([intresting_gains, df_monitor['code']]).drop_duplicates()
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
