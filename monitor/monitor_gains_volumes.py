@@ -16,19 +16,22 @@ def monitor_gains_main(urgent_list):
     df_top5['close_x'] = df_top5['close_x'].astype(str).replace(r'0+$', '', regex=True)
     send_df(df_top5)
 
-    send_df(format_volumes(df_volumes[df_volumes['security'].isin(urgent_list)]), True)
-    send_df(format_volumes(df_volumes), False)
+    df_volumes_highstd = df_volumes[df_volumes['std'] > 2]
+    send_df(format_volumes(df_volumes_highstd[df_volumes_highstd['security'].isin(urgent_list)]), True)
+    send_df(format_volumes(df_volumes_highstd), False)
 
     send_df(format_jumps(df_thr[df_thr['security'].isin(urgent_list)]), True)
     send_df(format_jumps(df_thr), False)
 
-    return pd.concat([df_volumes[df_volumes["timeframe"] == 'mins']['security'], df_thr['security']]).drop_duplicates()
+    return pd.concat(
+        [df_volumes[df_volumes["timeframe"] == 'mins']['security'], df_thr['security']]).drop_duplicates(), df_volumes
 
 
 @sync_timed()
-def get_volumes_df(df_inc_mins, df_inc_days, mins_lookback=10, daily_lookback=540, days_lookback=14):
+def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, daily_lookback=540, days_lookback=14):
     # 540 это -9 часов, чтобы это сработало в 9 утра
-    def get_abnormal_volumes(minutes_lookback, days_lookback=days_lookback):
+    def get_abnormal_volumes(urgent_list, minutes_lookback, days_lookback=days_lookback):
+        urgent_filter = "OR cur.security in ('" + "'.'".join(urgent_list) + "')"
         query = f"""
         WITH t_main AS (
             SELECT security, DATE(datetime) AS dt, SUM(volume) AS volume
@@ -55,6 +58,7 @@ def get_volumes_df(df_inc_mins, df_inc_days, mins_lookback=10, daily_lookback=54
         ) cur
         ON hist.security = cur.security
         WHERE (volume - volume_mean) / volume_std > 2
+        {urgent_filter}
         order by std desc;
         """
         return sql.get_table.query_to_df(query)
