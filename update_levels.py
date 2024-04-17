@@ -58,21 +58,21 @@ def build_levels(df_):
         peaks = list(zip([price_range[t] for t in idx], [volumes[t] for t in idx]))
 
         # вставляем по бокам минимум и максимум
-
+        peaks.insert(0, (np.min(np_close), 999999999999))
+        peaks.insert(len(peaks), (np.max(np_close), 999999999999))
 
         print('peaks', peaks, std)
         # идем снизу вверх, если есть пики на расстоянии 2 std - убиваем пик с наименьшим обьемом
         for _ in range(1, len(peaks)):
             for i in range(1, len(peaks)):
-                if peaks[i][0] - peaks[i - 1][0] < 8 * std:
+                if peaks[i][0] - peaks[i - 1][0] < 15 * std:
                     if peaks[i][1] < peaks[i - 1][1]:
                         del peaks[i]
                     else:
                         del peaks[i - 1]
                     break
 
-        peaks.insert(0, (np.min(np_close), 0))
-        peaks.insert(len(peaks), (np.max(np_close), 0))
+
 
         df_eq = pd.DataFrame(peaks, columns=['price', 'volume'])
         df_eq['std'] = std
