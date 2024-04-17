@@ -60,7 +60,7 @@ instrument_list_path=./Examples/Bars_upd_config.json
 ============================================================
 
 
-update_levels - добавить события подхода к поддержке
+update_levels - добавить события подхода к поддержке +
 manual_order mos
 balance orders
 mongo securities tags news
