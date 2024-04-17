@@ -53,8 +53,8 @@ if __name__ == '__main__':
 
     try:
         send_df(normalize_money(sql.get_table.query_to_df(
-            "select money_prev, money, pos_current, pos_plan, pnl, pnl_prev from public.pos_money"),
-            ['money_prev', 'money', 'pos_current', 'pos_plan', 'pnl', 'pnl_prev']), True)
+            "select money_prev as moneyt1, money, pos_current as pos, pos_plan as plan, pnl, pnlt1 from public.pos_money"),
+            ['moneyt1', 'money', 'pos', 'plan', 'pnl', 'pnlt1']), True)
     except Exception as e:
         asyncio.run(telegram.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
 
