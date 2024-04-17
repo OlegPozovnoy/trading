@@ -72,6 +72,9 @@ if __name__ == '__main__':
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
 
+        for col in ['mktprice', 'lower', 'upper']:
+            pos_df[col] = pos_df[col].round(3)
+
         pos_df = cut_trailing(
             normalize_money(pos_df, ['pnl', 'volume']),
             ['pnl', 'mktprice', 'volume', 'lower', 'upper'])
