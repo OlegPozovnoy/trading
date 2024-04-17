@@ -64,7 +64,7 @@ def build_levels(df_):
         # идем снизу вверх, если есть пики на расстоянии 2 std - убиваем пик с наименьшим обьемом
         for _ in range(1, len(peaks)):
             for i in range(1, len(peaks)):
-                if peaks[i][0] - peaks[i - 1][0] < 4 * std:
+                if peaks[i][0] - peaks[i - 1][0] < 15 * std:
                     if peaks[i][1] < peaks[i - 1][1]:
                         del peaks[i]
                     else:
