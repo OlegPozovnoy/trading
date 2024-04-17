@@ -61,10 +61,11 @@ def build_levels(df_):
         peaks.insert(0, (np.min(np_close), 0))
         peaks.insert(len(peaks), (np.max(np_close), 0))
 
+        print('peaks', peaks, std)
         # идем снизу вверх, если есть пики на расстоянии 2 std - убиваем пик с наименьшим обьемом
         for _ in range(1, len(peaks)):
             for i in range(1, len(peaks)):
-                if peaks[i][0] - peaks[i - 1][0] < 15 * std:
+                if peaks[i][0] - peaks[i - 1][0] < 8 * std:
                     if peaks[i][1] < peaks[i - 1][1]:
                         del peaks[i]
                     else:
@@ -81,6 +82,7 @@ def build_levels(df_):
         close_level = 0.9
         sl_level = 0.8
 
+        print(df_eq)
         # build levels
         for idx, row in df_eq.iterrows():
             if idx >= 1:  # >= если хотим ловить падающий нож
@@ -112,6 +114,10 @@ def build_levels(df_):
         df_eq_all_levels = create_all_levels(df_eq)
         df_eq_all_levels['std'] = std
         df_eq_all_levels = compress_all_levels(df_eq_all_levels)
+
+        print(df_eq)
+        print(df_eq_all_levels)
+        print(df_price_volume)
 
         df_levels = pd.concat([df_levels, df_eq])
         df_all_levels = pd.concat([df_all_levels, df_eq_all_levels])
