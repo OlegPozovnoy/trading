@@ -50,7 +50,7 @@ def send_sec_graph(df_gains, urgent_list=None):
 @sync_timed()
 def send_df(df, is_urgent=False):
     if len(df) > 0:
-        msg = df.to_csv(index=False, sep='\t').expandtabs(8)
+        msg ="```\n" + df.to_csv(index=False, sep='\t').expandtabs(8) + "\n```"
         logger.info(msg)
         asyncio.run(telegram.send_message(msg, is_urgent))
 
