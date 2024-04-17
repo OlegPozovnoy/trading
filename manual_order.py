@@ -13,44 +13,57 @@ engine = sql.get_table.engine
 if 'schema' not in locals():
     schema = 'public'
 
-quantity = -26
-code = 'LKM4'
+
+quantity = -1
+code = 'SRM4'
 
 barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
-# barrier_up=14
 barrier_down = None  # 29050 #28850 #12#2700
 order_nums = 1
 
-state = 1
+state = 0
 max_amount = 1
-pause = 5
+pause = 1
+
+print(schema)
 
 
 def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause):
+    global schema
     if barrier_up is None and barrier_down is None:
         order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-        query = f"""insert into {schema}.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
-        values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,null,{max_amount},{pause}, '{code}')
-        """
+        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
+            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,null,{max_amount},{pause}, '{code}')
+            """
         print(query)
-        engine.execute(query)
+        if schema == 'public':
+            engine.execute(query)
+        else:
+            sql.get_table.exec_remote_dblink(query)
     elif barrier_down is None:
         order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-        query = f"""insert into {schema}.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
-        values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,{barrier_up},{max_amount},{pause}, '{code}')
-        """
+        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
+            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,{barrier_up},{max_amount},{pause}, '{code}')
+            """
+
         print(query)
-        engine.execute(query)
+        if schema == 'public':
+            engine.execute(query)
+        else:
+            sql.get_table.exec_remote_dblink(query)
     else:
         barriers = np.linspace(barrier_up, barrier_down, order_nums)
         logger.info(barriers)
         for barrier in barriers:
             order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-            query = f"""insert into {schema}.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
+            query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
             values ({state}, {int(quantity / order_nums)}, '{code + '_' + str(int(barrier)) + '_' + order_code}', 0,{barrier},{max_amount},{pause}, '{code}')
             """
             print(query)
-            engine.execute(query)
+            if schema == 'public':
+                engine.execute(query)
+            else:
+                sql.get_table.exec_remote_dblink(query)
 
 
 @sync_timed()
@@ -74,5 +87,4 @@ def get_volume_params(asset):
 
 
 if __name__ == '__main__':
-    #get_volume_params('RLM4')
     execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause)
