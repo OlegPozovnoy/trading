@@ -235,7 +235,7 @@ if __name__ == '__main__':
     startTime = time.time()
     try:
         logger.info('Update import settings')
-        # update_instrument_list()
+        update_instrument_list()
         logger.info('Begin quotes reimport')
         asyncio.run(import_new_tickers(False))
         logger.info('Bars updated')
