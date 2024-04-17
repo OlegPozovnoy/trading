@@ -5,7 +5,8 @@ import logging
 import pandas as pd
 
 engine = create_engine(
-    'postgresql://postgres:postgres@localhost:5432/test').execution_options(autocommit=True)  # insufficient data in "D" message // pool_pre_ping=True
+    'postgresql://postgres:postgres@localhost:5432/test').execution_options(
+    autocommit=True)  # insufficient data in "D" message // pool_pre_ping=True
 logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 
@@ -34,6 +35,7 @@ def df_to_sql(df, table_name):
             print(traceback.format_exc())
             df.to_sql(table_name, engine, if_exists='replace')
 
+
 def load_candles():
     return query_to_df("select * from df_all_candles_t")
 
@@ -49,5 +51,13 @@ def load_candles_cutoff(cutofftimes):
         where datetime::time<='{str(cutofftime)}'::time
         ) t where candle_num =1
         """
-        result = pd.concat([result,query_to_df(query)], axis=0)
+        result = pd.concat([result, query_to_df(query)], axis=0)
     return result
+
+
+def exec_remote_dblink(query):
+    # Формирование запроса с использованием dblink и параметров
+    dblink_connection_str = "dbname=test host=10.8.0.3 user=postgres password=postgres"
+    dblink_query = f"SELECT dblink_exec('{dblink_connection_str}', $$ {query} $$);"
+    # Выполнение запроса через dblink
+    return exec_query(dblink_query)
