@@ -73,14 +73,17 @@ if __name__ == '__main__':
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
 
         for col in ['mktprice', 'lower', 'upper']:
-            pos_df[col] = pos_df[col].round(3)
+            pos_df[col] = pos_df[col].astype(float).round(3)
 
         pos_df = cut_trailing(
             normalize_money(pos_df, ['pnl', 'volume']),
             ['pnl', 'mktprice', 'volume', 'lower', 'upper'])
 
         send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'actnum',  'levels', 'inc','std']], True)
-        send_df(pos_df[['code',  'levels', 'lower', 'upper', 'new_state','mktprice']], True)
+        send_df(cut_trailing(
+            pos_df[['code',  'levels', 'lower', 'upper', 'new_state','mktprice']],
+            ['lower', 'upper', 'mktprice']), True)
+
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], False)
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
