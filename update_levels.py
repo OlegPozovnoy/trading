@@ -50,7 +50,7 @@ def build_levels(df_):
         # делим минимум и максимум на 100 частей, идем по ним и усредняем
         for x in np.linspace(np.min(np_close), np.max(np_close), mult):
             price_range.append(x)
-            volumes.append(np.dot(df['volume'], ((np_close - std < x) & ( x > np_close + std))))
+            volumes.append(np.dot(df['volume'], ((np_close - std < x) & (x < np_close + std))))
         volumes = np.convolve(volumes, np.ones(10), mode='same')
 
         # вставляем значение пика и обьем
