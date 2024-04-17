@@ -57,14 +57,18 @@ morning_routine
 telegram
 
 
+============================================================
 
+instrument_list_path=./Examples/Bars_upd_config.json
 update_levels - добавить события подхода к поддержке
 superset
-balance orders - учесть плиты
-
+balance orders
+===============================================================
 
 tinkoff_candles
-чекать плиты
+ - учесть плиты, сделать сбор плит в монитор
+
+
 refresh
 Transactions
 

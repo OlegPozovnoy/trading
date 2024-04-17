@@ -24,7 +24,8 @@ api_hash = os.environ['tg_api_hash']
 channel_id = os.environ['tg_channel_id']
 channel_id_urgent = os.environ['tg_channel_id_urgent']
 
-conf_path = './tg_import_config.json'
+
+conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
 
 async def import_news(channel, limit=None, max_msg_load=1000):
@@ -131,7 +132,6 @@ if __name__ == "__main__":
         print("something is already running")
         exit(0)
 
-    # nlp.mongotools.remove_news_duplicates()
     while start_refresh <= datetime.datetime.now() < end_refresh:
         try:
             asyncio.run(upload_recent_news())
