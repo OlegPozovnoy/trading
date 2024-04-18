@@ -11,6 +11,7 @@ from monitor import send_df, logger, send_all_graph
 from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
 from monitor.monitor_imports import monitor_import
 from monitor.monitor_support_resistance import update_df_monitor
+from test import get_orderbook
 
 pd.set_option('display.max_columns', None)
 
@@ -89,5 +90,8 @@ if __name__ == '__main__':
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
         asyncio.run(telegram.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
+
+    for item in urgent_list:
+        get_orderbook(item)
 
     logger.info("monitor: ended")
