@@ -11,6 +11,7 @@ import time
 import sql.get_table
 import telegram
 import tools.clean_processes
+from nlp.mongo_tools import news_tfidf
 
 engine = sql.get_table.engine
 
@@ -61,7 +62,6 @@ def build_levels(df_):
         peaks.insert(0, (np.min(np_close), np.max(volumes)+1))
         peaks.insert(len(peaks), (np.max(np_close), np.max(volumes)+1))
 
-        print('peaks', peaks, std)
         # идем снизу вверх, если есть пики на расстоянии 2 std - убиваем пик с наименьшим обьемом
         for _ in range(1, len(peaks)):
             for i in range(1, len(peaks)):
@@ -115,10 +115,6 @@ def build_levels(df_):
         df_eq_all_levels = create_all_levels(df_eq)
         df_eq_all_levels['std'] = std
         df_eq_all_levels = compress_all_levels(df_eq_all_levels)
-
-        print(df_eq)
-        print(df_eq_all_levels)
-        print(df_price_volume)
 
         df_levels = pd.concat([df_levels, df_eq])
         df_all_levels = pd.concat([df_all_levels, df_eq_all_levels])
@@ -223,5 +219,6 @@ if __name__ == '__main__':
     df_levels, df_all_levels, df_all_volumes = build_levels(df)
     update_db_tables(df_levels, df_all_levels, df_all_volumes)
 
+    news_tfidf()
     asyncio.run(telegram.send_message(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с'))
     print(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с')
