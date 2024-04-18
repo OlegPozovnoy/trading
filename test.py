@@ -83,8 +83,8 @@ def get_orderbook(secCode):
         limit_big = res['quantity'].mean()*5
         res['abnormal'] = res['quantity'] > limit_big
         res['limit'] = limit_big
-        res.to_sql('df_all_orderbook_t', engine, if_exists='append', index=False)
-
+        res.to_sql('df_all_orderbook_arch', engine, if_exists='append', index=False)
+        sql.get_table.df_to_sql(res, 'df_all_orderbook_t')
 
 
 
