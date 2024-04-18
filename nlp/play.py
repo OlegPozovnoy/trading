@@ -4,6 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 from collections import defaultdict
 
+from nlp.mongo_tools import news_tfidf
 
 # remove_channel('promsvyaz_am')
 # remove_channel_duplicates()

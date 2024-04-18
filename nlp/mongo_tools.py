@@ -301,5 +301,5 @@ def news_tfidf():
         df = calc_tfidf(v, k)
         res = pd.concat([res, df])
 
-    res.to_sql('news_tfidf', sql.get_table.engine, if_exists='replace')
+    res.to_sql('news_tfidf', sql.get_table.engine, if_exists='replace', index=False)
     #sql.get_table.df_to_sql(res, 'news_tfidf')
