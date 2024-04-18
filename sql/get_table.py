@@ -29,11 +29,11 @@ def df_to_sql(df, table_name):
         print('clean table failed', traceback.format_exc())
     finally:
         try:
-            df.to_sql(table_name, engine, if_exists='append')
+            df.to_sql(table_name, engine, if_exists='append', index=False)
         except:
             print('appending to table failed')
             print(traceback.format_exc())
-            df.to_sql(table_name, engine, if_exists='replace')
+            df.to_sql(table_name, engine, if_exists='replace', index=False)
 
 
 def load_candles():
