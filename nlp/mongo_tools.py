@@ -1,10 +1,14 @@
 import datetime
 import logging
+from collections import defaultdict
 
 from bson.objectid import ObjectId
 import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 
+import sql
+from sql import get_table
 from tools.utils import sync_timed
 from nlp import client
 
@@ -250,3 +254,52 @@ def channel_stats():
     res.to_csv("channel_stats.csv", sep='\t')
 
 
+def news_tfidf():
+    names_collection = client.trading['trading']
+    news_collection = client.trading['news']
+
+    # Создаем defaultdict с пустым списком в качестве значения по умолчанию
+    news_items = defaultdict(list)
+
+    for document in names_collection.find():
+        for item in news_collection.find({"tags": f"{document['ticker']}"}):
+            filt = [x for x in item['tags'] if not x[-1].isdigit()]
+            news_items[item['date'].date()].append(" ".join(filt))
+
+    def calc_tfidf(documents, date):
+        # Создаем экземпляр TfidfVectorizer
+        vectorizer = TfidfVectorizer()
+
+        # Обучаем векторайзер и трансформируем документы в TF-IDF вектора
+        tfidf_matrix = vectorizer.fit_transform(documents)
+
+        # Получаем имена признаков (слова)
+        feature_names = vectorizer.get_feature_names_out()
+
+        # Создаем DataFrame из TF-IDF матрицы
+        tfidf_df = pd.DataFrame(tfidf_matrix.toarray(), columns=feature_names,
+                                index=[f"Документ {i + 1}" for i in range(len(documents))])
+
+        # Суммируем значения TF-IDF по каждому слову во всех документах
+        tfidf_sum = tfidf_df.sum(axis=0)
+
+        # Подсчитываем количество документов, в которых встречается каждое слово
+        doc_count = (tfidf_df > 0).sum(axis=0)
+
+        # Создаем итоговый DataFrame для суммы TF-IDF значений и добавляем дополнительную статистику
+        tfidf_summary_df = pd.DataFrame({
+            'ticker': feature_names,
+            'tfidfsum': tfidf_sum,
+            'total_daily': len(documents),
+            'total_with_ticker': doc_count,
+            'date': date
+        })
+        return tfidf_summary_df
+
+    res = pd.DataFrame()
+    for k, v in news_items.items():
+        df = calc_tfidf(v, k)
+        res = pd.concat([res, df])
+
+    res.to_sql('news_tfidf', sql.get_table.engine, if_exists='replace')
+    #sql.get_table.df_to_sql(res, 'news_tfidf')
