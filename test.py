@@ -1,15 +1,18 @@
 import logging
 import os
 import uuid
+
+import pandas as pd
 from dotenv import load_dotenv
 
 from tinkoff.invest import (
     Client,
     OrderDirection,
     OrderType,
-    PostOrderResponse,
+    PostOrderResponse, GetOrderBookResponse,
 )
 import sql.get_table
+from tinkoff_candles import transform_candles
 
 load_dotenv(dotenv_path='./my.env')
 
@@ -52,6 +55,37 @@ def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, commen
 
         status = post_order_response.execution_report_status
         print(status, post_order_response)
+
+
+def get_orderbook(secCode):
+    global engine
+    global client
+
+    figi = get_figi(secCode)
+    print(f'{figi =}')
+
+    with Client(TOKEN) as client:
+        order_tcs = {'figi': figi,
+                     'depth': 50
+                     }
+
+        get_orderbook_response: GetOrderBookResponse = client.market_data.get_order_book(**order_tcs)
+
+        bids =pd.DataFrame(get_orderbook_response.bids)
+        asks = pd.DataFrame(get_orderbook_response.asks)
+        bids['price'] = bids['price'].apply(lambda quotation: transform_candles(quotation))
+        asks['price'] = asks['price'].apply(lambda quotation: transform_candles(quotation))
+        bids['ba'] = 'bid'
+        asks['ba'] = 'ask'
+        res = pd.concat([bids, asks])
+        res['datetime'] = get_orderbook_response.orderbook_ts
+        res['code'] = secCode
+        limit_big = res['quantity'].mean()*5
+        res['abnormal'] = res['quantity'] > limit_big
+        res['limit'] = limit_big
+        res.to_sql('df_all_orderbook_t', engine, if_exists='append', index=False)
+
+
 
 
 def get_figi(ticker):
