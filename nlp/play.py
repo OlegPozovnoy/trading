@@ -1,29 +1,22 @@
+from nlp import client
 from nlp.mongo_tools import deactivate_channel, channel_stats
 
+# remove_channel('promsvyaz_am')
+# remove_channel_duplicates()
+# remove_news_duplicates()
 
-def deactivate_routine():
-    deact_list = [
-        'GBEanalytix'
-        , 'yivashchenko'
-        , 'invest_fynbos'
-        , 'ltrinvestment'
-        , 'rynok_znania'
-        , 'INVESTR_RU'
-        , 'Sharqtradein'
-        , 'Rusbafet_vip'
-        , 'trekinvest'
-    ]
-
-    for item in deact_list:
-        deactivate_channel(item)
+# add_tag_channel({"title":"MarketTwits"}, "urgent")
+# clean_mongo()
 
 
-channel_stats()
+names_collection = client.trading['trading']
+news_collection = client.trading['news']
 
+for document in names_collection.find():
+    cnt = 0
+    for item in news_collection.find({"tags": f"{document['ticker']}"}):
+        cnt += 1/len(item['tags'])
+        if document['ticker'] == 'MEM3':
+            print(item)
 
-#remove_channel('promsvyaz_am')
-#remove_channel_duplicates()
-#remove_news_duplicates()
-
-#add_tag_channel({"title":"MarketTwits"}, "urgent")
-#clean_mongo()
+    print(document['ticker'], cnt)

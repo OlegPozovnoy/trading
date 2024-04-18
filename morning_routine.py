@@ -204,6 +204,18 @@ async def clean_db():
     """
     engine.execute(query)
 
+    query = """
+    insert into public.futprefix
+    SELECT substr(name, 1, position('-' in name) - 1) as ticker, 
+	substr(ticker, 1, length(ticker) - 2) as futprefix
+	FROM public.tinkoff_params where 
+	class_code = 'SPBFUT'
+	and position('-' in name) > 0
+	and RIGHT(ticker, 1) ~ '^\d$'
+    on conflict (ticker) do nothing;
+    """
+    engine.execute(query)
+
 
 def update_instrument_list(update_sec=True) -> None:
     """
