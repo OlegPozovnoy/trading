@@ -1,15 +1,20 @@
 import json
 from time import time, ctime
 import os.path
-
 import pandas as pd
-from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
+from dotenv import load_dotenv, find_dotenv
 
+from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
 import sql.get_table
 
 engine = sql.get_table.engine
 qpProvider = None
-settings_path = "./Examples/Bars_upd_config.json"
+
+load_dotenv(find_dotenv('my.env', True))
+
+settings_path = os.path.join(os.environ.get('root_path'), os.environ.get('instrument_list_path'))
+
+
 
 def GetCandlesDF(classCode, secCodes, candles_num=0):
     result_df = pd.DataFrame()
