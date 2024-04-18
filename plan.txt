@@ -58,22 +58,19 @@ telegram
 superset
 instrument_list_path=./Examples/Bars_upd_config.json
 update_levels - добавить события подхода к поддержке +
+manual_order mos
+проверить импорт новостей
+перенести вью с обьемами
 ============================================================
 
-
-
-manual_order mos
 balance orders
 mongo securities tags news
-===============================================================
 
-проверить импорт новостей
 таблица фьючерс-актив
 
-tinkoff_candles
- - учесть плиты, сделать сбор плит в монитор
+tinkoff_candles  - учесть плиты, сделать сбор плит в монитор
 
-
+=================================
 refresh
 Transactions
 
