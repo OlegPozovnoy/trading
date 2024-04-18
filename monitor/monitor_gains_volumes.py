@@ -1,8 +1,13 @@
+import os
+
+from dotenv import load_dotenv, find_dotenv
+
 import sql.get_table
 from monitor import logger, send_df
 from tools.utils import sync_timed
 import pandas as pd
 
+load_dotenv(find_dotenv('my.env',True))
 
 @sync_timed()
 def monitor_gains_main(urgent_list):
@@ -82,13 +87,14 @@ def get_volumes_df(df_inc_mins, df_inc_days, urgent_list, mins_lookback=10, dail
 
 
 @sync_timed()
-def get_all_gains(min_lag, base_asset='MXM4'):
+def get_all_gains(min_lag, base_asset='MX'):
     """
     возвращаем то чот выросло нв трешхолд процентов за минлаг минут
     :param min_lag: minutes
     :param base_asset: betas calc
     :return:
     """
+    base_asset = base_asset+os.environ['fut_postfix']
 
     query = f"""
     SELECT 

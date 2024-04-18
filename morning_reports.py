@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 import logging
 import sql
 import datetime
@@ -15,9 +15,13 @@ from sklearn.metrics import r2_score
 import pandas as pd
 from nlp import client
 
-load_dotenv(dotenv_path='./my.env')
+load_dotenv(find_dotenv('my.env', True))
+
 settings_path = os.environ['instrument_list_path']
-check_list = ['RIM4', 'CRM4', 'MXM4', 'SiM4']
+fut_postfix = os.environ['futpostfix']
+
+check_list = [item + fut_postfix for item in ['RI', 'CR', 'MX', 'Si']]
+
 cutoffs = [datetime.time(10, 0, 0),
            datetime.time(12, 0, 0),
            datetime.time(14, 0, 0),
@@ -196,7 +200,6 @@ df_news['wd'] = df_news['dt'].apply(lambda x: x.weekday())
 df_news = df_news[df_news['wd'] < 5]
 df_news = df_news[['close', 'volume', 'security', 'dt']]
 
-
 start_date = datetime.datetime.combine(min(df_news['dt']), datetime.datetime.min.time())
 
 news_collection = client.trading['news']
@@ -240,4 +243,4 @@ for ticker in tickers:
     plot_news(ticker)
 
 exec(open("balance_orders.py").read())
-#subprocess.run(["python", "balance_orders.py"])
+# subprocess.run(["python", "balance_orders.py"])
