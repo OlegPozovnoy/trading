@@ -6,7 +6,7 @@ import sys
 import time
 import datetime
 import pandas as pd
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 import sql.get_table
 import sql.async_exec
@@ -16,7 +16,7 @@ from nlp.mongo_tools import clean_mongo
 from tinkoff_candles import import_new_tickers
 from tools.utils import sync_timed, async_timed
 
-load_dotenv(dotenv_path='./my.env')
+load_dotenv(find_dotenv('my.env',True))
 engine = sql.get_table.engine
 settings_path = os.environ['instrument_list_path']
 
@@ -168,6 +168,7 @@ def calc_volumes():
 
 @async_timed()
 async def clean_db():
+    fut_postfix = os.environ['futpostfix']
     sql_query_list = [
         "DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
         "DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
@@ -187,7 +188,7 @@ async def clean_db():
         "DELETE	FROM public.deals;",
         "DELETE	FROM public.deorders;",
         "DELETE	FROM public.df_monitor;",
-        "delete FROM public.futquotesdiff where right(code,2) <> 'M4'",
+        f"delete FROM public.futquotesdiff where right(code,2) <> '{fut_postfix}'",
         "insert into deals_imp_arch select * from deals_imp on conflict (deal_id,tradedate) do nothing",
         "insert into deals_myhist select * from deals on conflict (deal_id,tradedate) do nothing"
     ]
