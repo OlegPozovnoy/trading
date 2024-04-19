@@ -203,9 +203,9 @@ def update_db_tables(df_levels, df_all_levels, df_all_volumes):
     df_levels['timestamp'] = datetime.now()
     df_all_levels['timestamp'] = datetime.now()
 
-    sql.get_table.df_to_sql(df_levels, 'df_levels')
-    sql.get_table.df_to_sql(df_all_levels, 'df_all_levels')
-    sql.get_table.df_to_sql(df_all_volumes, 'df_all_volumes')
+    sql.get_table.df_to_sql(df_levels, 'df_levels', True)
+    sql.get_table.df_to_sql(df_all_levels, 'df_all_levels', True)
+    sql.get_table.df_to_sql(df_all_volumes, 'df_all_volumes', True)
 
 
 if __name__ == '__main__':
