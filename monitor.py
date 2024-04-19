@@ -63,7 +63,7 @@ if __name__ == '__main__':
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
         plita_list = get_orderbook(urgent_list)
-        intresting_gains = pd.concat([intresting_gains, df_monitor['code'], plita_list['code']]).drop_duplicates()
+        intresting_gains = pd.concat([intresting_gains, df_monitor['code'], plita_list]).drop_duplicates()
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
