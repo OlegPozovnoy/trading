@@ -120,7 +120,7 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
 
 
     for _, row in df_plita.iterrows():
-        ax_left.axhline(y=row['price'], color='y', linestyle='--', label = row['quantity'])
-        ax_left.legend()
+        ax_left.axhline(y=row['price'], color='y', linestyle='--')#, label = row['quantity'])
+        #ax_left.legend()
 
     plt.savefig(os.path.join(IMAGES_PATH, f'{filename}.png'), dpi=50)
