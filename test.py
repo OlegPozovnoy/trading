@@ -1,5 +1,6 @@
 import logging
 import os
+import traceback
 import uuid
 
 import pandas as pd
@@ -57,35 +58,49 @@ def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, commen
         print(status, post_order_response)
 
 
-def get_orderbook(secCode):
+def get_orderbook(secCodes):
     global engine
     global client
 
-    figi = get_figi(secCode)
-    print(f'{figi =}')
-
     with Client(TOKEN) as client:
-        order_tcs = {'figi': figi,
-                     'depth': 50
-                     }
 
-        get_orderbook_response: GetOrderBookResponse = client.market_data.get_order_book(**order_tcs)
+        res_df = pd.DataFrame()
+        for secCode in secCodes:
+            try:
+                figi = get_figi(secCode)
+                print(f'{figi =}')
 
-        bids =pd.DataFrame(get_orderbook_response.bids)
-        asks = pd.DataFrame(get_orderbook_response.asks)
-        bids['price'] = bids['price'].apply(lambda quotation: transform_candles(quotation))
-        asks['price'] = asks['price'].apply(lambda quotation: transform_candles(quotation))
-        bids['ba'] = 'bid'
-        asks['ba'] = 'ask'
-        res = pd.concat([bids, asks])
-        res['datetime'] = get_orderbook_response.orderbook_ts
-        res['code'] = secCode
-        limit_big = res['quantity'].mean()*5
-        res['abnormal'] = res['quantity'] > limit_big
-        res['limit'] = limit_big
-        res.to_sql('df_all_orderbook_arch', engine, if_exists='append', index=False)
-        sql.get_table.df_to_sql(res, 'df_all_orderbook_t')
+                order_tcs = {'figi': figi,
+                             'depth': 50
+                             }
 
+                get_orderbook_response: GetOrderBookResponse = client.market_data.get_order_book(**order_tcs)
+
+                bids = pd.DataFrame(get_orderbook_response.bids)
+                asks = pd.DataFrame(get_orderbook_response.asks)
+
+                bids['price'] = bids['price'].apply(lambda quotation: transform_candles(quotation))
+                asks['price'] = asks['price'].apply(lambda quotation: transform_candles(quotation))
+
+                bids['ba'] = 'bid'
+                asks['ba'] = 'ask'
+
+                full_df = pd.concat([bids, asks])
+                full_df['datetime'] = get_orderbook_response.orderbook_ts
+                full_df['code'] = secCode
+
+                limit_big = full_df['quantity'].mean() * 5
+                full_df['abnormal'] = full_df['quantity'] > limit_big
+                full_df['limit'] = limit_big
+
+                res_df = pd.concat([res_df, full_df])
+
+            except:
+                print(traceback.print_exc())
+
+        res_df.to_sql('df_all_orderbook_arch', engine, if_exists='append', index=False)
+        sql.get_table.df_to_sql(res_df, 'df_all_orderbook_t')
+        return res_df[res_df['abnormal']]['code'].drop_duplicates()
 
 
 def get_figi(ticker):
