@@ -82,7 +82,7 @@ if __name__ == '__main__':
             ['pnl', 'mktprice', 'volume', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty'])
 
         send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'actnum', 'levels', 'inc', 'std']], True)
-        send_df(pos_df[['code', 'levels', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty']], True)
+        send_df(pos_df[['code', 'levels', 'lower', 'upper', 'bid', 'bid_qty', 'mktprice', 'ask', 'ask_qty']], True)
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], False)
 
         logger.info(f"intresting_gains: {intresting_gains}")
