@@ -22,18 +22,18 @@ def query_to_list(query):
     return exec_query(query).mappings().all()
 
 
-def df_to_sql(df, table_name):
+def df_to_sql(df, table_name, index = False):
     try:
         engine.execute(f"delete from {table_name}")
     except:
         print('clean table failed', traceback.format_exc())
     finally:
         try:
-            df.to_sql(table_name, engine, if_exists='append', index=False)
+            df.to_sql(table_name, engine, if_exists='append', index=index)
         except:
             print('appending to table failed')
             print(traceback.format_exc())
-            df.to_sql(table_name, engine, if_exists='replace', index=False)
+            df.to_sql(table_name, engine, if_exists='replace', index=index)
 
 
 def load_candles():
