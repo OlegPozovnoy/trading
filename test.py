@@ -100,7 +100,7 @@ def get_orderbook(secCodes):
 
         res_df.to_sql('df_all_orderbook_arch', engine, if_exists='append', index=False)
         sql.get_table.df_to_sql(res_df, 'df_all_orderbook_t')
-        return res_df[res_df['abnormal']]['code'].drop_duplicates()
+        return res_df[res_df['abnormal']]['code'].drop_duplicates() if len(res_df) > 0 else pd.Series()
 
 
 def get_figi(ticker):
