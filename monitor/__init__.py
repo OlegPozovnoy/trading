@@ -71,17 +71,21 @@ def prepare_images(df_monitor_code_series, days_to_subtract=7):
     query = f"select * from public.df_all_volumes"
     df_volumes = sql.get_table.query_to_df(query)
 
+    query = f"select * from public.report_plita"
+    df_plita = sql.get_table.query_to_df(query)
+
     for sec in df_monitor_code_series:
         df_ = df[df['security'] == sec]
         df_eq_ = df_eq[df_eq['sec'] == sec]
         df_volumes_ = df_volumes[df_volumes['code'] == sec]
-        plot_price_volume(df_, df_eq_, df_volumes_,
+        df_plita_ = df_plita[df_plita['code'] == sec]
+        plot_price_volume(df_, df_eq_, df_volumes_, df_plita_,
                           title=f"{sec} {datetime.now()}", filename=f"{sec}")
         plt.close('all')
 
 
 @sync_timed()
-def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
+def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="fig"):
     df = df.sort_values('datetime')
     fig, ax_left = plt.subplots()
     plt.xticks(rotation=90)
@@ -113,4 +117,10 @@ def plot_price_volume(df, df_eq, df_volumes, title="title", filename="fig"):
     plt.title(title)
     for _, row in df_eq.iterrows():
         ax_left.axhline(y=row['price'], color='r', linestyle='-')
+
+
+    for _, row in df_plita.iterrows():
+        ax_left.axhline(y=row['price'], color='y', linestyle='--', label = row['quantity'])
+        ax_left.legend()
+
     plt.savefig(os.path.join(IMAGES_PATH, f'{filename}.png'), dpi=50)
