@@ -18,7 +18,7 @@ pd.set_option('display.max_columns', None)
 
 def cut_trailing(df, col_list):
     for col in col_list:
-        df[col] = df[col].astype(float).astype(str).replace(r'0+$', '', regex=True)
+        df[col] = df[col].astype(float).astype(str).replace(r'0+$', '', regex=True).str[:7]
     return df
 
 
@@ -62,7 +62,8 @@ if __name__ == '__main__':
     volume_tf = pd.DataFrame()
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
-        intresting_gains = pd.concat([intresting_gains, df_monitor['code']]).drop_duplicates()
+        plita_list = get_orderbook(urgent_list)
+        intresting_gains = pd.concat([intresting_gains, df_monitor['code'], plita_list['code']]).drop_duplicates()
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
@@ -78,20 +79,15 @@ if __name__ == '__main__':
 
         pos_df = cut_trailing(
             normalize_money(pos_df, ['pnl', 'volume']),
-            ['pnl', 'mktprice', 'volume', 'lower', 'upper'])
+            ['pnl', 'mktprice', 'volume', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty'])
 
-        send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'actnum',  'levels', 'inc','std']], True)
-        send_df(cut_trailing(
-            pos_df[['code',  'levels', 'lower', 'upper', 'new_state','mktprice']],
-            ['lower', 'upper', 'mktprice']), True)
-
+        send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'actnum', 'levels', 'inc', 'std']], True)
+        send_df(pos_df[['code', 'levels', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty']], True)
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], False)
+
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
         asyncio.run(telegram.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
-
-    for item in urgent_list:
-        get_orderbook(item)
 
     logger.info("monitor: ended")
