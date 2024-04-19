@@ -74,7 +74,7 @@ if __name__ == '__main__':
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
 
-        for col in ['mktprice', 'lower', 'upper']:
+        for col in ['mktprice', 'lower', 'upper','bid','ask']:
             pos_df[col] = pos_df[col].astype(float).round(3)
 
         pos_df['l_plit'] = (pos_df['mktprice']-pos_df['bid'])/(pos_df['ask']-pos_df['bid'])
