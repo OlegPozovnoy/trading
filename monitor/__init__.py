@@ -115,11 +115,15 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
         ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
 
     plt.title(title)
+    print("Печатаем поддержки")
     for _, row in df_eq.iterrows():
+        print(row['price'])
         ax_left.axhline(y=row['price'], color='r', linestyle='-')
 
 
+    print("Печатаем плиту")
     for _, row in df_plita.iterrows():
+        print(row['price'])
         ax_left.axhline(y=row['price'], color='y', linestyle='--')#, label = row['quantity'])
         #ax_left.legend()
 
