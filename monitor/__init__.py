@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 
+import numpy as np
 from matplotlib import pyplot as plt
 from sqlalchemy.util import asyncio
 
@@ -128,3 +129,30 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
         ax_left.legend()
 
     plt.savefig(os.path.join(IMAGES_PATH, f'{filename}.png'), dpi=50)
+
+
+
+def calculate_ratio(df):
+    # Вычисляем расстояния от числа до левой и правой границ
+    df['dist_left'] = df['mktprice'] - df['bid']
+    df['dist_right'] = df['ask'] - df['mktprice']
+
+    # Определяем, какое расстояние ближе и вычисляем отношение
+    df['closer_boundary'] = np.where(abs(df['dist_left']) <= abs(df['dist_right']), 'left', 'right')
+    df['distance'] = np.where(df['closer_boundary'] == 'left', df['dist_left'], df['dist_right'])
+
+    # Рассчитываем отношение расстояния к самому числу
+    # Добавляем знак минус, если ближайшая граница - левая
+    df['ratio'] = np.where(df['closer_boundary'] == 'left', 1, -1) * (df['distance'] / df['number'])
+
+    # Удаляем временные колонки
+    df.drop(['dist_left', 'dist_right', 'closer_boundary', 'distance'], axis=1, inplace=True)
+
+    return df['ratio']
+
+
+
+
+
+
+

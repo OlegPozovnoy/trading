@@ -7,7 +7,7 @@ import pandas as pd
 import sql.get_table
 import telegram
 import tools.clean_processes
-from monitor import send_df, logger, send_all_graph
+from monitor import send_df, logger, send_all_graph, calculate_ratio
 from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
 from monitor.monitor_imports import monitor_import
 from monitor.monitor_support_resistance import update_df_monitor
@@ -77,7 +77,7 @@ if __name__ == '__main__':
         for col in ['mktprice', 'lower', 'upper','bid','ask']:
             pos_df[col] = pos_df[col].astype(float).round(3)
 
-        pos_df['l_plit'] = (pos_df['mktprice']-pos_df['bid'])/(pos_df['ask']-pos_df['bid'])
+        pos_df['l_plit'] = calculate_ratio(pos_df) * 100
         pos_df['l_plit'] = pos_df['l_plit'].astype(float).round(2).astype(str)
 
         pos_df = cut_trailing(
