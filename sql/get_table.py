@@ -26,13 +26,13 @@ def df_to_sql(df, table_name, index = False):
     try:
         engine.execute(f"delete from {table_name}")
     except:
-        print('clean table failed', traceback.format_exc())
+        logging.error('clean table failed', traceback.format_exc())
     finally:
         try:
             df.to_sql(table_name, engine, if_exists='append', index=index)
         except:
-            print('appending to table failed')
-            print(traceback.format_exc())
+            logging.error('appending to table failed')
+            logging.error(traceback.format_exc())
             df.to_sql(table_name, engine, if_exists='replace', index=index)
 
 

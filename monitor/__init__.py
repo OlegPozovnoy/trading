@@ -3,6 +3,7 @@ import os
 import sys
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from sqlalchemy.util import asyncio
 
@@ -79,7 +80,7 @@ def prepare_images(df_monitor_code_series, days_to_subtract=7):
         df_ = df[df['security'] == sec]
         df_eq_ = df_eq[df_eq['sec'] == sec]
         df_volumes_ = df_volumes[df_volumes['code'] == sec]
-        df_plita_ = df_plita[df_plita['code'] == sec]
+        df_plita_ = df_plita[df_plita['code'] == sec] if len(df_plita) > 0 else pd.DataFrame()
         plot_price_volume(df_, df_eq_, df_volumes_, df_plita_,
                           title=f"{sec} {datetime.now()}", filename=f"{sec}")
         plt.close('all')

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     try:
         monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
     except Exception as e:
-        asyncio.run(telegram.send_message(f'monitor_import failed: {traceback.print_exc()}', True))
+        asyncio.run(telegram.send_message(f'monitor_import failed: {traceback.format_exc()}', True))
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")

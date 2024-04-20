@@ -2,13 +2,10 @@ import logging
 import re
 import pymorphy2
 
-
 from nlp import client
 from datetime import datetime, timedelta
 
-
 morph = pymorphy2.MorphAnalyzer()
-
 
 keywords = None
 
@@ -36,7 +33,7 @@ def update_all_tags():
     names_collection = client.trading['news']
 
     for document in names_collection.find():
-        fulltext = str(document['text'])+" "+ str(document['caption'])
+        fulltext = str(document['text']) + " " + str(document['caption'])
         tags = build_news_tags(fulltext)
         names_collection.update_one(document, {'$set': {'tags': tags}})
 
@@ -55,6 +52,7 @@ def load_keywords():
                     keywords[x] = [document['ticker']]
     return keywords
 
+
 def build_news_tags(text):
     keywords = load_keywords()
     tags = []
@@ -64,15 +62,13 @@ def build_news_tags(text):
     return list(set(tags))
 
 
-
-
-
 def convert_normal_form(sentence):
-    res=[]
+    res = []
     words = sentence.split()
     for item in words:
         res.append(morph.parse(item)[0].normal_form)
     return ' '.join(res)
+
 
 def check_sentence(sentence, name):
     global morph
@@ -96,7 +92,7 @@ def check_sentence(sentence, name):
 
 
 def get_words_prononse(name):
-    #print(morph.parse(name))
+    # print(morph.parse(name))
     word = morph.parse(name)[0]
 
     inflect_list = [
@@ -115,12 +111,11 @@ def get_words_prononse(name):
     ]
 
     inflect_list = [x.word for x in inflect_list if x is not None] + [name]
-    #print(f"{name}: {inflect_list}")
+    # print(f"{name}: {inflect_list}")
     return list(set(inflect_list))
 
-
-#update_all_tags()
-#print(load_keywords())
-#get_words_prononse("ММК")
-#get_words_prononse("ВТБ")
-#update_importance()
+# update_all_tags()
+# print(load_keywords())
+# get_words_prononse("ММК")
+# get_words_prononse("ВТБ")
+# update_importance()
