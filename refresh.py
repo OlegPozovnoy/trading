@@ -17,6 +17,7 @@ from refresh.orders_state import update_orders_state
 from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_signals_upd, get_query_store_jump_events, \
     get_query_deact_by_endtime, get_query_bidask_upd, get_query_events_update_news, get_query_events_update_jumps, \
     get_query_events_update_prices
+from tools import compose_td_datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -37,10 +38,6 @@ def log_timing():
     logger.info(f"\nsec: {last_sec}\nfut: {last_fut}")
 
 
-def compose_td_datetime(curr_time):
-    now = datetime.datetime.now()
-    my_datetime = datetime.datetime.strptime(curr_time, "%H:%M:%S").time()
-    return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
 
 def process_error():

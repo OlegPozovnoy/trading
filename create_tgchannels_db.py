@@ -4,6 +4,7 @@ import os
 import asyncio
 import string
 import traceback
+from time import sleep
 
 from dotenv import load_dotenv, find_dotenv
 from pyrogram import Client
@@ -13,8 +14,9 @@ from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
 
 import tools.clean_processes
-from refresh import compose_td_datetime
 from nlp import client
+from tools import compose_td_datetime
+from tools.utils import sync_timed, async_timed
 
 load_dotenv(find_dotenv('my.env', True))
 
@@ -24,23 +26,25 @@ api_hash = os.environ['tg_api_hash']
 channel_id = os.environ['tg_channel_id']
 channel_id_urgent = os.environ['tg_channel_id_urgent']
 
-
 conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
+#вроде так норм
+sleep_time = 0.33
 
-async def import_news(channel, limit=None, max_msg_load=1000):
-    """
-    импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
-    если есть такие слова ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД'] помечаем новость важной
-    res['important_tags'] - тут только нормальные теги без фьючей и ММВБ
-    если важных тегов меньше 2х - засовываем в order_discovery все данные: news_time, channel_source, min_val, max_val, mean_val, volume
-    если канал важный, записываем в event_news поля (code, date_discovery, news_time, channel_source, keyword, msg)
-    :param channel:
-    :param limit:
-    :param max_msg_load:
-    :return:
-    """
-    async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
+@async_timed()
+async def import_news(app, channel, limit=None, max_msg_load=1000):
+        """
+        импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
+        если есть такие слова ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД'] помечаем новость важной
+        res['important_tags'] - тут только нормальные теги без фьючей и ММВБ
+        если важных тегов меньше 2х - засовываем в order_discovery все данные: news_time, channel_source, min_val, max_val, mean_val, volume
+        если канал важный, записываем в event_news поля (code, date_discovery, news_time, channel_source, keyword, msg)
+        :param channel:
+        :param limit:
+        :param max_msg_load:
+        :return:
+        """
+        #async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
         news_collection = client.trading['news']
 
         print(f"\nimporting channel {channel['title']}:\n{channel}")
@@ -111,7 +115,8 @@ async def import_news(channel, limit=None, max_msg_load=1000):
             update_tg_msg_count(channel['username'], count)
 
 
-async def upload_recent_news():
+@async_timed()
+async def upload_recent_news(app):
     """
     Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
     :return:
@@ -129,23 +134,30 @@ async def upload_recent_news():
     for channel in active_channels:
         try:
             if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
-                await import_news(channel, limit=None, max_msg_load=10000)
+                await import_news(app, channel, limit=None, max_msg_load=10000)
+                sleep(sleep_time)
         except Exception as e:
+            print(traceback.format_exc())
             print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
 
 
 start_refresh = compose_td_datetime("0:0:00")
 end_refresh = compose_td_datetime("23:30:00")
 
-if __name__ == "__main__":
-    print(datetime.datetime.now())
+
+async def main():
     if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
         print("something is already running")
         exit(0)
 
-    while start_refresh <= datetime.datetime.now() < end_refresh:
-        try:
-            asyncio.run(upload_recent_news())
-        except Exception as e:
-            print(traceback.format_exc())
-        print(datetime.datetime.now())
+    async with Client("my_account_tgchannels", api_id, api_hash) as app:
+        while start_refresh <= datetime.datetime.now() < end_refresh:
+            try:
+                await upload_recent_news(app)
+
+            except Exception as e:
+                print(traceback.format_exc())
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
