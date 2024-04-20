@@ -1,8 +1,10 @@
 import datetime
 import random
 import signal
+import traceback
 from time import sleep
 import sql.get_table
+import telegram
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
 import pandas as pd
 from _decimal import Decimal
@@ -18,19 +20,21 @@ from tinkoff.invest import (
     PostOrderResponse,
 )
 
-#load_dotenv(dotenv_path='./../my.env')
+from transactions import get_class_code, get_quotes, get_diff
+
 load_dotenv(find_dotenv('my.env', True))
-
-
-TOKEN = os.environ["TOKEN_WRITE"]
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-client = type((Client(TOKEN))).__enter__((Client(TOKEN)))
+TOKEN = os.environ["TOKEN_WRITE"]
 account_id = os.environ["tcs_account_id"]
+client = type((Client(TOKEN))).__enter__((Client(TOKEN)))
 
+# reply - был ли получен ответ
 reply = False
+
+# global_reply содержимое ответа - был ли получен ответ
 global_reply = None
 engine = sql.get_table.engine
 
@@ -49,8 +53,8 @@ class OrderProcesser:
     def do_tasks(self):
         tasks_to_do = [task for task in self.tasks_list if task[1] < datetime.datetime.now()]
         self.tasks_list = self.tasks_list[len(tasks_to_do):]
-        print(f"Order oricessor tasks to do {tasks_to_do}")
-        print(f"Order oricessor tasks_list {self.tasks_list}")
+        logger.info(f"Order oricessor tasks to do {tasks_to_do}")
+        logger.info(f"Order oricessor tasks_list {self.tasks_list}")
         return tasks_to_do
 
 
@@ -64,58 +68,29 @@ def OnTransReply(data):
 
 def OnOrder(data):
     """Обработчик события получения новой / изменения существующей заявки"""
-    print('OnOrder')
-    print(data['data'])  # Печатаем полученные данные
+    logger.info(f"OnOrder: {data['data']}")
 
 
 def OnTrade(data):
     """Обработчик события получения новой / изменения существующей сделки
     Не вызывается при закрытии сделки
     """
-    print('OnTrade')
-    print(data['data'])  # Печатаем полученные данные
+    logger.info(f"OnTrade: {data['data']}")
 
 
 def OnFuturesClientHolding(data):
     """Обработчик события изменения позиции по срочному рынку"""
-    print('OnFuturesClientHolding')
-    print(data['data'])  # Печатаем полученные данные
+    logger.info(f"OnFuturesClientHolding: {data['data']}")
 
 
 def OnDepoLimit(data):
     """Обработчик события изменения позиции по инструментам"""
-    print('OnDepoLimit')
-    print(data['data'])  # Печатаем полученные данные
+    logger.info(f"OnDepoLimit: {data['data']}")
 
 
 def OnDepoLimitDelete(data):
     """Обработчик события удаления позиции по инструментам"""
-    print('OnDepoLimitDelete')
-    print(data['data'])  # Печатаем полученные данные
-
-
-def get_quotes(classCode, secCode):
-    if classCode == 'SPBFUT':
-        query = f"""SELECT * FROM public.futquotes where code='{secCode}' LIMIT 1"""
-    else:
-        query = f"""SELECT * FROM public.secquotes where code='{secCode}' LIMIT 1"""
-    quotes = sql.get_table.exec_query(query)
-    return quotes.mappings().all()
-
-
-def get_diff(classCode, secCode):
-    if classCode == 'SPBFUT':
-        query = f"""SELECT * FROM public.futquotesdiff where code='{secCode}' LIMIT 1"""
-    else:
-        query = f"""SELECT * FROM public.secquotesdiff where code='{secCode}' LIMIT 1"""
-    quotes = sql.get_table.exec_query(query)
-    return quotes.mappings().all()
-
-
-def get_pos(secCode):
-    query = f"""SELECT * FROM public.united_pos where code='{secCode}' LIMIT 1"""
-    q_res = sql.get_table.exec_query(query).mappings().all()
-    return 0 if len(q_res) == 0 else q_res[0]['pos']
+    logger.info(f"OnDepoLimitDelete: {data['data']}")
 
 
 def normalize_price(price):
@@ -125,11 +100,13 @@ def normalize_price(price):
 
 
 def kill_orders(secCode, comment):
-    query = f"""SELECT order_id FROM public.autoorders where "SECCODE"='{secCode}' and state = 'ACTIVE' and "COMMENT"='{comment}' and order_id is not null"""
-    print("kill orders:", query)
-    quotes = sql.get_table.exec_query(query)
-    orders = (quotes.mappings().all())
-    print(orders)
+    query = f"""SELECT order_id FROM public.autoorders 
+    where "SECCODE"='{secCode}' and state = 'ACTIVE' and "COMMENT"='{comment}' and order_id is not null
+    """
+    orders = sql.get_table.query_to_list(query)
+
+    logger.info(f"kill orders: {orders}")
+
     for order_num in orders:
         TransId = get_trans_id()
         orderNum = order_num['order_id']
@@ -148,10 +125,9 @@ def kill_orders(secCode, comment):
             'ACCOUNT': account
         }
 
-        print("kill transaction sent:", transaction)
+        logger.info(f"kill transaction sent: \n{transaction}")
         result = qpProvider.SendTransaction(transaction)
-        print("kill transaction reply:", result)
-    return 0
+        logger.info(f"reply: \n{result}")
 
 
 def get_trans_id():
@@ -159,32 +135,34 @@ def get_trans_id():
 
 
 def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0015):
+    """
+    maxspread - отношения бида к аску при котором сделаем сделку
+    """
     global global_reply
     global engine
     global reply
 
-    # kill_orders(secCode, comment)
     classCode = get_class_code(secCode)
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
 
-    print(f"Processing order: {secCode} {quantity} \nquotes:{quotes} \ndiff:{diff}")
+    logger.info(f"Processing order: {secCode} {quantity} \nquotes:{quotes} \ndiff:{diff}")
 
     if quotes['ask'] > quotes['bid'] * (1 + maxspread):
-        print(f"spread is too high: {quotes['bid']} {quotes['ask']} {quotes['ask'] / quotes['bid'] - 1}")
+        logger.info(f"spread is too high: {quotes['bid']} {quotes['ask']} {quotes['ask'] / quotes['bid'] - 1}")
         return
 
     if (diff['bid_inc'] + diff['ask_inc']) * quantity < 0:  # classCode == 'SPBFUT' and
-        print(f"price moving in opposite direction: taking pause")
-        print(f"bid_inc: {diff['bid_inc']}, ask_inc:{diff['ask_inc']} quantity:{quantity}")
+        logger.info(f"price moving in opposite direction: taking pause")
+        logger.info(f"bid_inc: {diff['bid_inc']}, ask_inc:{diff['ask_inc']} quantity:{quantity}")
         return
 
     operation = "B" if quantity > 0 else "S"
     price = (float(quotes['ask'])) if quantity > 0 else (float(quotes['bid']))
 
-    print(f"price {price}, price_bound {price_bound} quantity {quantity}")
+    logger.info(f"price {price}, price_bound {price_bound} quantity {quantity}")
     if (price_bound is not None) and (quantity * (price - price_bound) > 0):
-        print(f"price {price}, price_bound {price_bound}")
+        logger.info(f"PriceVound fail: price {price}, price_bound {price_bound}, quantity {quantity}")
         return
 
     price = normalize_price(str(price))
@@ -212,33 +190,33 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
         'TYPE': 'L'}  # L = лимитная заявка (по умолчанию), M = рыночная заявка
 
     try:
-        print("Sending transaction", transaction)
+        logger.info(f"Sending transaction: \n{transaction}")
         signal.signal(signal.SIGALRM, timeout_exception)
         signal.alarm(10)
         result = qpProvider.SendTransaction(transaction)
     except Exception as e:
-        print(f"error: {str(e)}")
+        msg = traceback.format_exc()
+        logger.error(msg)
+        telegram.send_message(msg, True)
         return
     finally:
         signal.alarm(0)
 
     if 'lua_error' in dict(result):
-        print(f"error: {result}")
+        logger.error(f"error: {result}")
         return
 
     transaction['last_upd'] = datetime.datetime.now()
     order_in = pd.DataFrame([transaction])
     order_in.to_sql('orders_in', engine, if_exists='append')
 
-    print(transaction)
-    print(f'Новая лимитная/рыночная заявка отправлена на рынок:')
-    print(result)
+    logger.info(f'Заявка отправлена:\n{transaction} \n\nПолучен ответ:\n{result}')
 
     while not reply:
         sleep(0.01)
 
     reply = False
-    print(f"reply:{global_reply}")
+    logger.info(f"reply:{global_reply}")
 
     if not isinstance(global_reply['date_time'], datetime.datetime):
         global_reply['date_time'] = sqltime_to_datetime(global_reply['date_time'])
@@ -259,9 +237,6 @@ def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, commen
     classCode = get_class_code(secCode)
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
-
-    print(quotes)
-    print(diff)
 
     if quotes['ask'] > quotes['bid'] * (1 + maxspread):
         print(f"spread is too high: {quotes['bid']} {quotes['ask']} {quotes['ask'] / quotes['bid'] - 1}")
@@ -369,40 +344,15 @@ def sqltime_to_datetime(sql_time):
                              )
 
 
-# def set_target_position()
-def get_class_code(secCode):
-    query = f"select * from public.futquotes where code='{secCode}'"
-    quotes = sql.get_table.exec_query(query)
-    orders = (quotes.mappings().all())
-    if len(orders) == 0:
-        return 'TQBR'
-    else:
-        return 'SPBFUT'
-
-
-def set_position(secCode, target_pos, sleep_time, max_amount, price_bound):
-    pos = get_pos(secCode)
-    print(f"pos:{pos}, target_pos:{target_pos}")
-
-    while pos != target_pos:
-        quantity = (1 if target_pos > pos else -1) * min(max_amount, abs(target_pos - pos))
-        place_order(secCode, quantity, price_bound, max_amount)
-        sleep(sleep_time)
-        pos = get_pos(secCode)
-        print(f"pos:{pos}, target_pos:{target_pos}")
-
-
 def clean_open_orders():
     # all_quotes а не autoorders потому что если нет котировок - ничего не делаем
     query = "SELECT id, comment, code FROM public.allquotes where id is not null and state <> 0"
-    quotes = sql.get_table.exec_query(query)
-    orders = (quotes.mappings().all())
+    orders = sql.get_table.query_to_list(query)
 
     for order in orders:
-        print(f"kill open orders: {order}")
-        comment = order['comment'] + str(order['id'])
-        secCode = order['code']
-        kill_orders(secCode, comment)  # пока так, меняет в процессе amount pending
+        logger.info(f"kill open orders: {order}")
+        comment = f"{order['comment']}{order['id']}"
+        kill_orders(order['code'], comment)  # пока так, меняет в процессе amount pending
 
 
 def actualize_order_my():
@@ -449,37 +399,42 @@ def process_orders(orderProcesser):
 
     # как всегда allquotes потому что ничего не делаем
     query = "SELECT  * FROM public.allquotes where id is not null and direction is not null and state <> 0"
+    orders = sql.get_table.query_to_list(query)
 
-    quotes = sql.get_table.exec_query(query)
-    orders = (quotes.mappings().all())
-
-    #print(f"orders:{orders}")
+    # print(f"orders:{orders}")
     for order in orders:
-        print(order)
+        logger.info(order)
         quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
 
-        price_bound_clause = ((order['barrier'] is not None) and (
-                    quantity * (order['mid'] - order['barrier']) < 0)) or (
-                                     order['barrier'] is None)
+        price_bound_clause = (order['barrier'] is None) or ((order['barrier'] is not None)
+                                                            and (quantity * (order['mid'] - order['barrier']) < 0))
+
         direction_clause = ((order['direction'] * quantity) > 0)
 
         is_execute, secCode, quantity, price_bound, max_amount, comment = get_order_params(order)
-        print(f"{secCode}\nis_barrier_ok: {price_bound_clause}\nis_direction_ok: {direction_clause}\nto_execute: {is_execute}\nqty:{quantity}\nmid:{order['mid']}\nbarrier:{order['barrier']}\n\n")
+        logger.info(
+            f"{secCode}\nis_barrier_ok: {price_bound_clause}\n"
+            f"is_direction_ok: {direction_clause}\n"
+            f"to_execute: {is_execute}\n"
+            f"qty:{quantity}\n"
+            f"mid:{order['mid']}\n"
+            f"barrier:{order['barrier']}\n\n")
 
         if price_bound_clause and direction_clause and is_execute:
             # добавляем в очередь блокировки с задержкой pause
             if_not_exist = orderProcesser.add_task(
                 (comment, secCode, quantity, price_bound, max_amount, comment), order['pause'])  # key 1st
             if if_not_exist:
-                print("PLACING ORDER!!!")
+
                 if order['provider'] == 'tcs':
+                    logger.info("PLACING ORDER TCS")
                     place_order_tcs(secCode, quantity, price_bound, max_amount, comment)
                 else:
+                    logger.info("PLACING ORDER PSB")
                     place_order(secCode, quantity, price_bound, max_amount, comment)
 
-    # get tasks tthat are scheduled
     tasks_list = orderProcesser.do_tasks()
-    print(f"tasks_list:{tasks_list}")
+    logger.info(f"tasks_list:{tasks_list}")
 
     sleep(random.uniform(0.1, 0.3))
 
@@ -489,10 +444,10 @@ def get_order_params(order):
     secCode = order['code']
     price_bound = order['barrier']
     quantity = order['quantity'] - order['amount'] - order['amount_pending'] - order['unconfirmed_amount']
-    #logger.info(order)
+    # logger.info(order)
     if order['order_type'] == 'flt':
-        current_barrier = (order['barrier_bound'] - order['barrier']) * (order['quantity'] - quantity) / order[
-            'quantity'] + order['barrier']
+        current_barrier = ((order['barrier_bound'] - order['barrier'])
+                           * (order['quantity'] - quantity) / order['quantity'] + order['barrier'])
         logger.info(f"{secCode} executed: {order['quantity'] - quantity}")
         logger.info(f"current barrier: {current_barrier}")
         current_quantity = int(
@@ -505,7 +460,8 @@ def get_order_params(order):
         logger.info((current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment))
         return current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment
     elif order['order_type'] == 'trl':
-        logger.info(f"{secCode} {order['direction']} minmax: {order['max_5mins'] if order['direction'] == 1 else order['min_5mins']}")
+        logger.info(
+            f"{secCode} {order['direction']} minmax: {order['max_5mins'] if order['direction'] == 1 else order['min_5mins']}")
         logger.info(f"barrier_bound: {order['barrier_bound']} mid:{order['mid']}")
         if (order['direction'] == -1 and order['max_5mins'] - order['barrier_bound'] > order['mid']) \
                 or (order['direction'] == 1 and order['min_5mins'] + order['barrier_bound'] < order['mid']):
@@ -516,10 +472,57 @@ def get_order_params(order):
         return True, secCode, quantity, price_bound, order['max_amount'], comment
 
 
+def get_order_params_v2(order):
+    # Генерация уникального комментария для заказа
+    comment = f"{order['comment']}{order['id']}"
+    secCode = order['code']
+    price_bound = order['barrier']
+    # Вычисление оставшегося количества на основе текущих данных
+    quantity = order['quantity'] - (order['amount'] + order['amount_pending'] + order['unconfirmed_amount'])
+
+    # Обработка заказов типа 'flt' (floating type)
+    if order['order_type'] == 'flt':
+        # Вычисление текущего барьера с учетом изменений количества
+        current_barrier = ((order['barrier_bound'] - order['barrier']) *
+                           (order['quantity'] - quantity) / order['quantity'] + order['barrier'])
+        logger.info(f"{secCode} executed: {order['quantity'] - quantity}")
+        logger.info(f"current barrier: {current_barrier}")
+
+        # Вычисление текущего количества на основе средней цены и текущего барьера
+        current_quantity = int((order['mid'] - current_barrier) /
+                               (order['barrier_bound'] - order['barrier']) * order['quantity'])
+        logger.info(f"current quantity: {current_quantity}")
+
+        # Корректировка текущего количества на основе максимальных и минимальных значений
+        current_quantity = min(max(current_quantity, 0), quantity) if order['quantity'] > 0 else min(
+            max(current_quantity, quantity), 0)
+        logger.info(f"current quantity: {current_quantity}")
+
+        # Возвращаем результаты для заказов типа 'flt'
+        return current_quantity != 0, secCode, current_quantity, current_barrier, order['max_amount'], comment
+
+    # Обработка заказов типа 'trl' (trailing type)
+    elif order['order_type'] == 'trl':
+        logger.info(
+            f"{secCode} {order['direction']} minmax: {order['max_5mins'] if order['direction'] == 1 else order['min_5mins']}")
+        logger.info(f"barrier_bound: {order['barrier_bound']} mid:{order['mid']}")
+
+        # Проверка условий для активации трейлинг ордера
+        if (order['direction'] == -1 and order['max_5mins'] - order['barrier_bound'] > order['mid']) \
+                or (order['direction'] == 1 and order['min_5mins'] + order['barrier_bound'] < order['mid']):
+            return True, secCode, quantity, price_bound, order['max_amount'], comment
+        else:
+            return False, secCode, quantity, price_bound, order['max_amount'], comment
+
+    # Возвращаем дефолтные значения для остальных случаев
+    else:
+        return True, secCode, quantity, price_bound, order['max_amount'], comment
+
+
 if __name__ == '__main__':  # Точка входа при запуске этого скрипта
     qpProvider = QuikPy()
     orderProcesser = OrderProcesser()
     while True:
         process_orders(orderProcesser)
 
-    qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра
+    # qpProvider.CloseConnectionAndThread()  # Перед выходом закрываем соединение и поток QuikPy из любого экземпляра

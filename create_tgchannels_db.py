@@ -29,6 +29,17 @@ conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_
 
 
 async def import_news(channel, limit=None, max_msg_load=1000):
+    """
+    импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
+    если есть такие слова ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД'] помечаем новость важной
+    res['important_tags'] - тут только нормальные теги без фьючей и ММВБ
+    если важных тегов меньше 2х - засовываем в order_discovery все данные: news_time, channel_source, min_val, max_val, mean_val, volume
+    если канал важный, записываем в event_news поля (code, date_discovery, news_time, channel_source, keyword, msg)
+    :param channel:
+    :param limit:
+    :param max_msg_load:
+    :return:
+    """
     async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
         news_collection = client.trading['news']
 

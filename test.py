@@ -96,7 +96,7 @@ def get_orderbook(secCodes):
                 res_df = pd.concat([res_df, full_df])
 
             except:
-                print(traceback.print_exc())
+                print(traceback.format_exc())
 
         res_df.to_sql('df_all_orderbook_arch', engine, if_exists='append', index=False)
         sql.get_table.df_to_sql(res_df, 'df_all_orderbook_t')

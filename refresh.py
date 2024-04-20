@@ -1,7 +1,9 @@
 import asyncio
 import os
+import traceback
 
-import pandas as pd
+import pytz
+
 import sql.get_table
 import sql.async_exec
 import time
@@ -9,7 +11,12 @@ import datetime
 import logging
 import sys
 
+import telegram
 import tools.clean_processes
+from refresh.orders_state import update_orders_state
+from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_signals_upd, get_query_store_jump_events, \
+    get_query_deact_by_endtime, get_query_bidask_upd, get_query_events_update_news, get_query_events_update_jumps, \
+    get_query_events_update_prices
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -20,172 +27,14 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-query_fut_upd = """
-MERGE INTO public.futquotesdiff fqd
-USING public.futquotes fq
-ON fq.code = fqd.code
-WHEN MATCHED THEN
-UPDATE SET bid = fq.bid, ask = fq.ask, volume = fq.volume, openinterest = fq.openinterest, bidamount=fq.bidamount, askamount=fq.askamount, 
-bid_inc = fq.bid - fqd.bid, ask_inc = fq.ask-fqd.ask, volume_inc = fq.volume-fqd.volume, updated_at=fq.updated_at, last_upd=NOW(),
-volume_wa = coalesce(volume_wa,0)* 119/120 + (fq.volume-fqd.volume)/120,   
-min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
-max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
-WHEN NOT MATCHED THEN
-INSERT (code, bid, bidamount, ask, askamount, volume, openinterest, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
-VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, fq.openinterest, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid); 
-"""
 
-query_sec_upd = """
-MERGE INTO public.secquotesdiff fqd
-USING public.secquotes fq
-ON fq.code = fqd.code
-WHEN MATCHED THEN
-UPDATE SET 
-bid = fq.bid, 
-ask = fq.ask, 
-volume = fq.volume, 
-bidamount=fq.bidamount, 
-askamount=fq.askamount, 
-bid_inc = fq.bid - fqd.bid, 
-ask_inc = fq.ask-fqd.ask, 
-volume_inc = fq.volume-fqd.volume, 
-updated_at=fq.updated_at, 
-last_upd=NOW(),
-volume_wa = coalesce(volume_wa,0)*119/120 + (fq.volume-fqd.volume)/120,
-min_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.ask else least(fqd.min_5mins, fq.ask) end,
-max_5mins = case when  EXTRACT (MINUTE FROM fqd.updated_at) <> EXTRACT (MINUTE FROM fq.updated_at) and extract (minute from now())%5=0 then fq.bid else GREATEST(fqd.max_5mins, fq.bid) end
-WHEN NOT MATCHED THEN
-INSERT (code, bid, bidamount, ask, askamount, volume, bid_inc, ask_inc, volume_inc, updated_at, last_upd, volume_wa, min_5mins, max_5mins) 
-VALUES (fq.code, fq.bid, fq.bidamount, fq.ask, fq.askamount, fq.volume, 0, 0, 0, fq.updated_at, NOW(), 0, fq.ask, fq.bid);
-"""
-
-query_sig_upd = """
-insert into public.signal_arch(tstz, code, date_discovery, channel_source, news_time, min_val, max_val, mean_val, volume, board, min, max, last_volume, count)
-select * from public.signal;
-"""
-
-query_orders_by_events = """
-        with shape_update as (
-        update orders_event_activator oea
-        set is_activated = true,
-        activate_time = now()
-        from event_news en
-        where is_activated = false 
-        and oea.ticker = en.code 
-        and oea.keyword = en.keyword
-        and news_time between start_date and end_date
-        and (length(oea.channel_source) = 0 or oea.channel_source = en.channel_source)
-        returning id
-        )
-        update orders_my om
-        set state = 1 where state=0 and om.activate_news in (select id from shape_update);
-
-        with shape_update as (
-        update orders_event_activator_jumps oeaj
-        set is_activated = true,
-        activate_time = now()
-        from events_jumps_hist ejh
-        where is_activated = false 
-        and oeaj.ticker = ejh.code 
-        and ejh.process_time between oeaj.start_date and oeaj.end_date
-		and abs(ejh.jump_prct) > coalesce(oeaj.jump_prct,0)
-		and abs(ejh.out_prct) > coalesce(oeaj.out_prct,0)
-		and ejh.volume_peak > coalesce(oeaj.volume_peak,0)
-		and abs(ejh.out_std) > coalesce(oeaj.out_std,0)
-        returning id
-        )
-        update orders_my om
-        set state = 1 where state=0 and om.activate_jump in (select id from shape_update);
-"""
-
-query_ba_upd = """
-insert into deals_ba_hist select * from deals_ba_view;
-DELETE from deals_ba_t1;
-insert into deals_ba_t1 select * from deals_ba;
-"""
-
-
-async def update_quotes():
-    query_deact = "update public.orders_my set state=0	where now() > end_time"
-    sql_query_list = [
-        query_fut_upd,
-        query_sec_upd,
-        query_orders_by_events,
-        query_deact
-    ]
-    await sql.async_exec.exec_list(sql_query_list)
-
-
-def update():
-    # update secquotesdiff and futquotesdiff
-    # store events
-    # activate orders by events
-    # deactivate old signals
-    # process stop loss take profit
-    # update bid ask storage
-
-    # update secquotesdiff and futquotesdiff
-    # sql.get_table.exec_query(query_fut_upd)
-    # sql.get_table.exec_query(query_sec_upd)
-
-    # store events
-    try:
-        store_jump_events()
-    except Exception as e:
-        logger.error(f"store jump events{e}")
-    query_fut = "select max(updated_at), count(*) as cnt from public.futquotesdiff;"
-    query_sec = "select max(updated_at), count(*) as cnt from public.secquotesdiff;"
+def log_timing():
+    query_fut = f"select max(updated_at), count(*), '{datetime.datetime.now()}' as cnt from public.futquotesdiff;"
+    query_sec = f"select max(updated_at), count(*), '{datetime.datetime.now()}' as cnt from public.secquotesdiff;"
 
     last_sec = sql.get_table.query_to_list(query_sec)[0]
     last_fut = sql.get_table.query_to_list(query_fut)[0]
     logger.info(f"\nsec: {last_sec}\nfut: {last_fut}")
-
-    # activate orders by events
-    # sql.get_table.exec_query(query_orders_by_events)
-
-    # deactivate old signals
-    # query_deact = "update public.orders_my set state=0	where now() > end_time"
-    # sql.get_table.exec_query(query_deact)
-
-    # process stop loss take profit
-    query_sltp = """
-    select case 
-    when (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit) then 1
-    else -1 end as tpsl, 
-    * from allquotes
-    where end_time is null and
-    (
-    (direction = 1 and bid > take_profit) or (direction = -1 and ask < take_profit)
-    or
-    (direction = -1 and bid > stop_loss) or (direction = 1 and ask < stop_loss)
-    )
-    """
-    for sltp_line in sql.get_table.query_to_list(query_sltp):
-        deact_query = f"update public.orders_my set state = 0, end_time=now() where id = {sltp_line['id']}"
-        sql.get_table.exec_query(deact_query)
-        if sltp_line['tpsl'] == 1:  # take_profit
-            new_order = f"""insert into public.orders_my(state, quantity, comment, remains, parent_id, barrier, max_amount, pause, code, direction, start_time)
-            values(1,{-sltp_line['remains']},'take profit',0, {sltp_line['id']},{sltp_line['take_profit']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
-            """
-            sql.get_table.exec_query(new_order)
-        else:  # stop_loss
-            new_order = f"""insert into public.orders_my(state, quantity, comment, remains, parent_id, barrier, max_amount, pause, code, direction, start_time)
-            values(1,{-sltp_line['remains']},'stop loss',0, {sltp_line['id']},{sltp_line['stop_loss']}, 1,1,'{sltp_line['code']}',{-sltp_line['direction']} ,now()) 
-            """
-            sql.get_table.exec_query(new_order)
-
-    # update bid ask storage
-    #sql.get_table.exec_query("insert into deals_ba_hist select * from deals_ba_view;")
-    #sql.get_table.exec_query("DELETE from deals_ba_t1;")
-    #sql.get_table.exec_query("insert into deals_ba_t1 select * from deals_ba;")
-    sql.get_table.exec_query(query_ba_upd)
-
-    # update bid ask history
-    sql.get_table.exec_query("insert into deals_ba_hist select * from deals_ba_view;")
-    sql.get_table.exec_query("DELETE from deals_ba_t1;")
-    sql.get_table.exec_query("insert into deals_ba_t1 select * from deals_ba;")
-
-    return
 
 
 def compose_td_datetime(curr_time):
@@ -194,81 +43,10 @@ def compose_td_datetime(curr_time):
     return now.replace(hour=my_datetime.hour, minute=my_datetime.minute, second=my_datetime.second, microsecond=0)
 
 
-def get_pos(sec_code):
-    query = f"""SELECT * FROM public.united_pos where code='{sec_code}' LIMIT 1"""
-    q_res = sql.get_table.exec_query(query).mappings().all()
-    return 0 if len(q_res) == 0 else q_res[0]['pos']
-
-
-def process_signal():
-    logger.info("process signal in")
-    query = """
-    SELECT * FROM public.signal_arch where 1=1 
-    and ('HFT' || channel_source ||news_time || ':00') not in (select comment from orders_my)
-    and tstz > now() - interval '1 minute'
-    order by tstz desc limit 10;
-    """
-    quotes = sql.get_table.exec_query(query)
-    signals = (quotes.mappings().all())
-
-    for signal in signals:
-        logger.info(f"processing signal {signal}")
-        comment = 'HFT' + signal['channel_source'] + str(signal['news_time'])
-        code = signal['code']
-        end_time = signal['news_time'] + datetime.timedelta(minutes=3)
-
-        if signal['max'] > signal['max_val'] * 2 - signal['min_val']:  # buy
-            direction = 1
-            barrier = signal['mean_val'] * 1.003
-        elif signal['min'] < signal['min_val'] * 2 - signal['max_val']:  # sell
-            direction = -1
-            barrier = signal['mean_val'] / 1.003
-        else:
-            logger.debug("clauses are not fulfilled")
-            continue
-
-        state = 1 if signal['channel_source'] == 'ProfitGateClub' else 0
-
-        query = f"select round(1100000/(bid * lot)) as qty from public.allquotes_collat where code = '{code}'"
-        quotes = sql.get_table.exec_query(query)
-
-        qty = (quotes.mappings().all())[0]['qty']
-        cur_pos = get_pos(code)
-        # если открыто много - ничего не делаем, если открыто не в ту сторону-  закрырваем 3х
-
-        if state == 1:  # если все всерьез
-            if direction * cur_pos > 0:  # и надо еще купить
-                if abs(cur_pos) > abs(3 * qty):
-                    state = 0
-            else:  # в разные стороны - закрываем
-                qty = min(max(abs(qty), abs(cur_pos)), 3 * qty)  # между 1 и 3 лямами
-
-        # и обнуляем текущие ордера hft
-        if state == 1:  # если после фильтрации все еще все всерьез
-            query = f"""
-            update public.orders_my  
-            set state = 0,
-            end_time = coalesce(end_time, now())
-            where left (comment,3) = 'HFT'
-            and state = 1
-            and code = '{code}';
-            """
-            sql.get_table.exec_query(query)
-
-        query = f"""
-            insert into public.orders_my (state, quantity, comment, remains, barrier, max_amount, pause, code, end_time, start_time)
-            values({state},{qty * direction},'{comment}',0,{barrier}, {qty / 2},1,'{code}','{end_time}', now());
-            """
-        logger.debug(query)
-        sql.get_table.exec_query(query)
-    logger.info("process signal out")
-
-
-def store_jump_events():
-    query = "select * from public.jump_events;"
-    df_jumps = pd.DataFrame(sql.get_table.exec_query(query))
-    if len(df_jumps) > 0:
-        df_jumps.to_sql('events_jumps_hist', sql.get_table.engine, if_exists='append')
+def process_error():
+    error_msg = f"Error in quotes upd: {traceback.format_exc()}"
+    telegram.send_message(error_msg, True)
+    logger.error(error_msg)
 
 
 start_refresh = compose_td_datetime("09:00:00")
@@ -280,14 +58,47 @@ if __name__ == '__main__':
         print("something is already running")
         exit(0)
 
+    moscow_tz = pytz.timezone('Europe/Moscow')
+
     while start_refresh <= datetime.datetime.now() < end_refresh:
         logger.info(datetime.datetime.now())
+
         try:
-            asyncio.run(update_quotes())
-            update()
-            sql.get_table.exec_query(query_sig_upd)
-        except Exception as e:
-            logger.error(f"{e}")
+            current_time = datetime.datetime.now(moscow_tz).isoformat()
+
+            sql_query_list = [
+                get_query_fut_upd(current_time),
+                get_query_sec_upd(current_time),
+                get_query_bidask_upd()
+            ]
+            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+        except:
+            process_error()
+            # на всякий случай удалим задвоения в secquotes futquotes
+            sql_query_list = ["delete from public.secquotes;", "delete from public.futquotes;"]
+            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+        try:
+            # после того как все новые котировки прогрузились
+            sql_query_list = [
+                get_query_signals_upd(),
+                get_query_store_jump_events(),
+                get_query_deact_by_endtime(),
+            ]
+            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+            # смотрим на активацию евентов
+            sql_query_list = [
+                get_query_events_update_news(),
+                get_query_events_update_jumps(),
+                get_query_events_update_prices()
+            ]
+            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+            update_orders_state()
+            log_timing()
+        except:
+            process_error()
 
         # process_signal()
         time.sleep(0.5 - (time.time() % 0.5))
