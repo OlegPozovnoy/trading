@@ -91,8 +91,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                             except Exception as e:
                                 print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
 
-                            if res['channel_username'] in ['markettwits', 'cbrstocks', 'ProfitGateClub', 'divonline',
-                                                           'chekhov_vip']:
+                            if res['channel_username'] in ['markettwits', 'cbrstocks', 'ProfitGateClub']:
                                 keyword = ''
                                 fulltext = (res['text'] + res['caption']).lower()
                                 if "отчет" in fulltext:
