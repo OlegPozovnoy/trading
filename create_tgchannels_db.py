@@ -110,10 +110,10 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                             if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub']:
                                 keyword = ''
                                 fulltext = (res['text'] + res['caption']).lower()
-                                if "отчет" in fulltext:
-                                    keyword = "отчет"
-                                elif "дивиденд" in fulltext:
+                                if "дивиденд" in fulltext:
                                     keyword = "дивиденд"
+                                elif "отчет" in fulltext:
+                                    keyword = "отчет"
                                 elif "собрание" in fulltext:
                                     keyword = "госа"
                                 elif "директор" in fulltext:
