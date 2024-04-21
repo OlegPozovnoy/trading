@@ -14,9 +14,7 @@ api_id = os.environ['tg_api_id']
 api_hash = os.environ['tg_api_hash']
 
 
-channels = ['Alfacapital_ru', 'finam_invest', 'FinamInvestLAB', 'promsvyaz_am',
-            'gpb_investments', 'aton1991', 'mkb_investments', 'iticapital_invest'
-            ]
+channels = ['cbrstocksprivate']
 
 async def create_record(chat_id):
     """
