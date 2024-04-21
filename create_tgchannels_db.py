@@ -28,12 +28,13 @@ channel_id_urgent = os.environ['tg_channel_id_urgent']
 
 conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
-#вроде так норм
+# вроде так норм
 sleep_time = 0.33
+
 
 @async_timed()
 async def import_news(app, channel, limit=None, max_msg_load=1000):
-        """
+    """
         импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
         если есть такие слова ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД'] помечаем новость важной
         res['important_tags'] - тут только нормальные теги без фьючей и ММВБ
@@ -44,26 +45,30 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         :param max_msg_load:
         :return:
         """
-        #async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
-        news_collection = client.trading['news']
+    # async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
+    news_collection = client.trading['news']
 
-        print(f"\nimporting channel {channel['title']}:\n{channel}")
+    print(f"\nimporting channel {channel['title']}:\n{channel}")
 
-        if channel is None:
-            print("Error: channel id is None")
-            return
+    if channel is None:
+        print("Error: channel id is None")
+        return
 
-        chat_id = int(channel["tg_id"])
-        count = await app.get_chat_history_count(chat_id=chat_id)
+    chat_id = int(channel["tg_id"])
+    count = await app.get_chat_history_count(chat_id=chat_id)
 
-        new_msg_count = count - channel['count']
-        print(f"{channel['username']} has {new_msg_count} new messages")
-        if limit is None:
-            limit = min(count - channel['count'], max_msg_load)
+    new_msg_count = count - channel['count']
+    print(f"{channel['username']} has {new_msg_count} new messages")
+    if limit is None:
+        limit = min(count - channel['count'], max_msg_load)
 
-        if limit > 0:
-            hist = app.get_chat_history(chat_id=chat_id, limit=limit)
+    if limit > 0:
+        hist = app.get_chat_history(chat_id=chat_id, limit=limit)
+        count_num_loaded = 0
+        try:
             async for msg in hist:
+                count_num_loaded += 1
+                print(f"{count_num_loaded}/{limit}")
                 res = dict()
                 res['channel_title'] = channel.get('title', '')
                 res['channel_username'] = channel.get('username', '')
@@ -72,7 +77,16 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                 res['caption'] = msg.caption or ''
 
                 if msg.caption is not None or msg.text is not None:
-                    tags = build_news_tags(str(msg.caption) + ' ' + str(msg.text))
+                    newstext = str(msg.caption) + ' ' + str(msg.text)
+                    if res['channel_username'] == 'cbrstocksprivate' and (
+                            ('Аномальный объем' in newstext
+                             or 'Аномальное изменение цены' in newstext
+                             or 'Аномальная лимитка' in newstext
+                             or 'Бумаги с повышенной вероятностью' in newstext
+                             or 'Аномальный спрос' in newstext
+                             or 'Рейтинг акций по чистым ' in newstext)):
+                        continue
+                    tags = build_news_tags(newstext)
                     res['tags'] = tags
 
                     if len(tags) > 0:
@@ -91,7 +105,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                             except Exception as e:
                                 print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
 
-                            if res['channel_username'] in ['markettwits', 'cbrstocks', 'ProfitGateClub']:
+                            if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub']:
                                 keyword = ''
                                 fulltext = (res['text'] + res['caption']).lower()
                                 if "отчет" in fulltext:
@@ -108,10 +122,13 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                                 fulltext = res['text'] + res['caption']
                                 fulltext = "".join([x for x in fulltext if x not in string.punctuation])
                                 record_new_event(res, channel['username'], keyword, fulltext)
+        except:
+            update_tg_msg_count(channel['username'], count - limit + count_num_loaded - 1)
+            return
 
-        if new_msg_count != 0:
-            print("updating message count...")
-            update_tg_msg_count(channel['username'], count)
+    if new_msg_count != 0:
+        print("updating message count...")
+        update_tg_msg_count(channel['username'], count)
 
 
 @async_timed()
