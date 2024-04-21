@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import asyncio
 import string
@@ -31,6 +32,9 @@ conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_
 # вроде так норм
 sleep_time = 0.33
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.WARNING)
+
 
 async def import_news(app, channel, limit=None, max_msg_load=1000):
     """
@@ -44,7 +48,6 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         :param max_msg_load:
         :return:
         """
-    # async with Client("my_ccount_tgchannels", api_id, api_hash) as app:
     news_collection = client.trading['news']
 
     print(f"\nimporting channel {channel['title']}:\n{channel}")
