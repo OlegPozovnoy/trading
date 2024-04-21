@@ -32,7 +32,6 @@ conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_
 sleep_time = 0.33
 
 
-@async_timed()
 async def import_news(app, channel, limit=None, max_msg_load=1000):
     """
         импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
@@ -131,7 +130,6 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         update_tg_msg_count(channel['username'], count)
 
 
-@async_timed()
 async def upload_recent_news(app):
     """
     Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
@@ -150,8 +148,10 @@ async def upload_recent_news(app):
     for channel in active_channels:
         try:
             if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
+                t_start = datetime.datetime.now()
                 await import_news(app, channel, limit=None, max_msg_load=10000)
                 sleep(sleep_time)
+                print(datetime.datetime.now() - t_start)
         except Exception as e:
             print(traceback.format_exc())
             print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
