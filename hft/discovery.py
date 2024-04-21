@@ -31,7 +31,8 @@ def record_new_event(doc, news_channel, keyword, msg):
     for code in codes:
             query = f"""
             insert into public.event_news(code, date_discovery, news_time, channel_source, keyword, msg) 
-            values('{code}','{tstamp}','{news_date}','{news_channel}','{keyword}','{msg}');
+            values('{code}','{tstamp}','{news_date}','{news_channel}','{keyword}','{msg}')
+            on conflict(code, news_time, channel_source) do nothing;
             """
             sql.get_table.exec_query(query)
 
