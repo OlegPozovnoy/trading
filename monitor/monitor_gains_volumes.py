@@ -94,7 +94,7 @@ def get_all_gains(min_lag, base_asset='MX'):
     :param base_asset: betas calc
     :return:
     """
-    base_asset = base_asset+os.environ['fut_postfix']
+    base_asset = base_asset+os.environ['futpostfix']
 
     query = f"""
     SELECT 
