@@ -5,6 +5,8 @@ import os
 import sys
 import time
 import datetime
+import traceback
+
 import pandas as pd
 from dotenv import load_dotenv, find_dotenv
 
@@ -262,6 +264,6 @@ if __name__ == '__main__':
         logger.info('volumes updated')
         exec(open("morning_reports.py").read())
     except Exception as e:
-        logger.error(f"{e}")
+        logger.error(traceback.format_exc())
     finally:
         print(datetime.datetime.now())
