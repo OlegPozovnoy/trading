@@ -8,9 +8,14 @@ CREATE USER MAPPING FOR current_user
         SERVER moscow
         OPTIONS (user 'postgres');
 
+DROP SCHEMA IF EXISTS mos CASCADE;
+
+CREATE SCHEMA mos;
+
 IMPORT FOREIGN SCHEMA public
     FROM SERVER moscow
-    INTO mos
+    INTO mos;
+
 
 insert into public.deals_imp_arch select * from mos.deals_imp_arch where tradedate > (CURRENT_DATE-9)
 on conflict (deal_id, tradedate) do nothing;
