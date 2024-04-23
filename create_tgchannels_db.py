@@ -10,7 +10,7 @@ from time import sleep
 from dotenv import load_dotenv, find_dotenv
 from pyrogram import Client
 
-from hft.discovery import record_new_watch, record_new_event
+from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
 from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
 
@@ -93,25 +93,24 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
 
                     if len(tags) > 0:
                         res['parent_tags'] = channel['tags']
-
                         res['is_important'] = check_doc_importance(res)
                         important_tags = list(set(tags) - {'MOEX'})  # убираем слишком широкие инструменты
                         important_tags = list(filter(lambda n: not n[-1].isdigit(), important_tags))  # убираем фьючерсы
                         res['important_tags'] = important_tags
 
-                        news_collection.insert_one(res)
-
                         if len(important_tags) <= 2:
-                            try:
-                                record_new_watch(res, channel['username'])
-                            except Exception as e:
-                                print(f"hft record: {channel['username']} \n{res} \n{str(e)}")
-
-                            if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock', 'markettwits']:
-                                keyword = ''
+                            if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock',
+                                                           'markettwits']:
                                 fulltext = (res['text'] + res['caption']).lower()
+
+                                keyword = ''
                                 if "дивиденд" in fulltext:
                                     keyword = "дивиденд"
+                                    if res['channel_username'] == 'cbrstocksprivate':
+                                        try:
+                                            fast_dividend_process(res, fulltext)
+                                        except:
+                                            print(traceback.format_exc())
                                 elif "отчет" in fulltext:
                                     keyword = "отчет"
                                 elif "собрание" in fulltext:
@@ -123,13 +122,21 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
 
                                 fulltext = res['text'] + res['caption']
                                 fulltext = "".join([x for x in fulltext if x not in string.punctuation])
+
                                 record_new_event(res, channel['username'], keyword, fulltext)
+
+                            try:
+                                record_new_watch(res, channel['username'])
+                            except:
+                                logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
+
+                        news_collection.insert_one(res)
+
         except:
             update_tg_msg_count(channel['username'], count - limit + count_num_loaded - 1)
             return
 
     if new_msg_count != 0:
-        print("updating message count...")
         update_tg_msg_count(channel['username'], count)
 
 
