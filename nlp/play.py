@@ -14,4 +14,4 @@ from nlp.mongo_tools import news_tfidf, remove_news_duplicates, remove_empty_tag
 # clean_mongo()
 
 
-news_tfidf()
+#news_tfidf()

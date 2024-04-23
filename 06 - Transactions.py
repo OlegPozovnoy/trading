@@ -436,7 +436,7 @@ def process_orders(orderProcesser):
     tasks_list = orderProcesser.do_tasks()
     logger.info(f"tasks_list:{tasks_list}")
 
-    sleep(random.uniform(0.1, 0.3))
+    sleep(random.uniform(0.1, 0.2))
 
 
 def get_order_params(order):
