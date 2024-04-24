@@ -202,3 +202,32 @@ def get_query_events_update_prices():
             (oeap.price_limit > 0 AND aqm.bid > oeap.price_limit)
         )
      """
+
+
+def get_remove_sec_duplicates():
+    """
+    убираем дубликаты в таблице sec_quotes, оставляя одну строку
+    :return:
+    """
+    return """
+    DELETE FROM secquotes
+    WHERE (code, updated_at) NOT IN (
+      SELECT DISTINCT ON (code) code, updated_at
+      FROM secquotes
+      ORDER BY code, updated_at DESC
+    );
+    """
+
+def get_remove_fut_duplicates():
+    """
+    убираем дубликаты в таблице sec_quotes, оставляя одну строку
+    :return:
+    """
+    return """
+    DELETE FROM futquotes
+    WHERE (code, updated_at) NOT IN (
+      SELECT DISTINCT ON (code) code, updated_at
+      FROM futquotes
+      ORDER BY code, updated_at DESC
+    );
+    """

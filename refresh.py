@@ -16,7 +16,7 @@ import tools.clean_processes
 from refresh.orders_state import update_orders_state
 from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_signals_upd, get_query_store_jump_events, \
     get_query_deact_by_endtime, get_query_bidask_upd, get_query_events_update_news, get_query_events_update_jumps, \
-    get_query_events_update_prices
+    get_query_events_update_prices, get_remove_sec_duplicates, get_remove_fut_duplicates
 from tools import compose_td_datetime
 
 logger = logging.getLogger()
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         except:
             process_error()
             # на всякий случай удалим задвоения в secquotes futquotes
-            sql_query_list = ["delete from public.secquotes;", "delete from public.futquotes;"]
+            sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
             asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
         try:
