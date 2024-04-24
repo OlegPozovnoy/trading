@@ -156,7 +156,7 @@ async def upload_recent_news(app):
     non_urgent_channels = conf['non_urgent_channels'] + (1 if datetime.datetime.now().hour >= 19 else 0)
 
     ids_list = list(
-        range((conf['last_id'] - 1) * non_urgent_channels, conf['last_id'] * conf['non_urgent_channels']))
+        range((conf['last_id'] - 1) * non_urgent_channels, conf['last_id'] * non_urgent_channels))
 
     for channel in active_channels:
         try:
