@@ -122,3 +122,37 @@ def analysis_channel(username):
             news_dt = pytz.timezone('Europe/Moscow').localize(item['date'])
             text = str(item['caption']) + ' ' + str(item['text'])
             _, analytics = create_analytics(channel, code, news_dt)
+
+
+
+def report_all_jumps():
+    query = """
+    SELECT code, date_discovery-news_time as diff, news_time, channel_source , keyword, msg
+        FROM public.event_news
+    where news_time >= CURRENT_DATE-1
+    and extract(hour from news_time) between 10 and 19
+    order by news_time desc
+    """
+    events_df = sql.get_table.query_to_df(query)
+
+    result_df = pd.DataFrame()
+    for _, row in events_df.iterrows():
+        query = f"""
+        select * from secquotesdiffhist where code = '{row['code']}'
+        and last_upd between 
+            '{row['news_time']}'::timestamp - interval '3 minutes' 
+            and '{row['news_time']}'::timestamp + interval '5 minutes' 
+
+        """
+        df = sql.get_table.query_to_df(query)
+        df['lag'] = row['diff']
+        df['news_time'] = row['news_time']
+        df['channel_source'] = row['channel_source']
+        df['keyword'] = row['keyword']
+        df['msg'] = row['msg']
+
+        result_df = pd.concat([result_df, df])
+
+    result_df.to_csv('news_jumps.csv', sep = '\t')
+
+report_all_jumps()
