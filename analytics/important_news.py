@@ -5,14 +5,12 @@ import sql.get_table
 from nlp import client
 
 
-def important_news(days=14):
+def important_news(days=10):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
     urgent_list = ['LKOH', 'SBER', 'VKCO', 'ALRS', 'MGNT', 'VTBR', 'UPRO', 'FIVE', 'ROSN', 'NLMK', 'MAGN', 'CHMF',
                    'TCSI', 'SNGS', 'MTSI', 'SMLT', 'RUAL']
-
-    #urgent_list = ['SIBN', 'TATN', 'MTLR']
 
     urgent_list.sort()
     print(urgent_list)
