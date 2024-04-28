@@ -98,4 +98,4 @@ if __name__ == '__main__':
             process_error()
 
         # process_signal()
-        time.sleep(0.5 - (time.time() % 0.5))
+        time.sleep(0.25 - (time.time() % 0.25))

@@ -34,3 +34,7 @@ select
 from information_schema.tables
 where table_schema = 'public'
 order by 3 desc;
+
+
+killall snap-store
+sudo snap refresh
