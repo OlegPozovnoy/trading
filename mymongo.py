@@ -140,7 +140,7 @@ def report_all_jumps():
     for _, row in events_df.iterrows():
         for sourcetable in ['secquotesdiffhist', 'secquotesdiffhist_arch']:
             query = f"""
-            select * from {sourcetable} where code = '{row['code']}'
+            select last_upd-'{row['news_time']}'::timestamp as time_till_news,* from {sourcetable} where code = '{row['code']}'
             and last_upd between 
                 '{row['news_time']}'::timestamp - interval '3 minutes' 
                 and '{row['news_time']}'::timestamp + interval '5 minutes' 
