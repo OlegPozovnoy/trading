@@ -130,6 +130,7 @@ def report_all_jumps():
     SELECT code, date_discovery-news_time as diff, news_time, channel_source , keyword, msg
         FROM public.event_news
     where news_time >= CURRENT_DATE-1
+    and length(code) = 4
     and extract(hour from news_time) between 10 and 19
     order by news_time desc
     """
