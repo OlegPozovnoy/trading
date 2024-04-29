@@ -232,7 +232,7 @@ async def clean_db():
 	class_code = 'SPBFUT'
 	and position('-' in name) > 0
 	and RIGHT(ticker, 1) ~ '^\d$'
-    on conflict (ticker) do nothing;
+    on conflict (futprefix) do nothing;
     """
     engine.execute(query)
 
