@@ -138,7 +138,7 @@ def report_all_jumps():
 
     result_df = pd.DataFrame()
     for _, row in events_df.iterrows():
-        for sourcetable in ['secquotesdiffhist', 'secquotesdiffhist_arch']
+        for sourcetable in ['secquotesdiffhist', 'secquotesdiffhist_arch']:
             query = f"""
             select * from {sourcetable} where code = '{row['code']}'
             and last_upd between 
