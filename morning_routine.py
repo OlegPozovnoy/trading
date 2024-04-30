@@ -168,7 +168,6 @@ def calc_volumes():
     sql.get_table.exec_query(volumes_query)
 
 
-
 def move_diff_to_arch():
     """
     to speedup daily selects, we move [sec,fut]quotesdiffhist to [sec,fut]quotesdiffhist_arch
@@ -177,8 +176,8 @@ def move_diff_to_arch():
     for prefix in ['sec', 'fut']:
         query = f"""
         insert into {prefix}quotesdiffhist_arch
-        select * from {prefix}quotesdiffhist where last_upd < CURRENT_DATE;
-        DELETE from {prefix}quotesdiffhist where last_upd < CURRENT_DATE;
+        select * from {prefix}quotesdiffhist where last_upd < CURRENT_DATE-1;
+        DELETE from {prefix}quotesdiffhist where last_upd < CURRENT_DATE-1;
         """
         sql.get_table.exec_query(query)
 
@@ -186,17 +185,19 @@ def move_diff_to_arch():
 @async_timed()
 async def clean_db():
     fut_postfix = os.environ['futpostfix']
+    move_diff_to_arch()
+
     sql_query_list = [
         "DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
         "DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
         "DELETE FROM public.df_all_candles_t_arch WHERE datetime < now() - interval '90 days'",
-        "DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
+        #"DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.futquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
-        "DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
+        #"DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
-        # "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
-        "DELETE	FROM public.secquotes;",
+        "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
+        #"DELETE	FROM public.secquotes;",
         "DELETE	FROM public.futquotes where updated_at < (CURRENT_DATE-1);",
         "DELETE FROM public.orders_in;",
         "DELETE FROM public.orders_out;",
@@ -269,7 +270,7 @@ if __name__ == '__main__':
         logger.info('Update import settings')
         update_instrument_list()
         logger.info('Begin quotes reimport')
-        asyncio.run(import_new_tickers(True))
+        asyncio.run(import_new_tickers(False))
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')
