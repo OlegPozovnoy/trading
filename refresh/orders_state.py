@@ -3,12 +3,14 @@ from datetime import datetime
 
 import sql.get_table
 from refresh.queries import get_query_sl_tp
+from tools.utils import sync_timed
 from transactions import get_pos
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
+@sync_timed()
 def update_orders_state():
     # process stop loss take profit, ставим стейт = 0 и вводим противоположную заявку
     for sltp_line in sql.get_table.query_to_list(get_query_sl_tp()):

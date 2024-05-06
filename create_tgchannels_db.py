@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.WARNING)
 
 
+@async_timed()
 async def import_news(app, channel, limit=None, max_msg_load=1000):
     """
         импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
