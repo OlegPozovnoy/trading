@@ -18,6 +18,7 @@ from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_sign
     get_query_deact_by_endtime, get_query_bidask_upd, get_query_events_update_news, get_query_events_update_jumps, \
     get_query_events_update_prices, get_remove_sec_duplicates, get_remove_fut_duplicates
 from tools import compose_td_datetime
+from tools.utils import sync_timed
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -29,6 +30,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+@sync_timed()
 def log_timing():
     query_fut = f"select max(updated_at), count(*), '{datetime.datetime.now()}' as cnt from public.futquotesdiff;"
     query_sec = f"select max(updated_at), count(*), '{datetime.datetime.now()}' as cnt from public.secquotesdiff;"
@@ -38,12 +40,45 @@ def log_timing():
     logger.info(f"\nsec: {last_sec}\nfut: {last_fut}")
 
 
-
-
 def process_error():
     error_msg = f"Error in quotes upd: {traceback.format_exc()}"
     telegram.send_message(error_msg, True)
     logger.error(error_msg)
+
+
+@sync_timed()
+def market_data_upd():
+    current_time = datetime.datetime.now(moscow_tz).isoformat()
+
+    sql_query_list = [
+        get_query_fut_upd(current_time),
+        get_query_sec_upd(current_time),
+        get_query_bidask_upd()
+    ]
+    asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+
+@sync_timed()
+def process_signals():
+    # после того как все новые котировки прогрузились
+    sql_query_list = [
+        get_query_signals_upd(),
+        get_query_store_jump_events(),
+        get_query_deact_by_endtime(),
+    ]
+    asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+
+
+@sync_timed()
+def process_events():
+    # после того как все новые котировки прогрузились
+    sql_query_list = [
+        get_query_events_update_news(),
+        get_query_events_update_jumps(),
+        get_query_events_update_prices()
+    ]
+    asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
 start_refresh = compose_td_datetime("09:00:00")
@@ -61,14 +96,7 @@ if __name__ == '__main__':
         logger.info(datetime.datetime.now())
 
         try:
-            current_time = datetime.datetime.now(moscow_tz).isoformat()
-
-            sql_query_list = [
-                get_query_fut_upd(current_time),
-                get_query_sec_upd(current_time),
-                get_query_bidask_upd()
-            ]
-            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+            market_data_upd()
         except:
             process_error()
             # на всякий случай удалим задвоения в secquotes futquotes
@@ -76,21 +104,9 @@ if __name__ == '__main__':
             asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
         try:
-            # после того как все новые котировки прогрузились
-            sql_query_list = [
-                get_query_signals_upd(),
-                get_query_store_jump_events(),
-                get_query_deact_by_endtime(),
-            ]
-            asyncio.run(sql.async_exec.exec_list(sql_query_list))
-
+            process_signals()
             # смотрим на активацию евентов
-            sql_query_list = [
-                get_query_events_update_news(),
-                get_query_events_update_jumps(),
-                get_query_events_update_prices()
-            ]
-            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+            process_events()
 
             update_orders_state()
             log_timing()

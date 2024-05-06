@@ -26,15 +26,7 @@ on conflict (deal_id,tradedate) do nothing;
 truncate public.tinkoff_params;
 insert into public.tinkoff_params select * from mos.tinkoff_params;
 
-
-select
-  table_name,
-  pg_size_pretty(pg_total_relation_size(quote_ident(table_name))),
-  pg_total_relation_size(quote_ident(table_name))
-from information_schema.tables
-where table_schema = 'public'
-order by 3 desc;
-
+SELECT *	FROM pg_settings;
 
 killall snap-store
 sudo snap refresh

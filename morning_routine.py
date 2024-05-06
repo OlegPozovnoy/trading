@@ -31,7 +31,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-
+@sync_timed()
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     """
     df_bollinger: Calculate and store bollinger
@@ -167,7 +167,7 @@ def calc_volumes():
     """
     sql.get_table.exec_query(volumes_query)
 
-
+@sync_timed()
 def move_diff_to_arch():
     """
     to speedup daily selects, we move [sec,fut]quotesdiffhist to [sec,fut]quotesdiffhist_arch
@@ -176,8 +176,8 @@ def move_diff_to_arch():
     for prefix in ['sec', 'fut']:
         query = f"""
         insert into {prefix}quotesdiffhist_arch
-        select * from {prefix}quotesdiffhist where last_upd < CURRENT_DATE-1;
-        DELETE from {prefix}quotesdiffhist where last_upd < CURRENT_DATE-1;
+        select * from {prefix}quotesdiffhist where last_upd < CURRENT_DATE;
+        DELETE from {prefix}quotesdiffhist where last_upd < CURRENT_DATE;
         """
         sql.get_table.exec_query(query)
 
