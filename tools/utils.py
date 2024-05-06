@@ -1,4 +1,5 @@
 import functools
+import re
 import time
 from typing import Callable, Any
 
@@ -42,13 +43,12 @@ def sync_timed():
     return wrapper
 
 
-def record_to_db(func, total):
-    func = str(func)
-    idx = func.find('at')
-    func = func[:idx] if idx > 0 else func
+def record_to_db(func: Callable, total):
+    func_name = func.__name__ if hasattr(func, "__name__") else str(func)
+    func_name = re.sub(r' at .*', '', func_name)
     query = f"""
     INSERT INTO public.func_stats (name, num, avg, min, max, stdev, last)
-    VALUES ('{func}', 1, {total}, {total}, {total}, 0, {total})
+    VALUES ('{func_name}', 1, {total}, {total}, {total}, 0, {total})
     ON CONFLICT (name)
     DO UPDATE SET
     num = func_stats.num+1,
