@@ -210,11 +210,23 @@ def get_remove_sec_duplicates():
     :return:
     """
     return """
+    WITH ranked_quotes AS (
+        SELECT 
+            code, 
+            updated_at, 
+            ctid,
+            row_number() OVER (
+                PARTITION BY code 
+                ORDER BY updated_at DESC
+            ) AS row_num
+        FROM secquotes
+    )
     DELETE FROM secquotes
-    WHERE (code, updated_at) NOT IN (
-      SELECT DISTINCT ON (code) code, updated_at
-      FROM secquotes
-      ORDER BY code, updated_at DESC
+    WHERE ctid IN (
+        SELECT 
+            ctid
+        FROM ranked_quotes
+        WHERE row_num > 1
     );
     """
 
@@ -224,10 +236,22 @@ def get_remove_fut_duplicates():
     :return:
     """
     return """
+    WITH ranked_quotes AS (
+        SELECT 
+            code, 
+            updated_at, 
+            ctid,
+            row_number() OVER (
+                PARTITION BY code 
+                ORDER BY updated_at DESC
+            ) AS row_num
+        FROM futquotes
+    )
     DELETE FROM futquotes
-    WHERE (code, updated_at) NOT IN (
-      SELECT DISTINCT ON (code) code, updated_at
-      FROM futquotes
-      ORDER BY code, updated_at DESC
+    WHERE ctid IN (
+        SELECT 
+            ctid
+        FROM ranked_quotes
+        WHERE row_num > 1
     );
     """
