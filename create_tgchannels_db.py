@@ -9,6 +9,7 @@ import traceback
 from time import sleep
 
 from dotenv import load_dotenv, find_dotenv
+from numba import njit
 from pyrogram import Client
 
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
