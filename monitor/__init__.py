@@ -66,7 +66,7 @@ def prepare_images(df_monitor_code_series, days_to_subtract=7):
     """
 
     df = sql.get_table.query_to_df(query)
-    df['datetime'] = pd.to_datetime(df['datetime'])
+    #df['datetime'] = pd.to_datetime(df['datetime'])
 
     query = f"select * from public.df_levels"
     df_eq = sql.get_table.query_to_df(query)
@@ -106,41 +106,36 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
     ax_left.plot(df['close'])
 
     #бьем вертикальными линиями по дням
-    # res = []
-    # df['datetime'] = df['datetime'].astype(str)
-    # prev_row = None
-    # for idx, row in df.iterrows():
-    #     if row['datetime'][:10] != prev_row:
-    #         res.append((idx, row['datetime'][:10]))
-    #     prev_row = row['datetime'][:10]
-    #
-    # for idx, dt in res:
-    #     ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
+    res = []
+    df['datetime'] = df['datetime'].astype(str)
+    prev_row = None
+    for idx, row in df.iterrows():
+        if row['datetime'][:10] != prev_row:
+            res.append((idx, row['datetime'][:10]))
+        prev_row = row['datetime'][:10]
+
+    for idx, dt in res:
+        ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
     #Бьем вертикальными линиями по дням, оптимизированный подход
     #Добавляем новую колонку с датой
 
-    # Добавление новой колонки с только датой
-    df['date'] = df['datetime'].dt.date
-    # Нахождение индексов, где дата изменяется
-    change_idx = df['date'].diff().ne(0)
-    for idx in df.index[change_idx]:
-        ax_left.axvline(x=idx, color='g', linestyle='-', label=df['date'][idx].isoformat())
-
-
-
-
+    # # Добавление новой колонки с только датой
+    # df['date'] = df['datetime'].dt.date
+    # # Нахождение индексов, где дата изменяется
+    # change_idx = df['date'].diff().ne(0)
+    # for idx in df.index[change_idx]:
+    #     ax_left.axvline(x=idx, color='g', linestyle='-', label=df['date'][idx].isoformat())
 
     plt.title(title)
     #print("Печатаем поддержки")
     for _, row in df_eq.iterrows():
         ax_left.axhline(y=row['price'], color='r', linestyle='-')
 
-
     #("Печатаем плиту")
     for _, row in df_plita.iterrows():
         ax_left.axhline(y=float(row['price']), color='y', linestyle='--', label = f"{row['ba']} {row['quantity']} {row['minutes']} {row['price']}")
 
-    ax_left.legend(loc='upper left')
+    ax_left.legend() #loc='upper left'
     plt.savefig(os.path.join(IMAGES_PATH, f'{filename}.png'), dpi=50)
 
 
