@@ -48,7 +48,6 @@ def process_error():
 
 
 @sync_timed()
-@njit
 def market_data_upd():
     current_time = datetime.datetime.now(moscow_tz).isoformat()
 
@@ -61,7 +60,6 @@ def market_data_upd():
 
 
 @sync_timed()
-@njit
 def process_signals():
     # после того как все новые котировки прогрузились
     sql_query_list = [
@@ -74,7 +72,6 @@ def process_signals():
 
 
 @sync_timed()
-@njit
 def process_events():
     # после того как все новые котировки прогрузились
     sql_query_list = [
