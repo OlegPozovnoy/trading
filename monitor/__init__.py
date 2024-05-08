@@ -117,9 +117,10 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
         ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
     #Бьем вертикальными линиями по дням, оптимизированный подход
     #Добавляем новую колонку с датой
-    #df['date'] = df['datetime'].dt.date
+    print(df.dtypes)
+    df['date'] = df['datetime'].dt.date
     # Получаем индексы, где дата изменяется
-    #change_idx = df['date'].diff().ne(0)
+    print(df['date'], df['date'].diff(), df['date'].diff().ne(0))
     #for idx in df.index[change_idx]:
     #    ax_left.axvline(x=idx, color='g', linestyle='-', label=df['date'][idx].isoformat())
 
