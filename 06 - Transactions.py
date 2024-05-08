@@ -379,8 +379,8 @@ def actualize_order_my():
     and om.state <> 0 and om.provider='tcs'; 
     
     UPDATE public.orders_my
-    set direction = coalesce(direction, sign(quantity - remains))
-    where state <> 0 and remains is not null; 
+    set direction = sign(quantity - remains)
+    where state <> 0 and remains is not null and direction is null; 
     UPDATE public.orders_my
     set state = 0
     where state <> 0 and direction * (quantity - remains) <= 0; 
