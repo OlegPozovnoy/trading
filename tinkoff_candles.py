@@ -132,7 +132,7 @@ async def import_new_tickers(refresh_tickers=False):
     query = f"select security, max(datetime) as last_row from public.df_all_candles_t group by security"
     df_lastrec = sql.get_table.query_to_df(query)
     if len(df_lastrec) == 0:
-        df_lastrec = pd.DataFrame(columns=['security','last_row'])
+        df_lastrec = pd.DataFrame(columns=['security', 'last_row'])
     df = df.merge(df_lastrec, left_on='ticker', right_on='security', how='left')
     df['last_row'] = (df['last_row'].apply
                       (lambda t: now() - timedelta(days=90) if pd.isnull(t) else t + timedelta(minutes=1, seconds=1)))
@@ -150,7 +150,7 @@ def update_diffhist():
     df = sql.get_table.query_to_df(query)
     sql.get_table.df_to_sql(df, 'diffhist_t1510')
 
-    query = "select * from public.diffhistview_5" #тиньков не успевает
+    query = "select * from public.diffhistview_5"  #тиньков не успевает
     df = sql.get_table.query_to_df(query)
     sql.get_table.df_to_sql(df, 'diffhist_t5')
 
