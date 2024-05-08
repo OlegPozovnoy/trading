@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import asyncio
+import re
 import string
 import traceback
 from time import sleep
@@ -33,7 +34,17 @@ conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_
 sleep_time = 0.33
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
+
+
+@async_timed()
+async def get_chat_history_count(app, chat_id):
+    return await app.get_chat_history_count(chat_id=chat_id)
+
+
+@async_timed()
+async def get_chat_history(app, chat_id, limit):
+    return app.get_chat_history(chat_id=chat_id, limit=limit)
 
 
 @async_timed()
@@ -51,43 +62,41 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         """
     news_collection = client.trading['news']
 
-    print(f"\nimporting channel {channel['title']}:\n{channel}")
+    logger.info(f"\nimporting channel {channel['title']}:\n{channel}")
 
     if channel is None:
-        print("Error: channel id is None")
+        logger.info("Error: channel id is None")
         return
 
     chat_id = int(channel["tg_id"])
-    count = await app.get_chat_history_count(chat_id=chat_id)
+    count = await get_chat_history_count(app, chat_id)
 
     new_msg_count = count - channel['count']
-    print(f"{channel['username']} has {new_msg_count} new messages")
+    logger.info(f"{channel['username']} has {new_msg_count} new messages")
     if limit is None:
         limit = min(count - channel['count'], max_msg_load)
 
     if limit > 0:
-        hist = app.get_chat_history(chat_id=chat_id, limit=limit)
+        hist = await get_chat_history(app, chat_id, limit)
+        news_to_insert = []  # Список для пакетной вставки новостей
         count_num_loaded = 0
         try:
             async for msg in hist:
                 count_num_loaded += 1
-                print(f"{count_num_loaded}/{limit}")
-                res = dict()
-                res['channel_title'] = channel.get('title', '')
-                res['channel_username'] = channel.get('username', '')
-                res['date'] = msg.date
-                res['text'] = msg.text or ''
-                res['caption'] = msg.caption or ''
+                logger.info(f"{count_num_loaded}/{limit}")
+                res = {
+                    'channel_title': channel.get('title', ''),
+                    'channel_username': channel.get('username', ''),
+                    'date': msg.date,
+                    'text': msg.text or '',
+                    'caption': msg.caption or ''
+                }
 
                 if msg.caption is not None or msg.text is not None:
-                    newstext = str(msg.caption) + ' ' + str(msg.text)
-                    if res['channel_username'] == 'cbrstocksprivate' and (
-                            ('Аномальный объем' in newstext
-                             or 'Аномальное изменение цены' in newstext
-                             or 'Аномальная лимитка' in newstext
-                             or 'Бумаги с повышенной вероятностью' in newstext
-                             or 'Аномальный спрос' in newstext
-                             or 'Рейтинг акций по чистым ' in newstext)):
+                    newstext = f"{msg.caption or ''} {msg.text or ''}"
+                    if res['channel_username'] == 'cbrstocksprivate' and re.search(
+                            r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
+                            newstext):
                         continue
                     tags = build_news_tags(newstext)
                     res['tags'] = tags
@@ -95,8 +104,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                     if len(tags) > 0:
                         res['parent_tags'] = channel['tags']
                         res['is_important'] = check_doc_importance(res)
-                        important_tags = list(set(tags) - {'MOEX'})  # убираем слишком широкие инструменты
-                        important_tags = list(filter(lambda n: not n[-1].isdigit(), important_tags))  # убираем фьючерсы
+                        important_tags = [tag for tag in tags if not tag[-1].isdigit() and tag != 'MOEX']
                         res['important_tags'] = important_tags
 
                         if len(important_tags) <= 2:
@@ -131,8 +139,9 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                             except:
                                 logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
 
-                        news_collection.insert_one(res)
-
+                        news_to_insert.append(res)
+            if news_to_insert:
+                news_collection.insert_many(news_to_insert)  # Пакетная вставка новостей
         except:
             update_tg_msg_count(channel['username'], count - limit + count_num_loaded - 1)
             return
@@ -141,6 +150,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         update_tg_msg_count(channel['username'], count)
 
 
+@async_timed()
 async def upload_recent_news(app):
     """
     Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
