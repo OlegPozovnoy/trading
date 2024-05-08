@@ -100,8 +100,8 @@ if __name__ == '__main__':
         except:
             process_error()
             # на всякий случай удалим задвоения в secquotes futquotes
-            sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
-            asyncio.run(sql.async_exec.exec_list(sql_query_list))
+            #sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
+            #asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
         try:
             process_signals()
