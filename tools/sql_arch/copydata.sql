@@ -27,7 +27,9 @@ truncate public.tinkoff_params;
 insert into public.tinkoff_params select * from mos.tinkoff_params;
 
 SELECT *	FROM pg_settings;
+
 SELECT * FROM pg_stat_statements;
+SELECT pg_stat_statements_reset();
 
 killall snap-store
 sudo snap refresh
