@@ -104,24 +104,24 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
     ax_left.locator_params(axis='y', nbins=20)
     ax_left.plot(df['close'])
 
-    # бьем вертикальными линиями по дням
-    # res = []
-    # df['datetime'] = df['datetime'].astype(str)
-    # prev_row = None
-    # for idx, row in df.iterrows():
-    #     if row['datetime'][:10] != prev_row:
-    #         res.append((idx, row['datetime'][:10]))
-    #     prev_row = row['datetime'][:10]
-    #
-    # for idx, dt in res:
-    #     ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
-    # Бьем вертикальными линиями по дням, оптимизированный подход
-    # Добавляем новую колонку с датой
-    df['date'] = df['datetime'].dt.date
+    #бьем вертикальными линиями по дням
+    res = []
+    df['datetime'] = df['datetime'].astype(str)
+    prev_row = None
+    for idx, row in df.iterrows():
+        if row['datetime'][:10] != prev_row:
+            res.append((idx, row['datetime'][:10]))
+        prev_row = row['datetime'][:10]
+
+    for idx, dt in res:
+        ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
+    #Бьем вертикальными линиями по дням, оптимизированный подход
+    #Добавляем новую колонку с датой
+    #df['date'] = df['datetime'].dt.date
     # Получаем индексы, где дата изменяется
-    change_idx = df['date'].diff().ne(0)
-    for idx in df.index[change_idx]:
-        ax_left.axvline(x=idx, color='g', linestyle='-', label=df['date'][idx].isoformat())
+    #change_idx = df['date'].diff().ne(0)
+    #for idx in df.index[change_idx]:
+    #    ax_left.axvline(x=idx, color='g', linestyle='-', label=df['date'][idx].isoformat())
 
 
 
