@@ -25,7 +25,7 @@ from transactions import get_class_code, get_quotes, get_diff
 load_dotenv(find_dotenv('my.env', True))
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename='./transactions.log', filemode='a', level=logging.INFO)
 
 TOKEN = os.environ["TOKEN_WRITE"]
 account_id = os.environ["tcs_account_id"]
