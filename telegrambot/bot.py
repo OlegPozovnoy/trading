@@ -1,12 +1,14 @@
 import logging
 import os
 from dotenv import load_dotenv, find_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ReplyKeyboardRemove, ReplyKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler, ConversationHandler, \
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, \
     MessageHandler, filters
 
+from telegrambot.queries import get_orders, place_order, invert_state
+
 load_dotenv(find_dotenv('my.env', raise_error_if_not_found=True))
-TOKEN = os.getenv('TOKEN')
+TOKEN = os.getenv('tg_key')
 
 ROOT, GET_CHOICE, UPDATE_CHOICE = range(3)
 
@@ -45,10 +47,12 @@ async def root(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         msg = f"root {update.message.text}\n{context.user_data}\n"
 
         if update.message.text == 'get_orders':
-            await update.get_bot().send_message(update.effective_chat.id, "```GETORD```",
+            result = get_orders()
+            await update.get_bot().send_message(update.effective_chat.id, result,
                                                 reply_markup=reply_markup, parse_mode='HTML')
         elif update.message.text == 'place_order':
-            await update.get_bot().send_message(update.effective_chat.id, "```place_order```",
+            result = place_order(context.user_data)
+            await update.get_bot().send_message(update.effective_chat.id, result,
                                                 reply_markup=reply_markup, parse_mode='HTML')
 
         await update.message.reply_text(msg, reply_markup=reply_markup)
@@ -71,7 +75,7 @@ def process_context(value: str, context: ContextTypes.DEFAULT_TYPE) -> ContextTy
             elif field == 'provider':
                 context.user_data[field] = None if value == "None" else value
             elif field == 'invert_state':
-                pass
+                invert_state(int(value))
             del context.user_data['updated_field']
     except Exception as e:
         print(str(e))
