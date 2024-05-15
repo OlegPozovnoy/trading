@@ -14,7 +14,11 @@ morph = pymorphy2.MorphAnalyzer()
 keywords = None
 A = None
 
+A_important = ahocorasick.Automaton()
 important_words = ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД']
+for word in important_words:
+    A_important.add_word(word, word)
+A_important.make_automaton()
 
 
 @sync_timed()
@@ -27,8 +31,10 @@ def update_importance():
 
 @sync_timed()
 def check_doc_importance(document):
+    global A_important
     fulltext = str(document['text']) + " " + str(document['caption'])
-    return any(check_sentence(fulltext, word) for word in important_words)
+    #return any(check_sentence(fulltext, word) for word in important_words)
+    return len(list(A_important.iter(fulltext))) > 0
 
 
 @sync_timed()
