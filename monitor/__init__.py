@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from sqlalchemy.util import asyncio
 
 import sql.get_table
-import telegram
+import telegram_send
 from tools.utils import sync_timed
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
@@ -46,7 +46,7 @@ def send_sec_graph(df_gains, urgent_list=None):
     for idx, row in df_gains.items():
         is_urgent = (row in urgent_list)
         path = os.path.join(IMAGES_PATH, f'{row}.png')
-        asyncio.run(telegram.send_photo(path, is_urgent))
+        asyncio.run(telegram_send.send_photo(path, is_urgent))
 
 
 @sync_timed()
@@ -54,7 +54,7 @@ def send_df(df, is_urgent=False):
     if len(df) > 0:
         msg ="```\n" + df.to_csv(index=False, sep='\t').expandtabs(9) + "\n```"
         logger.info(msg)
-        asyncio.run(telegram.send_message(msg, is_urgent))
+        asyncio.run(telegram_send.send_message(msg, is_urgent))
 
 
 @sync_timed()

@@ -32,7 +32,6 @@ settings_path = os.environ['instrument_list_path']
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 @async_timed()
-@njit()
 async def candles_api_multi_call(df):
     result, res = [], pd.DataFrame()
     with Client(TOKEN) as client:

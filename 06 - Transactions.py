@@ -4,7 +4,7 @@ import signal
 import traceback
 from time import sleep
 import sql.get_table
-import telegram
+import telegram_send
 from QuikPy.QuikPy import QuikPy  # Работа с QUIK из Python через LUA скрипты QuikSharp
 import pandas as pd
 from _decimal import Decimal
@@ -197,7 +197,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     except Exception as e:
         msg = traceback.format_exc()
         logger.error(msg)
-        telegram.send_message(msg, True)
+        telegram_send.send_message(msg, True)
         return
     finally:
         signal.alarm(0)
