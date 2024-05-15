@@ -104,7 +104,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
 
                     if len(tags) > 0:
                         res['parent_tags'] = channel['tags']
-                        res['is_important'] = check_doc_importance(res)
+
                         important_tags = [tag for tag in tags if not tag[-1].isdigit() and tag != 'MOEX']
                         res['important_tags'] = important_tags
 
@@ -140,6 +140,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
                             except:
                                 logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
 
+                        res['is_important'] = check_doc_importance(res)
                         news_to_insert.append(res)
             if news_to_insert:
                 news_collection.insert_many(news_to_insert)  # Пакетная вставка новостей

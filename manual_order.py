@@ -9,33 +9,33 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 engine = sql.get_table.engine
 
-schema = 'mos'
+#schema = 'mos'
 if 'schema' not in locals():
     schema = 'public'
 
+quantity = 2500
+code = 'SBER'
 
-quantity = -100
-code = 'RLM4'
-
-barrier_up = 4360  # 28250#307250#13.22#None#309000#12.95#16400
+barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
 barrier_down = None  # 29050 #28850 #12#2700
-order_nums = 1
+order_nums = 10
 
+provider = None
 #provider = 'tcs'
 
 state = 1
-max_amount = 1
+max_amount = 10
 pause = 5
 
-print(schema)
 
-
-def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause):
+def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause, provider=None):
     global schema
-    if barrier_up is None and barrier_down is None:
+    provider_str = 'NULL' if provider is None else f"'{provider}'"
+
+    if barrier_up is None:
         order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
-            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,null,{max_amount},{pause}, '{code}')
+        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code, provider)
+            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,null,{max_amount},{pause}, '{code}', {provider_str})
             """
         print(query)
         if schema == 'public':
@@ -44,8 +44,8 @@ def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, s
             sql.get_table.exec_remote_dblink(query)
     elif barrier_down is None:
         order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
-            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,{barrier_up},{max_amount},{pause}, '{code}')
+        query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code, provider)
+            values ({state}, {int(quantity)}, '{code + '_' + order_code}', 0,{barrier_up},{max_amount},{pause}, '{code}', {provider_str})
             """
 
         print(query)
@@ -58,8 +58,8 @@ def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, s
         logger.info(barriers)
         for barrier in barriers:
             order_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-            query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code)
-            values ({state}, {int(quantity / order_nums)}, '{code + '_' + str(int(barrier)) + '_' + order_code}', 0,{barrier},{max_amount},{pause}, '{code}')
+            query = f"""insert into public.orders_my(state, quantity, comment, remains, barrier, max_amount, pause, code, provider)
+            values ({state}, {int(quantity / order_nums)}, '{code + '_' + str(int(barrier)) + '_' + order_code}', 0,{barrier},{max_amount},{pause}, '{code}', {provider_str})
             """
             print(query)
             if schema == 'public':
@@ -89,4 +89,5 @@ def get_volume_params(asset):
 
 
 if __name__ == '__main__':
-    execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause)
+    print(f"{schema=}")
+    execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause, provider)
