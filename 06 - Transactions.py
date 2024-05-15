@@ -25,7 +25,7 @@ from transactions import get_class_code, get_quotes, get_diff
 load_dotenv(find_dotenv('my.env', True))
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='./transactions.log', filemode='a', level=logging.INFO)
+logging.basicConfig(filename='./logs/transactions.log', filemode='a', level=logging.INFO)
 
 TOKEN = os.environ["TOKEN_WRITE"]
 account_id = os.environ["tcs_account_id"]
@@ -394,6 +394,7 @@ def timeout_exception():
 
 def process_orders(orderProcesser):
     # kill open orders by code and comment
+    print(datetime.datetime.now())
     clean_open_orders()
     actualize_order_my()
 
@@ -427,10 +428,12 @@ def process_orders(orderProcesser):
             if if_not_exist:
 
                 if order['provider'] == 'tcs':
-                    logger.info("PLACING ORDER TCS")
+                    logger.info(f"ORDER TCS {secCode} {quantity} {price_bound} {max_amount} {comment}")
+                    print(f"ORDER TCS {secCode} {quantity} {price_bound} {max_amount} {comment}")
                     place_order_tcs(secCode, quantity, price_bound, max_amount, comment)
                 else:
-                    logger.info("PLACING ORDER PSB")
+                    logger.info(f"ORDER PSB {secCode} {quantity} {price_bound} {max_amount} {comment}")
+                    print(f"ORDER PSB {secCode} {quantity} {price_bound} {max_amount} {comment}")
                     place_order(secCode, quantity, price_bound, max_amount, comment)
 
     tasks_list = orderProcesser.do_tasks()
