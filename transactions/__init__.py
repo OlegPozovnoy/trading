@@ -2,6 +2,7 @@ import sql.get_table
 
 
 def get_class_code(secCode):
+    if secCode[:2] == 'SU': return 'TQOB'
     query = f"select * from public.futquotes where code='{secCode}'"
     orders = sql.get_table.query_to_list(query)
     return 'TQBR' if len(orders) == 0 else 'SPBFUT'
