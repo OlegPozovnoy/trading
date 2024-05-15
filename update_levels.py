@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 
 import time
 import sql.get_table
-import telegram
+import telegram_send
 import tools.clean_processes
 from nlp.mongo_tools import news_tfidf
 
@@ -220,5 +220,5 @@ if __name__ == '__main__':
     update_db_tables(df_levels, df_all_levels, df_all_volumes)
 
     news_tfidf()
-    asyncio.run(telegram.send_message(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с'))
+    asyncio.run(telegram_send.send_message(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с'))
     print(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с')

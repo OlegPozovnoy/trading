@@ -100,7 +100,7 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
 
 if __name__ == "__main__":
     print(datetime.datetime.now())
-    if not tools.clean_processes.clean_proc("telegram", os.getpid(), 3):
+    if not tools.clean_processes.clean_proc("telegram_send", os.getpid(), 3):
         print("something is already running")
         exit(0)
 

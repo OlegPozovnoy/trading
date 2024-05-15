@@ -1,6 +1,6 @@
 import datetime
 
-import telegram
+import telegram_send
 import asyncio
 import sql.get_table
 from datetime import datetime, timedelta
@@ -34,9 +34,9 @@ def check_last_upd(table_name):
         last_upd = sql.get_table.query_to_list(query)[0]['max'].replace(tzinfo=None)
         msg = f"{table_name} last_upd: {last_upd} < time_bound: {datetime.now() - timedelta(minutes=10)}"
         if last_upd < datetime.now() - timedelta(minutes=10):
-            asyncio.run(telegram.send_message(msg, urgent=True))
+            asyncio.run(telegram_send.send_message(msg, urgent=True))
     except:
-        asyncio.run(telegram.send_message(f"quotes import: 0 records in {table_name}", urgent=True))
+        asyncio.run(telegram_send.send_message(f"quotes import: 0 records in {table_name}", urgent=True))
 
 
 @sync_timed()
@@ -49,7 +49,7 @@ def check_quotes_import_emptytable(tables) -> None:
         query = f"select count(*) as cnt from public.{table}"
         cnt = sql.get_table.query_to_list(query)[0]['cnt']
         if int(cnt) == 0:
-            asyncio.run(telegram.send_message(f"table {table} is empty", urgent=True))
+            asyncio.run(telegram_send.send_message(f"table {table} is empty", urgent=True))
 
 
 @sync_timed()
@@ -66,10 +66,10 @@ def check_quotes_import_money(board) -> None:
         cnt_money = res['cnt_money']
         if (cnt_rows, cnt_money) != (1, 1):
             msg = f"table public.money board {board} error: (cnt_rows, cnt_money)={(cnt_rows, cnt_money)}"
-            asyncio.run(telegram.send_message(msg, urgent=True))
+            asyncio.run(telegram_send.send_message(msg, urgent=True))
     except:
         msg = f"table public.money board {board} error: no records returned"
-        asyncio.run(telegram.send_message(msg, urgent=True))
+        asyncio.run(telegram_send.send_message(msg, urgent=True))
 
 
 @sync_timed()
@@ -78,7 +78,7 @@ def check_quotes_doubling(table_name):
 
     doubled_list = sql.get_table.query_to_list(query)
     if len(doubled_list) != 0:
-        asyncio.run(telegram.send_message(f"quotes {table_name} doubling: {doubled_list}", urgent=True))
+        asyncio.run(telegram_send.send_message(f"quotes {table_name} doubling: {doubled_list}", urgent=True))
 
 
 @sync_timed()
@@ -91,7 +91,7 @@ def check_quotes_import_5min() -> None:
     cnt_rows = sql.get_table.query_to_list(query_candles)[0]['cnt']
     if cnt_rows == 0:
         asyncio.run(
-            telegram.send_message(f"tinkoff candles import error: no candles in df_all_candles_t for the last 5 mins",
+            telegram_send.send_message(f"tinkoff candles import error: no candles in df_all_candles_t for the last 5 mins",
                                   urgent=True))
 
 

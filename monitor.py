@@ -5,7 +5,7 @@ import traceback
 import pandas as pd
 
 import sql.get_table
-import telegram
+import telegram_send
 import tools.clean_processes
 from monitor import send_df, logger, send_all_graph, calculate_ratio
 from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     try:
         monitor_import(check_sec=False, check_fut=True, check_tinkoff=True)
     except Exception as e:
-        asyncio.run(telegram.send_message(f'monitor_import failed: {traceback.format_exc()}', True))
+        asyncio.run(telegram_send.send_message(f'monitor_import failed: {traceback.format_exc()}', True))
 
     if not tools.clean_processes.clean_proc("monitor", os.getpid(), 4):
         logger.info("something is already running")
@@ -50,14 +50,14 @@ if __name__ == '__main__':
         send_df(df_monitor[['code', 'old_state', 'new_state']], True)
         logger.debug(f"states updated: {df_monitor.code.drop_duplicates()}")
     except Exception as e:
-        asyncio.run(telegram.send_message(f'update_df_monitor failed: {traceback.format_exc()}', True))
+        asyncio.run(telegram_send.send_message(f'update_df_monitor failed: {traceback.format_exc()}', True))
 
     try:
         send_df(normalize_money(sql.get_table.query_to_df(
             "select money_prev as moneyt1, money, pos_current as pos, pos_plan as plan, pnl, pnl_prev as pnlt1 from public.pos_money"),
             ['moneyt1', 'money', 'pos', 'plan', 'pnl', 'pnlt1']), True)
     except Exception as e:
-        asyncio.run(telegram.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
+        asyncio.run(telegram_send.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
 
     volume_tf = pd.DataFrame()
     try:
@@ -67,7 +67,7 @@ if __name__ == '__main__':
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:
-        asyncio.run(telegram.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
+        asyncio.run(telegram_send.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
 
     try:
         query = "select * from public.trd_mypos"
@@ -91,6 +91,6 @@ if __name__ == '__main__':
         logger.info(f"intresting_gains: {intresting_gains}")
         if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
     except Exception as e:
-        asyncio.run(telegram.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
+        asyncio.run(telegram_send.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
 
     logger.info("monitor: ended")

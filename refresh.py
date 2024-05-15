@@ -12,7 +12,7 @@ import datetime
 import logging
 import sys
 
-import telegram
+import telegram_send
 import tools.clean_processes
 from refresh.orders_state import update_orders_state
 from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_signals_upd, get_query_store_jump_events, \
@@ -43,7 +43,7 @@ def log_timing():
 
 def process_error():
     error_msg = f"Error in quotes upd: {traceback.format_exc()}"
-    telegram.send_message(error_msg, True)
+    telegram_send.send_message(error_msg, True)
     logger.error(error_msg)
 
 
