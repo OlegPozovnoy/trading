@@ -31,6 +31,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+
 @sync_timed()
 def calc_bollinger(end_cutoff=datetime.time(17, 45, 0)):
     """
@@ -167,6 +168,25 @@ def calc_volumes():
     """
     sql.get_table.exec_query(volumes_query)
 
+
+def calc_report_minmax():
+    """
+    report on minmax dynamics
+    :return:
+    """
+    query = """
+        TRUNCATE TABLE public.report_minmax;
+        insert into public.report_minmax
+        select security, date(datetime),  
+        (max(close) - min(close)) as min_max, 
+        max(high) - min(low) as high_low,
+        (max(close) - min(close))/avg(close) as min_max_prct
+        from df_all_candles_t
+        group by security, date(datetime)
+    """
+    sql.get_table.exec_query(query)
+
+
 @sync_timed()
 def move_diff_to_arch():
     """
@@ -280,6 +300,8 @@ if __name__ == '__main__':
         logger.info('Bollinger recomputed')
         calc_volumes()
         logger.info('volumes updated')
+        calc_report_minmax()
+        logger.info('report_minmax updated')
         exec(open("morning_reports.py").read())
     except Exception as e:
         logger.error(traceback.format_exc())
