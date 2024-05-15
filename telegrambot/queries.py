@@ -3,9 +3,9 @@ from manual_order import execute_manual_order
 
 
 def get_orders():
-    query = """SELECT id, state, quantity, comment, remains, barrier, max_amount, pause,  provider, order_type, barrier_bound
+    query = """SELECT id, comment, state, quantity, remains, barrier, max_amount, pause,  provider, order_type
 	FROM public.orders_my ORDER BY 1;"""
-    return str(sql.get_table.query_to_list(query))
+    return "\n\n".join([str(u) for u in sql.get_table.query_to_list(query)])
 
 
 def invert_state(id: int):
