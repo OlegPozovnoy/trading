@@ -6,6 +6,10 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Conversation
     MessageHandler, filters
 
 from telegrambot.queries import get_orders, place_order, invert_state
+import tools.clean_processes
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 load_dotenv(find_dotenv('my.env', raise_error_if_not_found=True))
 TOKEN = os.getenv('tg_key')
@@ -78,7 +82,7 @@ def process_context(value: str, context: ContextTypes.DEFAULT_TYPE) -> ContextTy
                 invert_state(int(value))
             del context.user_data['updated_field']
     except Exception as e:
-        print(str(e))
+        logger.error(str(e))
     finally:
         return context
 
@@ -151,4 +155,8 @@ def main():
 
 
 if __name__ == '__main__':
+    if not tools.clean_processes.clean_proc("tgbot", os.getpid(), 999999):
+        print("something is already running")
+        exit(0)
+
     main()
