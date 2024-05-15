@@ -14,10 +14,10 @@ morph = pymorphy2.MorphAnalyzer()
 keywords = None
 A = None
 
-A_important = ahocorasick.Automaton()
+A_important = ahocorasick.Automaton(ahocorasick.STORE_LENGTH)
 important_words = ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД']
 for word in important_words:
-    A_important.add_word(word, word)
+    A_important.add_word(word)
 A_important.make_automaton()
 
 
