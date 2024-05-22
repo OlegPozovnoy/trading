@@ -7,11 +7,13 @@ import re
 import string
 import traceback
 from time import sleep
+from typing import Union
 
 from dotenv import load_dotenv, find_dotenv
 from numba import njit
 from pyrogram import Client
 
+import sql.get_table
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
 from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
@@ -20,6 +22,7 @@ import tools.clean_processes
 from nlp import client
 from tools import compose_td_datetime
 from tools.utils import sync_timed, async_timed
+from pyrogram import types, raw, utils
 
 load_dotenv(find_dotenv('my.env', True))
 
@@ -44,8 +47,102 @@ async def get_chat_history_count(app, chat_id):
 
 
 @async_timed()
-async def get_chat_history(app, chat_id, limit):
+async def get_chat_history_limit(app, chat_id, limit):
     return app.get_chat_history(chat_id=chat_id, limit=limit)
+
+
+@async_timed()
+async def get_chat_history_offset(app, chat_id, offset_id):
+    return app.get_chat_history(chat_id=chat_id, offset_id=offset_id)
+
+
+@async_timed()
+async def get_chat_history_offset2(app: "pyrogram.Client", chat_id: Union[int, str], offset_id: int, limit):
+    messages = await app.invoke(
+        raw.functions.messages.GetHistory(
+            peer=await app.resolve_peer(chat_id),
+            offset_id=9999999,  #from_message_id,
+            offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
+            add_offset=0,
+            limit=limit,
+            max_id=0,
+            min_id=offset_id,
+            hash=0
+        ),
+        sleep_threshold=60
+    )
+    return await utils.parse_messages(app, messages, replies=0)
+
+
+@sync_timed()
+def process_message(msg, channel):
+    res = {
+        'channel_title': channel.get('title', ''),
+        'channel_username': channel.get('username', ''),
+        'date': msg.date,
+        'text': msg.text or '',
+        'caption': msg.caption or '',
+        'id': msg.id
+    }
+
+    if msg.caption is not None or msg.text is not None:
+        newstext = f"{msg.caption or ''} {msg.text or ''}"
+        if res['channel_username'] == 'cbrstocksprivate' and re.search(
+                r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
+                newstext):
+            return None
+        tags = build_news_tags(newstext)
+        res['tags'] = tags
+
+        if len(tags) > 0:
+            res['parent_tags'] = channel['tags']
+
+            important_tags = [tag for tag in tags if not tag[-1].isdigit() and tag != 'MOEX']
+            res['important_tags'] = important_tags
+
+            if len(important_tags) <= 2:
+                if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock',
+                                               'markettwits']:
+                    fulltext = (res['text'] + res['caption']).lower()
+
+                    keyword = ''
+                    if "дивиденд" in fulltext:
+                        keyword = "дивиденд"
+                        if res['channel_username'] == 'cbrstocksprivate':
+                            try:
+                                fast_dividend_process(res, fulltext)
+                            except:
+                                print(traceback.format_exc())
+                    elif "отчет" in fulltext:
+                        keyword = "отчет"
+                    elif "собрание" in fulltext:
+                        keyword = "госа"
+                    elif "директор" in fulltext:
+                        keyword = "директор"
+                    elif "госа" in fulltext:
+                        keyword = "госа"
+
+                    fulltext = res['text'] + res['caption']
+                    fulltext = "".join([x for x in fulltext if x not in string.punctuation])
+
+                    record_new_event(res, channel['username'], keyword, fulltext)
+
+                try:
+                    record_new_watch(res, channel['username'])
+                except:
+                    logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
+
+            res['is_important'] = check_doc_importance(res)
+            return res
+
+
+def record_max_id(channel, max_msg_id):
+    query = f"""INSERT INTO public.tgchannels_ids(title, chat_id, last_msg_id)
+    VALUES ('{channel['username']}',{channel["tg_id"]},{max_msg_id}) ON CONFLICT(chat_id) DO
+    UPDATE SET last_msg_id = EXCLUDED.last_msg_id, dt=NOW() 
+    """
+    if max_msg_id is not None:
+        sql.get_table.exec_query(query)
 
 
 @async_timed()
@@ -70,86 +167,54 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         return
 
     chat_id = int(channel["tg_id"])
-    count = await get_chat_history_count(app, chat_id)
+    last_msg = sql.get_table.query_to_list(f"select last_msg_id FROM public.tgchannels_ids where chat_id = {chat_id}")
 
-    new_msg_count = count - channel['count']
-    logger.info(f"{channel['username']} has {new_msg_count} new messages")
-    if limit is None:
-        limit = min(count - channel['count'], max_msg_load)
+    max_msg_id = None
+    count_num_loaded = 0
+    news_to_insert = []  # Список для пакетной вставки новостей
 
-    if limit > 0:
-        hist = await get_chat_history(app, chat_id, limit)
-        news_to_insert = []  # Список для пакетной вставки новостей
-        count_num_loaded = 0
+    if len(last_msg) == 0:
+        count = await get_chat_history_count(app, chat_id)
+        new_msg_count = count - channel['count']
+        logger.info(f"{channel['username']} has {new_msg_count} new messages")
+        if limit is None:
+            limit = min(count - channel['count'], max_msg_load)
+
+        if limit > 0:
+            hist = await get_chat_history_limit(app, chat_id, limit)
+            try:
+                async for msg in hist:
+                    max_msg_id = msg.id if max_msg_id is None else max(max_msg_id, msg.id)
+                    count_num_loaded += 1
+                    logger.info(f"{count_num_loaded}/{limit}")
+                    res = process_message(msg, channel)
+                    if res is not None:
+                        news_to_insert.append(res)
+
+                if news_to_insert:
+                    news_collection.insert_many(news_to_insert)
+                update_tg_msg_count(channel['username'], count - limit + count_num_loaded - 1)
+                record_max_id(channel, max_msg_id)
+            except Exception as e:
+                logger.error(e)
+    else:
+        hist = await get_chat_history_offset2(app, chat_id, offset_id=last_msg[0]['last_msg_id'], limit=max_msg_load)
         try:
-            async for msg in hist:
+            for msg in hist:
+                max_msg_id = msg.id if max_msg_id is None else max(max_msg_id, msg.id)
                 count_num_loaded += 1
                 logger.info(f"{count_num_loaded}/{limit}")
-                res = {
-                    'channel_title': channel.get('title', ''),
-                    'channel_username': channel.get('username', ''),
-                    'date': msg.date,
-                    'text': msg.text or '',
-                    'caption': msg.caption or ''
-                }
+                res = process_message(msg, channel)
+                if res is not None:
+                    news_to_insert.append(res)
 
-                if msg.caption is not None or msg.text is not None:
-                    newstext = f"{msg.caption or ''} {msg.text or ''}"
-                    if res['channel_username'] == 'cbrstocksprivate' and re.search(
-                            r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
-                            newstext):
-                        continue
-                    tags = build_news_tags(newstext)
-                    res['tags'] = tags
-
-                    if len(tags) > 0:
-                        res['parent_tags'] = channel['tags']
-
-                        important_tags = [tag for tag in tags if not tag[-1].isdigit() and tag != 'MOEX']
-                        res['important_tags'] = important_tags
-
-                        if len(important_tags) <= 2:
-                            if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock',
-                                                           'markettwits']:
-                                fulltext = (res['text'] + res['caption']).lower()
-
-                                keyword = ''
-                                if "дивиденд" in fulltext:
-                                    keyword = "дивиденд"
-                                    if res['channel_username'] == 'cbrstocksprivate':
-                                        try:
-                                            fast_dividend_process(res, fulltext)
-                                        except:
-                                            print(traceback.format_exc())
-                                elif "отчет" in fulltext:
-                                    keyword = "отчет"
-                                elif "собрание" in fulltext:
-                                    keyword = "госа"
-                                elif "директор" in fulltext:
-                                    keyword = "директор"
-                                elif "госа" in fulltext:
-                                    keyword = "госа"
-
-                                fulltext = res['text'] + res['caption']
-                                fulltext = "".join([x for x in fulltext if x not in string.punctuation])
-
-                                record_new_event(res, channel['username'], keyword, fulltext)
-
-                            try:
-                                record_new_watch(res, channel['username'])
-                            except:
-                                logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
-
-                        res['is_important'] = check_doc_importance(res)
-                        news_to_insert.append(res)
             if news_to_insert:
-                news_collection.insert_many(news_to_insert)  # Пакетная вставка новостей
-        except:
-            update_tg_msg_count(channel['username'], count - limit + count_num_loaded - 1)
-            return
+                news_collection.insert_many(news_to_insert)
+            update_tg_msg_count(channel['username'], channel['count'] + count_num_loaded)
+            record_max_id(channel, max_msg_id)
 
-    if new_msg_count != 0:
-        update_tg_msg_count(channel['username'], count)
+        except Exception as e:
+            logger.error(e)
 
 
 @async_timed()

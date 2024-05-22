@@ -7,6 +7,12 @@ from tools.utils import sync_timed
 
 #@sync_timed()
 def record_new_watch(doc, news_channel):
+    """
+    insert event to public.order_discovery
+    :param doc:
+    :param news_channel:
+    :return:
+    """
     codes = doc['important_tags']
     news_date = doc['date']
     tstamp = datetime.datetime.now()
@@ -29,6 +35,14 @@ def record_new_watch(doc, news_channel):
 
 #@sync_timed()
 def record_new_event(doc, news_channel, keyword, msg):
+    """
+    insert msg to public.event_news
+    :param doc:
+    :param news_channel:
+    :param keyword:
+    :param msg:
+    :return:
+    """
     codes = doc['important_tags']
     news_date = doc['date']
     tstamp = datetime.datetime.now()
