@@ -36,7 +36,7 @@ def send_all_graph(interesting_sec, urgent_list):
     logger.debug(f"{len(interesting_sec)} images to be sent")
 
 
-@sync_timed()
+#@sync_timed()
 def send_sec_graph(df_gains, urgent_list=None):
     logger.info("DEBUG send_sec_graph")
     logger.info(df_gains)

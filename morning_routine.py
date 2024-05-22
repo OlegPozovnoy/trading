@@ -187,6 +187,32 @@ def calc_report_minmax():
     sql.get_table.exec_query(query)
 
 
+def calc_report_deal_imp_arch():
+    """
+    report on minmax dynamics
+    :return:
+    """
+    query = """
+        TRUNCATE TABLE public.report_deal_imp_arch_t;
+        insert into public.report_deal_imp_arch_t
+         SELECT tradedate + "time" AS datetime,
+            code,
+            price,
+            sum(
+                CASE
+                    WHEN bs::text = 'BUY'::text THEN 1
+                    WHEN bs::text = 'SELL'::text THEN '-1'::integer
+                    ELSE 0
+                END * amount) AS net_amount,
+            sum(amount) AS total_amount,
+            avg(open_interest) AS avg_open_interest
+           FROM deals_imp_arch
+          GROUP BY code, (tradedate + "time"), bs, price
+          ORDER BY code, (tradedate + "time") DESC;
+    """
+    sql.get_table.exec_query(query)
+
+
 @sync_timed()
 def move_diff_to_arch():
     """
@@ -215,6 +241,8 @@ async def clean_db():
         "DELETE FROM public.futquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
         #"DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
+        "DELETE FROM public.events_jumps_hist where  updated_at < (CURRENT_DATE-14);",
+        "DELETE FROM public.order_discovery where  news_time < (CURRENT_DATE-14);",
         "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
         #"DELETE	FROM public.secquotes;",
@@ -301,6 +329,7 @@ if __name__ == '__main__':
         calc_volumes()
         logger.info('volumes updated')
         calc_report_minmax()
+        calc_report_deal_imp_arch()
         logger.info('report_minmax updated')
         exec(open("morning_reports.py").read())
     except Exception as e:

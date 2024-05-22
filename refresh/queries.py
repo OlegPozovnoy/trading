@@ -177,7 +177,7 @@ def get_query_events_update_jumps():
             update orders_event_activator_jumps oeaj
             set is_activated = true,
             activate_time = now()
-            from events_jumps_hist ejh
+            from jump_events ejh
             where is_activated = false 
             and oeaj.ticker = ejh.code 
             and ejh.process_time between oeaj.start_date and oeaj.end_date

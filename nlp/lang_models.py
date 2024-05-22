@@ -29,7 +29,7 @@ def update_importance():
         names_collection.update_one(document, {'$set': {'is_important': is_important}})
 
 
-@sync_timed()
+#@sync_timed()
 def check_doc_importance(document):
     global A_important
     fulltext = str(document['text']) + " " + str(document['caption'])
@@ -47,7 +47,7 @@ def update_all_tags():
         names_collection.update_one(document, {'$set': {'tags': tags}})
 
 
-@sync_timed()
+#@sync_timed()
 def load_keywords():
     """заполняем огромный словарь keyword[форма слова] = тикер"""
     global keywords
@@ -92,7 +92,7 @@ def convert_normal_form(sentence):
     return ' '.join([morph.parse(word)[0].normal_form for word in sentence.split()])
 
 
-@sync_timed()
+#@sync_timed()
 def preprocess_sentence(sentence):
     sentence = sentence.lower().replace('ё', 'е')
     #sentence_split = re.sub(r'[^а-яa-z]+', ' ', sentence).split()
@@ -111,7 +111,7 @@ def check_sentence(sentence, name):
     return False
 
 
-@sync_timed()
+#@sync_timed()
 def get_words_prononse(name):
     # print(morph.parse(name))
     word = morph.parse(name)[0]

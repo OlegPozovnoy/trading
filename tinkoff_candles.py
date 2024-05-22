@@ -145,7 +145,7 @@ async def import_new_tickers(refresh_tickers=False):
         candles.to_sql('df_all_candles_t', engine, if_exists='append', index=False)
 
 
-@sync_timed()
+#@sync_timed()
 def update_diffhist():
     query = "select * from public.diffhistview_t1510"
     df = sql.get_table.query_to_df(query)

@@ -27,7 +27,7 @@ def check_futures_tables():
     check_quotes_import_money('SPBFUT')
 
 
-@sync_timed()
+#@sync_timed()
 def check_last_upd(table_name):
     query = f"select max(last_upd) from public.{table_name};"
     try:
@@ -39,7 +39,7 @@ def check_last_upd(table_name):
         asyncio.run(telegram_send.send_message(f"quotes import: 0 records in {table_name}", urgent=True))
 
 
-@sync_timed()
+#@sync_timed()
 def check_quotes_import_emptytable(tables) -> None:
     """
     check 'pos_fut', 'pos_money', 'pos_eq', 'pos_collat' are not empty
@@ -52,7 +52,7 @@ def check_quotes_import_emptytable(tables) -> None:
             asyncio.run(telegram_send.send_message(f"table {table} is empty", urgent=True))
 
 
-@sync_timed()
+#@sync_timed()
 def check_quotes_import_money(board) -> None:
     """
     check pos_money(free money spbfut), pos_collat (free collateral tqbr) tables
@@ -72,7 +72,7 @@ def check_quotes_import_money(board) -> None:
         asyncio.run(telegram_send.send_message(msg, urgent=True))
 
 
-@sync_timed()
+#@sync_timed()
 def check_quotes_doubling(table_name):
     query = f"select code from {table_name} group by code having count(*) >= 2;"
 
@@ -81,7 +81,7 @@ def check_quotes_doubling(table_name):
         asyncio.run(telegram_send.send_message(f"quotes {table_name} doubling: {doubled_list}", urgent=True))
 
 
-@sync_timed()
+#@sync_timed()
 def check_quotes_import_5min() -> None:
     """
     checks there are rows in df_all_candles_t for the last 5 mins

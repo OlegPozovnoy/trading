@@ -130,7 +130,7 @@ def get_all_gains(min_lag, base_asset='MX'):
     return df
 
 
-@sync_timed()
+#@sync_timed()
 def get_filtered_gains(df_res, threshold=0.5):
     df_fut = df_res[df_res['class_code'] == 'SPBFUT'].sort_values('inc').reset_index()
     df_eq = df_res[df_res['class_code'] != 'SPBFUT'].sort_values('inc').reset_index()

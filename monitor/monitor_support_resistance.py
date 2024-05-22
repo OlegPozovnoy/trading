@@ -7,7 +7,7 @@ from tools.utils import sync_timed
 pd.set_option('display.max_columns', None)
 
 
-@sync_timed()
+#@sync_timed()
 def update_df_monitor():
     """
     monitor if a sec crossed the support/resistance
