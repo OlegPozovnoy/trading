@@ -5,7 +5,7 @@ import sql.get_table
 from tools.utils import sync_timed
 
 
-@sync_timed()
+#@sync_timed()
 def record_new_watch(doc, news_channel):
     codes = doc['important_tags']
     news_date = doc['date']
@@ -27,7 +27,7 @@ def record_new_watch(doc, news_channel):
             sql.get_table.exec_query(query)
 
 
-@sync_timed()
+#@sync_timed()
 def record_new_event(doc, news_channel, keyword, msg):
     codes = doc['important_tags']
     news_date = doc['date']
