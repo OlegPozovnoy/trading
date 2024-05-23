@@ -15,7 +15,7 @@ from pyrogram import Client
 import sql.get_table
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
 from nlp.lang_models import check_doc_importance, build_news_tags
-from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
+from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels, news_tfidf
 
 import tools.clean_processes
 from nlp import client
@@ -109,7 +109,7 @@ async def get_chat_history_offset2(app: "pyrogram.Client", chat_id: Union[int, s
         if success_calls >= 100:
             record_db_performance(success_calls, sleep_time, 0)
             success_calls = 0
-            sleep_time = sleep_time * 0.99
+            sleep_time = max(sleep_time * 0.99, 0.5)
             print(f"success: {sleep_time=}")
 
         last_log_message = read_last_session_log_message()
@@ -310,7 +310,7 @@ async def main():
         while start_refresh <= datetime.datetime.now() < end_refresh:
             try:
                 await upload_recent_news(app)
-
+                #news_tfidf()
             except Exception as e:
                 print(traceback.format_exc())
 
