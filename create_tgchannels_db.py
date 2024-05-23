@@ -6,11 +6,10 @@ import asyncio
 import re
 import string
 import traceback
-from time import sleep
+import time
 from typing import Union
 
 from dotenv import load_dotenv, find_dotenv
-from numba import njit
 from pyrogram import Client
 
 import sql.get_table
@@ -35,10 +34,29 @@ channel_id_urgent = os.environ['tg_channel_id_urgent']
 conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
 # вроде так норм
-sleep_time = 0.33
+sleep_time = 0.5
+success_calls = 0
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+last_session_log_message = None
+session_logger = logging.getLogger("pyrogram.session.session")
+session_logger.setLevel(logging.INFO)
+
+
+class SessionLoggingHandler(logging.Handler):
+    def emit(self, record):
+        global last_session_log_message
+        last_session_log_message = self.format(record)
+
+
+session_logger.addHandler(SessionLoggingHandler())  # Добавляем обработчик для логов pyrogram.session.session
+
+
+def read_last_session_log_message():
+    global last_session_log_message
+    return last_session_log_message
 
 
 @async_timed()
@@ -56,22 +74,53 @@ async def get_chat_history_offset(app, chat_id, offset_id):
     return app.get_chat_history(chat_id=chat_id, offset_id=offset_id)
 
 
+def record_db_performance(success_calls, sleep_time, timeout):
+    query = f"""insert into public.tgchannels_timeout(success_calls, sleep_time, timeout)
+                values({success_calls}, {sleep_time}, {timeout})
+            """
+    sql.get_table.exec_query(query)
+
+
 @async_timed()
 async def get_chat_history_offset2(app: "pyrogram.Client", chat_id: Union[int, str], offset_id: int, limit):
-    messages = await app.invoke(
-        raw.functions.messages.GetHistory(
-            peer=await app.resolve_peer(chat_id),
-            offset_id=9999999,  #from_message_id,
-            offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
-            add_offset=0,
-            limit=limit,
-            max_id=0,
-            min_id=offset_id,
-            hash=0
-        ),
-        sleep_threshold=60
-    )
-    return await utils.parse_messages(app, messages, replies=0)
+    global sleep_time
+    global success_calls
+    global last_session_log_message
+    result = []
+    try:
+        messages = await app.invoke(
+            raw.functions.messages.GetHistory(
+                peer=await app.resolve_peer(chat_id),
+                offset_id=offset_id + 100,
+                offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
+                add_offset=0,
+                limit=limit,
+                max_id=0,
+                min_id=offset_id,
+                hash=0
+            ),
+            sleep_threshold=60
+        )
+        result = await utils.parse_messages(app, messages, replies=0)
+        success_calls += 1
+    except Exception as e:
+        print(e)
+    finally:
+        if success_calls >= 100:
+            record_db_performance(success_calls, sleep_time, 0)
+            success_calls = 0
+            sleep_time = sleep_time * 0.99
+            print(f"success: {sleep_time=}")
+
+        last_log_message = read_last_session_log_message()
+        if last_log_message and "Waiting for" in last_log_message:
+            timeout_seconds = int(re.search(r'\d+', last_log_message).group())
+            last_session_log_message = ""
+            record_db_performance(success_calls, sleep_time, timeout_seconds)
+            success_calls = 0
+            sleep_time = 1.15 * sleep_time
+            print(f"fail: {sleep_time=}")
+        return result
 
 
 @sync_timed()
@@ -241,7 +290,7 @@ async def upload_recent_news(app):
             if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
                 t_start = datetime.datetime.now()
                 await import_news(app, channel, limit=None, max_msg_load=10000)
-                sleep(sleep_time)
+                time.sleep(sleep_time - (time.time() % sleep_time))
                 print(datetime.datetime.now() - t_start)
         except Exception as e:
             print(traceback.format_exc())
