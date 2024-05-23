@@ -69,11 +69,6 @@ async def get_chat_history_limit(app, chat_id, limit):
     return app.get_chat_history(chat_id=chat_id, limit=limit)
 
 
-@async_timed()
-async def get_chat_history_offset(app, chat_id, offset_id):
-    return app.get_chat_history(chat_id=chat_id, offset_id=offset_id)
-
-
 def record_db_performance(success_calls, sleep_time, timeout):
     query = f"""insert into public.tgchannels_timeout(success_calls, sleep_time, timeout)
                 values({success_calls}, {sleep_time}, {timeout})
@@ -265,6 +260,19 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         except Exception as e:
             logger.error(e)
 
+@sync_timed()
+def load_tg_settings():
+    conf = json.load(open(conf_path, 'r'))
+    conf['last_id'] += 1
+    json.dump(conf, open(conf_path, 'w'))
+    return conf
+
+
+@sync_timed()
+def prepare_channels():
+    active_channels = get_active_channels()
+    renumerate_channels(is_active=True)
+    return active_channels
 
 @async_timed()
 async def upload_recent_news(app):
@@ -272,12 +280,8 @@ async def upload_recent_news(app):
     Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
     :return:
     """
-    conf = json.load(open(conf_path, 'r'))
-    conf['last_id'] += 1
-    json.dump(conf, open(conf_path, 'w'))
-
+    conf = load_tg_settings()
     active_channels = get_active_channels()
-    renumerate_channels(is_active=True)
 
     # после 19-00 начинаем импортировать обычные новости
     non_urgent_channels = conf['non_urgent_channels'] + (1 if datetime.datetime.now().hour >= 19 else 0)
@@ -291,7 +295,7 @@ async def upload_recent_news(app):
                 t_start = datetime.datetime.now()
                 await import_news(app, channel, limit=None, max_msg_load=10000)
                 time.sleep(sleep_time - (time.time() % sleep_time))
-                print(datetime.datetime.now() - t_start)
+                logger.info(datetime.datetime.now() - t_start)
         except Exception as e:
             print(traceback.format_exc())
             print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
@@ -306,6 +310,7 @@ async def main():
         print("something is already running")
         exit(0)
 
+    renumerate_channels(is_active=True)
     async with Client("my_account_tgchannels", api_id, api_hash) as app:
         while start_refresh <= datetime.datetime.now() < end_refresh:
             try:

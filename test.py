@@ -14,6 +14,7 @@ from tinkoff.invest import (
 )
 import sql.get_table
 from tinkoff_candles import transform_candles
+from tools.utils import sync_timed
 
 load_dotenv(dotenv_path='./my.env')
 
@@ -24,6 +25,7 @@ logging.basicConfig(level=logging.INFO)
 
 engine = sql.get_table.engine
 client = Client(TOKEN)
+
 
 
 def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.001):
@@ -107,7 +109,23 @@ def get_figi(ticker):
     query = f"select figi from public.tinkoff_params where ticker='{ticker}' limit 1"
     return sql.get_table.query_to_list(query)[0]['figi']
 
+@sync_timed()
+def get_account(app):
+    response = app.users.get_accounts()
+    print(response)
+    account, *_ = response.accounts
+    account_id = account.id
+    print(account_id)
+    return account_id
+
+@sync_timed()
+def margin_attributes(app, account_id):
+    response = app.users.get_margin_attributes(account_id=account_id)
+    print(response)
 
 if __name__ == "__main__":
     print(f'{TOKEN = }')
-    place_order_tcs('SBER', -1)
+    #place_order_tcs('SBER', -1)
+    with Client(TOKEN) as app:
+        account_id = get_account(app)
+        margin_attributes(app, account_id)
