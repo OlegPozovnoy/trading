@@ -253,7 +253,7 @@ def channel_stats():
     res = res.reset_index(drop=True)
     res.to_csv("channel_stats.csv", sep='\t')
 
-
+@sync_timed()
 def news_tfidf():
     names_collection = client.trading['trading']
     news_collection = client.trading['news']

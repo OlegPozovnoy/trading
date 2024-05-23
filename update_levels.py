@@ -219,6 +219,6 @@ if __name__ == '__main__':
     df_levels, df_all_levels, df_all_volumes = build_levels(df)
     update_db_tables(df_levels, df_all_levels, df_all_volumes)
 
-    news_tfidf()
+    #news_tfidf()
     asyncio.run(telegram_send.send_message(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с'))
     print(f'перестройка уровней выполнена за {(time.time() - startTime):.2f} с')
