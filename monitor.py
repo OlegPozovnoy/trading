@@ -71,7 +71,6 @@ if __name__ == '__main__':
         asyncio.run(telegram_send.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
 
     try:
-        news_tfidf()
         query = "select * from public.trd_mypos"
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))

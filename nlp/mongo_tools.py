@@ -1,6 +1,7 @@
 import datetime
 import logging
 from collections import defaultdict
+from typing import List
 
 from bson.objectid import ObjectId
 import pandas as pd
@@ -12,13 +13,13 @@ from sql import get_table
 from tools.utils import sync_timed
 from nlp import client
 
-
 logger = logging.getLogger()
 
-def activate_all_channels(is_active, username = None):
+
+def activate_all_channels(is_active, username=None):
     names_collection = client.trading['tg_channels']
 
-    filter_str = {} if username is None else {'username':username}
+    filter_str = {} if username is None else {'username': username}
 
     for document in names_collection.find(filter_str):
         res = names_collection.update_one(document, {'$set': {'is_active': is_active}})
@@ -28,7 +29,7 @@ def activate_all_channels(is_active, username = None):
 def deactivate_channel(username, is_active=0):
     names_collection = client.trading['tg_channels']
 
-    for document in names_collection.find({'username':username}):
+    for document in names_collection.find({'username': username}):
         res = names_collection.update_one(document, {'$set': {'is_active': is_active}})
         print(res)
 
@@ -42,7 +43,7 @@ def remove_channel(channel_name):
     news_collection = client.trading['news']
     channels_collection = client.trading['tg_channels']
 
-    news_filter = {'channel_username':channel_name}
+    news_filter = {'channel_username': channel_name}
     tg_filter = {'username': channel_name}
 
     for item in news_collection.find(news_filter):
@@ -54,6 +55,7 @@ def remove_channel(channel_name):
         channels_collection.delete_one(item)
 
 
+@sync_timed()
 def get_active_channels():
     names_collection = client.trading['tg_channels']
     result = []
@@ -64,7 +66,7 @@ def get_active_channels():
 
 def get_news_from_channels(username):
     names_collection = client.trading['news']
-    result = []#channel_title 'channel_username':
+    result = []  #channel_title 'channel_username':
 
     for document in names_collection.find({'channel_username': username}):
         result.append(document)
@@ -89,10 +91,20 @@ def remove_tag_word(ticker, tag):
 def add_tag_word(ticker, tag):
     instrument_collection = client.trading['trading']
     instrument = instrument_collection.find_one({'ticker': ticker})
-    new_tags =set(instrument['namee'])
+    new_tags = set(instrument['namee'])
     new_tags.add(tag)
     print(instrument, new_tags)
     instrument_collection.update_one({'ticker': ticker}, {'$set': {'namee': list(new_tags)}})
+
+
+def get_ticker_tags():
+    instrument_collection = client.trading['trading']
+    instruments = instrument_collection.find({})
+    res = []
+    for instrument in instruments:
+        for tag in instrument['namee']:
+            res.append((instrument['ticker'], tag))
+    return pd.DataFrame(res, columns=['ticker', 'tag'])
 
 def get_instrument(ticker):
     instrument_collection = client.trading['trading']
@@ -104,24 +116,24 @@ def add_tag_channel(query, tag):
     instrument_collection = client.trading['tg_channels']
     instrument = instrument_collection.find_one(query)
     if 'tags' not in instrument: instrument['tags'] = []
-    new_tags =set(instrument['tags'])
+    new_tags = set(instrument['tags'])
     new_tags.add(tag)
     print(instrument, new_tags)
-    instrument_collection.update_one({'_id':instrument['_id']}, {'$set': {'tags': list(new_tags)}})
+    instrument_collection.update_one({'_id': instrument['_id']}, {'$set': {'tags': list(new_tags)}})
 
 
 def remove_tag_channel(query, tag):
     instrument_collection = client.trading['tg_channels']
     instrument = instrument_collection.find_one(query)
-    new_tags =set(instrument['tags'])
+    new_tags = set(instrument['tags'])
     new_tags.add(tag)
     print(instrument, new_tags)
-    instrument_collection.update_one({'_id':instrument['_id']}, {'$set': {'tags': list(new_tags)}})
+    instrument_collection.update_one({'_id': instrument['_id']}, {'$set': {'tags': list(new_tags)}})
 
 
-
+@sync_timed()
 def renumerate_channels(is_active=False):
-    out_id=0
+    out_id = 0
     instrument_collection = client.trading['tg_channels']
 
     query = {"is_active": 1} if is_active else {}
@@ -130,11 +142,12 @@ def renumerate_channels(is_active=False):
         out_id += 1
         instrument_collection.update_one(item, {'$set': {'out_id': out_id}})
 
+
 @sync_timed()
 def remove_news_duplicates():
     news_collection = client.trading['news']
 
-    df_list=[]
+    df_list = []
     for item in tqdm(news_collection.find()):
         df_list.append([item['_id'], item['date'], item['channel_username']])
 
@@ -158,11 +171,11 @@ def remove_news_duplicates():
 def remove_channel_duplicates():
     news_collection = client.trading['tg_channels']
 
-    df_list=[]
+    df_list = []
     for item in news_collection.find():
         df_list.append([item['_id'], item['title']])
 
-    res = pd.DataFrame(df_list, columns=['id','title'])
+    res = pd.DataFrame(df_list, columns=['id', 'title'])
     res.sort_values(['title'], inplace=True)
     res = res.reset_index(drop=True)
 
@@ -175,16 +188,10 @@ def remove_channel_duplicates():
     print(f"{cnt} found {deleted} deleted")
 
 
-
-
 #renumerate_channels()
 #instrument_collection = client.trading['tg_channels']
 #for item in instrument_collection.find({}):
 #    instrument_collection.update_one(item, {'$set': {'tags': []}})
-
-
-
-
 
 
 # CHANNELS
@@ -208,9 +215,41 @@ def remove_empty_tag_news():
     news_collection = client.trading['news']
 
     for item in news_collection.find({}):
-            if len(item['tags']) == 0:
-                news_collection.delete_one(item)
+        if len(item['tags']) == 0:
+            news_collection.delete_one(item)
 
+
+def remove_security(ticker):
+    instrument_collection = client.trading['trading']
+    for item in instrument_collection.find({}):
+        if item['ticker'] == ticker:
+            instrument_collection.delete_one(item)
+
+
+def insert_security(ticker: str, name: str, namee: List[str]):
+    instrument_collection = client.trading['trading']
+
+    if len(list(instrument_collection.find({'ticker': ticker}))) == 0:
+        new_item = dict()
+        new_item['ticker'] = ticker
+        new_item['name'] = name
+        new_item['namee'] = namee
+        instrument_collection.insert_one(new_item)
+
+
+def compare_securities_mongo_postgres():
+    set_mongo = set()
+    set_postgres = set()
+    instrument_collection = client.trading['trading']
+    for item in instrument_collection.find({}):
+        set_mongo.add(item['ticker'])
+
+    items = sql.get_table.query_to_list("select code from secquotes")
+    for item in items:
+        set_postgres.add(item['code'])
+
+    print("in mongo not in postgres", set_mongo - set_postgres)
+    print("in postgres not in mongo", set_postgres - set_mongo)
 
 def clean_old_news(days=90):
     from_date = datetime.datetime.today() - datetime.timedelta(days=days)
@@ -233,7 +272,7 @@ def clean_mongo():
 def channel_stats():
     channel_collection = client.trading['tg_channels']
     news_collection = client.trading['news']
-    df_list=[]
+    df_list = []
     for channel in channel_collection.find():
         username = channel['username']
         isactive = channel['is_active']
@@ -245,13 +284,15 @@ def channel_stats():
         cnt = 0
         date = None
         for news_item in news_collection.find(query):
-            cnt+=1
+            cnt += 1
             date = news_item['date'] if date is None else max(date, news_item['date'])
-        df_list.append([username, isactive, cnt, date,title,description,members_count])
+        df_list.append([username, isactive, cnt, date, title, description, members_count])
 
-    res = pd.DataFrame(df_list, columns=['username', 'isactive', 'cnt', 'date','title','description','members_count'])
+    res = pd.DataFrame(df_list,
+                       columns=['username', 'isactive', 'cnt', 'date', 'title', 'description', 'members_count'])
     res = res.reset_index(drop=True)
     res.to_csv("channel_stats.csv", sep='\t')
+
 
 @sync_timed()
 def news_tfidf():
@@ -304,3 +345,130 @@ def news_tfidf():
     sql.get_table.exec_query("TRUNCATE TABLE public.news_tfidf")
     res.to_sql('news_tfidf', sql.get_table.engine, if_exists='append', index=False)
     #sql.get_table.df_to_sql(res, 'news_tfidf')
+
+
+if __name__ ==  "__main__":
+    pass
+    mylist = ['YNM3',
+            'RIM3',
+            'GZM3',
+            'SNM3',
+            'MXM3',
+            'RNM3',
+            'SFM3',
+            'GDM3',
+            'GKM3',
+            'NAM3',
+            'LKM3',
+            'EDM3',
+            'NKM3',
+            'RMM3',
+            'SRM3',
+            'NGJ3',
+            'VBM3',
+            'EuM3',
+            'POM3',
+            'TTM3',
+            'PZM3',
+            'NMM3',
+            'SiM3',
+            'CRM3',
+            'FVM3',
+            'BRK3',
+            'CHM3',
+            'MEM3',
+            'OZM3',
+            'MGM3',
+            'MNM3',
+            'ALM3',
+            ]
+    for item in mylist:
+        remove_security(item)
+    name = 'Вконтакте'
+    ticker = 'VKCO'
+    namee = ['ВК', 'VK', 'VKCO']
+    insert_security(ticker, name, namee)
+
+    mylist2 = [('GAZP','ГАЗПРОМ'),
+        ('GMKN','ГМКНорНик'),
+        ('TCSG','ТКСХолд'),
+        ('SBER','Сбербанк'),
+        ('LKOH','ЛУКОЙЛ'),
+        ('AFKS','Система'),
+        ('NLMK','НЛМК'),
+        ('PLZL','Полюс'),
+        ('RUAL','РУСАЛ'),
+        ('ROSN','Роснефть'),
+        ('MGNT','Магнит'),
+        ('YNDX','Yandex'),
+        ('NVTK','Новатэк'),
+        ('CHMF','СевСт'),
+        ('MTLR','Мечел'),
+        ('VKCO','ВК'),
+        ('TRNFP','Транснф'),
+        ('MTSS','МТС'),
+        ('FLOT','Совкомфлот'),
+        ('AFLT','Аэрофлот'),
+        ('MAGN','ММК'),
+        ('SMLT','Самолет'),
+        ('SNGSP','Сургнфгз'),
+        ('VTBR','ВТБ'),
+        ('SNGS','Сургнфгз'),
+        ('OZON','OZON'),
+        ('EUTR','ЕвроТранс'),
+        ('MOEX','МосБиржа'),
+        ('UGLD','ЮГК'),
+        ('PHOR','ФосАгро'),
+        ('ALRS','АЛРОСА'),
+        ('RNFT','РуссНфт'),
+        ('POSI','Позитив'),
+        ('RTKM','Ростел'),
+        ('TATN','Татнфт'),
+        ('PIKK','ПИК'),
+        ('BSPB','БСП'),
+        ('SBERP','Сбербанк'),
+        ('LSRG','ЛСР'),
+        ('BELU','НоваБев'),
+        ('SIBN','Газпрнефть'),
+        ('SGZH','Сегежа'),
+        ('IRAO','ИнтерРАОао'),
+        ('BANEP','Башнефт'),
+        ('TRMK','ТМК'),
+        ('ASTR','Астра'),
+        ('SOFL','Софтлайн'),
+        ('SVCB','Совкомбанк'),
+        ('SPBE','СПББиржа'),
+        ('ENPG','ЭН+ГРУП'),
+        ('MTLRP','Мечел'),
+        ('RTKMP','Ростел'),
+        ('SVAV','СОЛЛЕРС'),
+        ('SFIN','ЭсЭфАй'),
+        ('BANE','Башнефт'),
+        ('MBNK','МТСБанк'),
+        ('FEES','Россети'),
+        ('UPRO','Юнипро'),
+        ('GLTR','GLTR'),
+        ('TATNP','Татнфт'),
+        ('AGRO','AGRO'),
+        ('LSNGP','РСетиЛЭ'),
+        ('MVID','МВидео'),
+        ('UNAC','АвиастКао'),
+        ('NMTP','НМТП'),
+        ('HNFG','ХЭНДЕРСОН'),
+        ('FESH','ДВМП'),
+        ('SELG','Селигдар'),
+        ('TGKN','ТГК'),
+        ('POLY','Polymetal'),
+        ('LEAS','Европлан'),
+        ('PMSB','ПермьЭнСб'),
+        ('WUSH','ВУШХолднг'),
+        ('DELI','Каршеринг'),
+        ]
+    for item in mylist2:
+        ticker = item[0]
+        name = item[1]
+        namee = [ticker, name]
+        insert_security(ticker, name, namee)
+
+    compare_securities_mongo_postgres()
+    get_ticker_tags().to_csv('tickertags.csv', sep='\t')
