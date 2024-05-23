@@ -11,6 +11,7 @@ from monitor import send_df, logger, send_all_graph, calculate_ratio
 from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
 from monitor.monitor_imports import monitor_import
 from monitor.monitor_support_resistance import update_df_monitor
+from nlp.mongo_tools import news_tfidf
 from test import get_orderbook
 
 pd.set_option('display.max_columns', None)
@@ -70,6 +71,7 @@ if __name__ == '__main__':
         asyncio.run(telegram_send.send_message(f'monitor_gains_main: {traceback.format_exc()}', True))
 
     try:
+        news_tfidf()
         query = "select * from public.trd_mypos"
         pos_df = (sql.get_table.query_to_df(query)
                   .merge(volume_tf, how='left', left_on='code', right_on='security'))
