@@ -301,5 +301,6 @@ def news_tfidf():
         df = calc_tfidf(v, k)
         res = pd.concat([res, df])
 
-    res.to_sql('news_tfidf', sql.get_table.engine, if_exists='replace', index=False)
+    sql.get_table.exec_query("TRUNCATE TABLE public.news_tfidf")
+    res.to_sql('news_tfidf', sql.get_table.engine, if_exists='append', index=False)
     #sql.get_table.df_to_sql(res, 'news_tfidf')
