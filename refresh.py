@@ -133,7 +133,6 @@ if __name__ == '__main__':
         bucket = record_bucket(time.time() - start, 0.25)
         if bucket >= 1:
             logger.warning(f"TOO LONG {datetime.datetime.now()} {time.time() - start}")
-        else:
-            logger.info(f"{datetime.datetime.now()} {time.time() - start}")
+
         #process_signal()
         time.sleep(0.25 - (time.time() % 0.25))
