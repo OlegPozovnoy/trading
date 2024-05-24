@@ -48,7 +48,7 @@ def process_error():
 
 
 @sync_timed()
-def market_data_upd(sequential = False):
+def market_data_upd(sequential=True):
     current_time = datetime.datetime.now(moscow_tz).isoformat()
 
     sql_query_list = [
@@ -58,32 +58,39 @@ def market_data_upd(sequential = False):
     ]
     if sequential:
         query = ";".join(sql_query_list)
-        print(query)
-        sql.get_table.exec_query(query+";")
+        sql.get_table.exec_query(query)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
 @sync_timed()
-def process_signals():
+def process_signals(sequential=True):
     # после того как все новые котировки прогрузились
     sql_query_list = [
         get_query_signals_upd(),
         get_query_store_jump_events(),
         get_query_deact_by_endtime(),
     ]
-    asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    if sequential:
+        query = ";".join(sql_query_list)
+        sql.get_table.exec_query(query)
+    else:
+        asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
 @sync_timed()
-def process_events():
+def process_events(sequential=True):
     # после того как все новые котировки прогрузились
     sql_query_list = [
         get_query_events_update_news(),
         get_query_events_update_jumps(),
         get_query_events_update_prices()
     ]
-    asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    if sequential:
+        query = ";".join(sql_query_list)
+        sql.get_table.exec_query(query)
+    else:
+        asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
 def record_bucket(time, exec):
@@ -96,7 +103,7 @@ def record_bucket(time, exec):
 
 
 start_refresh = compose_td_datetime("09:00:00")
-end_refresh = compose_td_datetime("23:30:00")
+end_refresh = compose_td_datetime("23:59:00")
 
 if __name__ == '__main__':
     logger.info("starting refresh")
@@ -111,7 +118,7 @@ if __name__ == '__main__':
         start = time.time()
 
         try:
-            market_data_upd(sequential=False)
+            market_data_upd()
         except Exception as e:
             logger.error(e)
             process_error()
@@ -131,7 +138,7 @@ if __name__ == '__main__':
             process_error()
 
         bucket = record_bucket(time.time() - start, 0.25)
-        if bucket >= 1:
+        if bucket >= 0:
             logger.warning(f"TOO LONG {datetime.datetime.now()} {time.time() - start}")
 
         #process_signal()
