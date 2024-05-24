@@ -141,7 +141,7 @@ def process_message(msg, channel):
         if len(tags) > 0:
             res['parent_tags'] = channel['tags']
 
-            important_tags = [tag for tag in tags if not tag[-1].isdigit() and tag != 'MOEX']
+            important_tags = [tag for tag in tags if tag != 'MOEX']
             res['important_tags'] = important_tags
 
             if len(important_tags) <= 2:

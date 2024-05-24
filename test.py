@@ -19,6 +19,7 @@ from tools.utils import sync_timed
 load_dotenv(dotenv_path='./my.env')
 
 TOKEN = os.environ["TOKEN_WRITE"]
+account_id = os.environ["tcs_account_id"]
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -128,4 +129,5 @@ if __name__ == "__main__":
     #place_order_tcs('SBER', -1)
     with Client(TOKEN) as app:
         account_id = get_account(app)
-        margin_attributes(app, account_id)
+        print(account_id)
+        margin_attributes(app, '2040316487')

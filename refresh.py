@@ -110,7 +110,7 @@ if __name__ == '__main__':
             process_events()
 
             update_orders_state()
-            log_timing()
+            #log_timing()
         except:
             process_error()
 

@@ -20,6 +20,7 @@ from tinkoff.invest import (
     PostOrderResponse,
 )
 
+from tools.utils import sync_timed
 from transactions import get_class_code, get_quotes, get_diff
 
 load_dotenv(find_dotenv('my.env', True))
@@ -134,6 +135,7 @@ def get_trans_id():
     return str(int((datetime.datetime.utcnow() - datetime.datetime(2023, 1, 1)).total_seconds() * 1000000) % 1000000000)
 
 
+@sync_timed()
 def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0015):
     """
     maxspread - отношения бида к аску при котором сделаем сделку
@@ -145,6 +147,11 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     classCode = get_class_code(secCode)
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
+
+    if classCode == 'SPBFUT':
+        money = quotes['collateral']
+    else:
+        money = quotes['ask'] * quotes['lot']
 
     logger.info(f"Processing order: {secCode} {quantity} \nquotes:{quotes} \ndiff:{diff}")
 
@@ -227,7 +234,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
     order_out = pd.DataFrame([global_reply])
     order_out.to_sql('orders_out', engine, if_exists='append')
 
-
+@sync_timed()
 def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012):
     global engine
     global client
@@ -237,6 +244,11 @@ def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, commen
     classCode = get_class_code(secCode)
     quotes = get_quotes(classCode, secCode)[0]
     diff = get_diff(classCode, secCode)[0]
+
+    if classCode == 'SPBFUT':
+        money = quotes['collateral']
+    else:
+        money = quotes['ask'] * quotes['lot']
 
     if quotes['ask'] > quotes['bid'] * (1 + maxspread):
         print(f"spread is too high: {quotes['bid']} {quotes['ask']} {quotes['ask'] / quotes['bid'] - 1}")
