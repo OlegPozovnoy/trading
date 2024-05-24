@@ -48,7 +48,7 @@ def process_error():
 
 
 @sync_timed()
-def market_data_upd():
+def market_data_upd(sequential = False):
     current_time = datetime.datetime.now(moscow_tz).isoformat()
 
     sql_query_list = [
@@ -56,7 +56,12 @@ def market_data_upd():
         get_query_sec_upd(current_time),
         get_query_bidask_upd()
     ]
-    asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    if sequential:
+        query = ";".join(sql_query_list)
+        print(query)
+        sql.get_table.exec_query(query+";")
+    else:
+        asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
 @sync_timed()
@@ -70,7 +75,6 @@ def process_signals():
     asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
 
-
 @sync_timed()
 def process_events():
     # после того как все новые котировки прогрузились
@@ -80,6 +84,15 @@ def process_events():
         get_query_events_update_prices()
     ]
     asyncio.run(sql.async_exec.exec_list(sql_query_list))
+
+
+def record_bucket(time, exec):
+    bucket = int(time / exec)
+    query = f"""insert into public.tgchannels_refresh_stat(bucket, num) VALUES({bucket} ,1)
+    ON CONFLICT(bucket) DO UPDATE SET num = tgchannels_refresh_stat.num+1 
+    """
+    sql.get_table.exec_query(query)
+    return bucket
 
 
 start_refresh = compose_td_datetime("09:00:00")
@@ -94,11 +107,13 @@ if __name__ == '__main__':
     moscow_tz = pytz.timezone('Europe/Moscow')
 
     while start_refresh <= datetime.datetime.now() < end_refresh:
-        logger.info(datetime.datetime.now())
+
+        start = time.time()
 
         try:
-            market_data_upd()
-        except:
+            market_data_upd(sequential=False)
+        except Exception as e:
+            logger.error(e)
             process_error()
             # на всякий случай удалим задвоения в secquotes futquotes
             #sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
@@ -111,8 +126,14 @@ if __name__ == '__main__':
 
             update_orders_state()
             #log_timing()
-        except:
+        except Exception as e:
+            logger.error(e)
             process_error()
 
-        # process_signal()
+        bucket = record_bucket(time.time() - start, 0.25)
+        if bucket >= 1:
+            logger.warning(f"TOO LONG {datetime.datetime.now()} {time.time() - start}")
+        else:
+            logger.info(f"{datetime.datetime.now()} {time.time() - start}")
+        #process_signal()
         time.sleep(0.25 - (time.time() % 0.25))
