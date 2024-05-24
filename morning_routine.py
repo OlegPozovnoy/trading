@@ -242,7 +242,7 @@ async def clean_db():
         #"DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.secquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.events_jumps_hist where  updated_at < (CURRENT_DATE-14);",
-        "DELETE FROM public.order_discovery where  news_time < (CURRENT_DATE-14);",
+        "DELETE FROM public.order_discovery;",
         "DELETE FROM public.deals_ba_hist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE	FROM public.secquotes where updated_at < (CURRENT_DATE-1);",
         #"DELETE	FROM public.secquotes;",

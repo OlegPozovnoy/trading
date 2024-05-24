@@ -73,10 +73,11 @@ def get_news_from_channels(username):
     return result
 
 
+@sync_timed()
 def update_tg_msg_count(username, count):
     names_collection = client.trading['tg_channels']
     names_collection.update_one({'username': username}, {'$set': {'count': count}})
-    print(names_collection.find_one({'username': username}))
+    logger.info(names_collection.find_one({'username': username}))
 
 
 def remove_tag_word(ticker, tag):

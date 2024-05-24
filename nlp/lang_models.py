@@ -83,7 +83,7 @@ def build_news_tags(text):
             normal_form_keyword = ' '.join([morph.parse(word)[0].normal_form for word in keyword.split()])
             if normal_form_keyword in normalized_text:
                 tags.update(values)
-    print(f"{tags =}")
+    #print(f"{tags =}")
     return list(tags)
 
 
