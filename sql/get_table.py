@@ -1,6 +1,6 @@
 import traceback
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import logging
 import pandas as pd
 
@@ -11,7 +11,7 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 
 def exec_query(query):
-    return engine.execute(query)
+    return engine.execute(text(query))
 
 
 def query_to_df(query):
