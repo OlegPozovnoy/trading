@@ -285,9 +285,9 @@ end_refresh = compose_td_datetime("23:30:00")
 
 
 async def main():
-    #if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
-    #    print("something is already running")
-    #    exit(0)
+    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
+        print("something is already running")
+        exit(0)
 
     renumerate_channels(is_active=True)
 
