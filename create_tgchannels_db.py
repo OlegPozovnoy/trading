@@ -262,7 +262,7 @@ async def upload_recent_news(wrapper: ClientWrapper):
     wrapper.last_id = wrapper.last_id + 1
 
     # после 19-00 начинаем импортировать обычные новости
-    non_urgent_channels = wrapper.non_urgent_channels + (1 if datetime.datetime.now().hour >= 19 else 0)
+    non_urgent_channels = wrapper.non_urgent_channels + (1 if datetime.datetime.now().hour >= 19 or datetime.datetime.now().hour < 9 else 0)
 
     ids_list = list(range((wrapper.last_id - 1) * non_urgent_channels, wrapper.last_id * non_urgent_channels))
 
