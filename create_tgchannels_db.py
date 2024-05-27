@@ -297,9 +297,9 @@ async def main():
         async with Client("my_account_public", os.environ['public_tg_api_id'], os.environ['public_tg_api_hash']) as app_public:
 
             client_private = ClientWrapper(app_private, api_id, api_hash,
-                                           'my_account_tgchannels', is_private=True, sleep_time=0.02)
+                                           'my_account_tgchannels', is_private=True, sleep_time=0.01)
             client_public = ClientWrapper(app_public, os.environ['public_tg_api_id'],
-                                          os.environ['public_tg_api_hash'], 'my_account_public', is_private=False, sleep_time=0.5)
+                                          os.environ['public_tg_api_hash'], 'my_account_public', is_private=False, sleep_time=1)
             client_private.print_channels()
             client_public.print_channels()
             while start_refresh <= datetime.datetime.now() < end_refresh:
