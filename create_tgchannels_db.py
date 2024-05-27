@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import os
 import asyncio
@@ -15,17 +14,17 @@ from pyrogram import Client
 import sql.get_table
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
 from nlp.lang_models import check_doc_importance, build_news_tags
-from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels, news_tfidf
+from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
 
 import tools.clean_processes
 from nlp import client
+from tg_channels import ClientWrapper
 from tools import compose_td_datetime
 from tools.utils import sync_timed, async_timed
 from pyrogram import types, raw, utils
 
 load_dotenv(find_dotenv('my.env', True))
 
-key = os.environ['tg_key']
 api_id = os.environ['tg_api_id']
 api_hash = os.environ['tg_api_hash']
 channel_id = os.environ['tg_channel_id']
@@ -34,8 +33,6 @@ channel_id_urgent = os.environ['tg_channel_id_urgent']
 conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
 # вроде так норм
-sleep_time = 0.5
-success_calls = 0
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -60,32 +57,23 @@ def read_last_session_log_message():
 
 
 @async_timed()
-async def get_chat_history_count(app, chat_id):
-    return await app.get_chat_history_count(chat_id=chat_id)
+async def get_chat_history_count(wrapper: ClientWrapper, chat_id):
+    return await wrapper.app.get_chat_history_count(chat_id=chat_id)
 
 
 @async_timed()
-async def get_chat_history_limit(app, chat_id, limit):
-    return app.get_chat_history(chat_id=chat_id, limit=limit)
-
-
-def record_db_performance(success_calls, sleep_time, timeout):
-    query = f"""insert into public.tgchannels_timeout(success_calls, sleep_time, timeout)
-                values({success_calls}, {sleep_time}, {timeout})
-            """
-    sql.get_table.exec_query(query)
+async def get_chat_history_limit(wrapper: ClientWrapper, chat_id, limit):
+    return wrapper.app.get_chat_history(chat_id=chat_id, limit=limit)
 
 
 @async_timed()
-async def get_chat_history_offset2(app: "pyrogram.Client", chat_id: Union[int, str], offset_id: int, limit):
-    global sleep_time
-    global success_calls
+async def get_chat_history_offset2(wrapper: ClientWrapper, chat_id: Union[int, str], offset_id: int, limit):
     global last_session_log_message
     result = []
     try:
-        messages = await app.invoke(
+        messages = await wrapper.app.invoke(
             raw.functions.messages.GetHistory(
-                peer=await app.resolve_peer(chat_id),
+                peer=await wrapper.app.resolve_peer(chat_id),
                 offset_id=offset_id + 100,
                 offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
                 add_offset=0,
@@ -96,25 +84,17 @@ async def get_chat_history_offset2(app: "pyrogram.Client", chat_id: Union[int, s
             ),
             sleep_threshold=60
         )
-        result = await utils.parse_messages(app, messages, replies=0)
-        success_calls += 1
+        wrapper.record_success_calls()
+        result = await utils.parse_messages(wrapper.app, messages, replies=0)
+
     except Exception as e:
         print(e)
     finally:
-        if success_calls >= 100:
-            record_db_performance(success_calls, sleep_time, 0)
-            success_calls = 0
-            sleep_time = max(sleep_time * 0.99, 0.5)
-            print(f"success: {sleep_time=}")
-
         last_log_message = read_last_session_log_message()
         if last_log_message and "Waiting for" in last_log_message:
             timeout_seconds = int(re.search(r'\d+', last_log_message).group())
             last_session_log_message = ""
-            record_db_performance(success_calls, sleep_time, timeout_seconds)
-            success_calls = 0
-            sleep_time = 1.15 * sleep_time
-            print(f"fail: {sleep_time=}")
+            wrapper.record_db_performance(timeout_seconds)
         return result
 
 
@@ -129,55 +109,60 @@ def process_message(msg, channel):
         'id': msg.id
     }
 
-    if msg.caption is not None or msg.text is not None:
-        newstext = f"{msg.caption or ''} {msg.text or ''}"
-        if res['channel_username'] == 'cbrstocksprivate' and re.search(
-                r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
-                newstext):
-            return None
-        tags = build_news_tags(newstext)
-        res['tags'] = tags
+    try:
+        if msg.caption is not None or msg.text is not None:
+            newstext = f"{msg.caption or ''} {msg.text or ''}"
+            if res['channel_username'] == 'cbrstocksprivate' and re.search(
+                    r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
+                    newstext):
+                return None
+            tags = build_news_tags(newstext)
+            res['tags'] = tags
 
-        if len(tags) > 0:
-            res['parent_tags'] = channel['tags']
+            if len(tags) > 0:
+                res['parent_tags'] = channel['tags']
 
-            important_tags = [tag for tag in tags if tag != 'MOEX']
-            res['important_tags'] = important_tags
+                important_tags = [tag for tag in tags if tag != 'MOEX']
+                res['important_tags'] = important_tags
 
-            if len(important_tags) <= 2:
-                if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock',
-                                               'markettwits']:
-                    fulltext = (res['text'] + res['caption']).lower()
+                if len(important_tags) <= 2:
+                    if res['channel_username'] in ['cbrstocksprivate', 'ProfitGateClub', 'cbrstock',
+                                                   'markettwits']:
+                        fulltext = (res['text'] + res['caption']).lower()
 
-                    keyword = ''
-                    if "дивиденд" in fulltext:
-                        keyword = "дивиденд"
-                        if res['channel_username'] == 'cbrstocksprivate':
-                            try:
-                                fast_dividend_process(res, fulltext)
-                            except:
-                                print(traceback.format_exc())
-                    elif "отчет" in fulltext:
-                        keyword = "отчет"
-                    elif "собрание" in fulltext:
-                        keyword = "госа"
-                    elif "директор" in fulltext:
-                        keyword = "директор"
-                    elif "госа" in fulltext:
-                        keyword = "госа"
+                        keyword = ''
+                        if "дивиденд" in fulltext:
+                            keyword = "дивиденд"
+                            if res['channel_username'] == 'cbrstocksprivate':
+                                try:
+                                    fast_dividend_process(res, fulltext)
+                                except:
+                                    print(traceback.format_exc())
+                        elif "отчет" in fulltext:
+                            keyword = "отчет"
+                        elif "собрание" in fulltext:
+                            keyword = "госа"
+                        elif "директор" in fulltext:
+                            keyword = "директор"
+                        elif "госа" in fulltext:
+                            keyword = "госа"
 
-                    fulltext = res['text'] + res['caption']
-                    fulltext = "".join([x for x in fulltext if x not in string.punctuation])
+                        fulltext = res['text'] + res['caption']
+                        fulltext = "".join([x for x in fulltext if x not in string.punctuation])
 
-                    record_new_event(res, channel['username'], keyword, fulltext)
+                        record_new_event(res, channel['username'], keyword, fulltext)
 
-                try:
-                    record_new_watch(res, channel['username'])
-                except:
-                    logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
+                    try:
+                        record_new_watch(res, channel['username'])
+                    except:
+                        logger.error(f"hft record: {channel['username']} \n{res} \n{traceback.format_exc()}")
 
-            res['is_important'] = check_doc_importance(res)
-            return res
+                res['is_important'] = check_doc_importance(res)
+                logging.info(f"process_message returned {res}")
+                return res
+    except Exception as e:
+        logger.error(e)
+        logger.error(traceback.format_exc())
 
 
 def record_max_id(channel, max_msg_id):
@@ -190,7 +175,7 @@ def record_max_id(channel, max_msg_id):
 
 
 @async_timed()
-async def import_news(app, channel, limit=None, max_msg_load=1000):
+async def import_news(wrapper: ClientWrapper, channel, limit=None, max_msg_load=1000):
     """
         импортируем новость. расставляем теги, переносим res['parent_tags'] = channel['tags'],
         если есть такие слова ['совет директоров', 'дивиденд', 'суд', 'отчетность', 'СД'] помечаем новость важной
@@ -204,7 +189,7 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         """
     news_collection = client.trading['news']
 
-    logger.info(f"\nimporting channel {channel['title']}:\n{channel}")
+    logger.info(f"\n{wrapper.session_name} importing channel {channel['title']}:\n{channel}")
 
     if channel is None:
         logger.info("Error: channel id is None")
@@ -218,14 +203,14 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
     news_to_insert = []  # Список для пакетной вставки новостей
 
     if len(last_msg) == 0:
-        count = await get_chat_history_count(app, chat_id)
+        count = await get_chat_history_count(wrapper, chat_id)
         new_msg_count = count - channel['count']
         logger.info(f"{channel['username']} has {new_msg_count} new messages")
         if limit is None:
             limit = min(count - channel['count'], max_msg_load)
 
         if limit > 0:
-            hist = await get_chat_history_limit(app, chat_id, limit)
+            hist = await get_chat_history_limit(wrapper, chat_id, limit)
             try:
                 async for msg in hist:
                     max_msg_id = msg.id if max_msg_id is None else max(max_msg_id, msg.id)
@@ -242,12 +227,12 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
             except Exception as e:
                 logger.error(e)
     else:
-        hist = await get_chat_history_offset2(app, chat_id, offset_id=last_msg[0]['last_msg_id'], limit=max_msg_load)
+        hist = await get_chat_history_offset2(wrapper, chat_id, offset_id=last_msg[0]['last_msg_id'], limit=max_msg_load)
         try:
             for msg in hist:
                 max_msg_id = msg.id if max_msg_id is None else max(max_msg_id, msg.id)
                 count_num_loaded += 1
-                logger.info(f"{count_num_loaded}/{limit}")
+                logger.info(f"{count_num_loaded}/UNKNOWN")
                 res = process_message(msg, channel)
                 if res is not None:
                     news_to_insert.append(res)
@@ -260,13 +245,6 @@ async def import_news(app, channel, limit=None, max_msg_load=1000):
         except Exception as e:
             logger.error(e)
 
-@sync_timed()
-def load_tg_settings():
-    conf = json.load(open(conf_path, 'r'))
-    conf['last_id'] += 1
-    json.dump(conf, open(conf_path, 'w'))
-    return conf
-
 
 @sync_timed()
 def prepare_channels():
@@ -274,28 +252,29 @@ def prepare_channels():
     renumerate_channels(is_active=True)
     return active_channels
 
+
 @async_timed()
-async def upload_recent_news(app):
+async def upload_recent_news(wrapper: ClientWrapper):
     """
     Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
     :return:
     """
-    conf = load_tg_settings()
-    active_channels = get_active_channels()
+    wrapper.last_id = wrapper.last_id + 1
 
     # после 19-00 начинаем импортировать обычные новости
-    non_urgent_channels = conf['non_urgent_channels'] + (1 if datetime.datetime.now().hour >= 19 else 0)
+    non_urgent_channels = wrapper.non_urgent_channels + (1 if datetime.datetime.now().hour >= 19 else 0)
 
-    ids_list = list(
-        range((conf['last_id'] - 1) * non_urgent_channels, conf['last_id'] * non_urgent_channels))
+    ids_list = list(range((wrapper.last_id - 1) * non_urgent_channels, wrapper.last_id * non_urgent_channels))
 
-    for channel in active_channels:
+    for channel in wrapper.channels:
         try:
-            if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(active_channels) for x in ids_list]):
+            if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(wrapper.channels) for x in ids_list]):
                 t_start = datetime.datetime.now()
-                await import_news(app, channel, limit=None, max_msg_load=10000)
-                time.sleep(sleep_time - (time.time() % sleep_time))
-                logger.info(datetime.datetime.now() - t_start)
+                logger.info(f"{wrapper.session_name} started {datetime.datetime.now()}")
+                await import_news(wrapper, channel, limit=None, max_msg_load=10000)
+                logger.info(f"{wrapper.session_name} finished {datetime.datetime.now() - t_start}")
+                await asyncio.sleep(wrapper.sleep_time - (time.time() % wrapper.sleep_time))
+                logger.info(f"{wrapper.session_name} slept {datetime.datetime.now() - t_start} \n SLEEP_TIME: {wrapper.sleep_time} ")
         except Exception as e:
             print(traceback.format_exc())
             print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
@@ -306,18 +285,31 @@ end_refresh = compose_td_datetime("23:30:00")
 
 
 async def main():
-    if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
-        print("something is already running")
-        exit(0)
+    #if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
+    #    print("something is already running")
+    #    exit(0)
 
     renumerate_channels(is_active=True)
-    async with Client("my_account_tgchannels", api_id, api_hash) as app:
-        while start_refresh <= datetime.datetime.now() < end_refresh:
-            try:
-                await upload_recent_news(app)
-                #news_tfidf()
-            except Exception as e:
-                print(traceback.format_exc())
+
+    print("STARTING PRIVATE CLIENT +79261491162")
+    async with Client("my_account_tgchannels", os.environ['tg_api_id'], os.environ['tg_api_hash'], ) as app_private:
+        print("STARTING PUBLIC CLIENT +79932691162")
+        async with Client("my_account_public", os.environ['public_tg_api_id'], os.environ['public_tg_api_hash']) as app_public:
+
+            client_private = ClientWrapper(app_private, api_id, api_hash,
+                                           'my_account_tgchannels', is_private=True, sleep_time=0.02)
+            client_public = ClientWrapper(app_public, os.environ['public_tg_api_id'],
+                                          os.environ['public_tg_api_hash'], 'my_account_public', is_private=False, sleep_time=0.5)
+            client_private.print_channels()
+            client_public.print_channels()
+            while start_refresh <= datetime.datetime.now() < end_refresh:
+                try:
+                    await asyncio.gather(
+                        upload_recent_news(client_private),
+                        upload_recent_news(client_public)
+                    )
+                except Exception as e:
+                    print(traceback.format_exc())
 
 
 if __name__ == "__main__":
