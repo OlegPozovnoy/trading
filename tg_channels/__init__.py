@@ -7,14 +7,15 @@ class ClientWrapper:
     Схема остается: есть публичные каналы на 1 номер и приватные на другой. На каждой из машин есть свой urgent private: ProfitGateClub и rcbprivate
     """
 
-    def __init__(self, app, api_id, api_hash: str, session_name: str, is_private: bool, sleep_time: float):
+    def __init__(self, app, api_id, api_hash: str, session_name: str, is_private: bool, non_urgent_channels: int,
+                 sleep_time: float):
         self.api_id = api_id
         self.api_hash = api_hash
         self.app = app
         self.session_name = session_name
         self.sleep_time = sleep_time
         self.success_calls = 0
-        self.non_urgent_channels = 1
+        self.non_urgent_channels = non_urgent_channels
         self.last_id = 0
         self.channels = get_active_channels(private=is_private)
         self.renumerate_channels()
@@ -27,7 +28,6 @@ class ClientWrapper:
         for item in self.channels:
             item['out_id'] = out_id
             out_id += 1
-
 
     def record_success_calls(self):
         self.success_calls += 1
