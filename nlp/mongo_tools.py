@@ -56,11 +56,14 @@ def remove_channel(channel_name):
 
 
 @sync_timed()
-def get_active_channels():
+def get_active_channels(private=True):
     names_collection = client.trading['tg_channels']
     result = []
     for document in names_collection.find({'is_active': 1}):
-        result.append(document)
+        if private and 'private' in document['tags']:
+            result.append(document)
+        elif private == False and 'private' not in document['tags']:
+            result.append(document)
     return result
 
 
@@ -106,6 +109,7 @@ def get_ticker_tags():
         for tag in instrument['namee']:
             res.append((instrument['ticker'], tag))
     return pd.DataFrame(res, columns=['ticker', 'tag'])
+
 
 def get_instrument(ticker):
     instrument_collection = client.trading['trading']
@@ -252,6 +256,7 @@ def compare_securities_mongo_postgres():
     print("in mongo not in postgres", set_mongo - set_postgres)
     print("in postgres not in mongo", set_postgres - set_mongo)
 
+
 def clean_old_news(days=90):
     from_date = datetime.datetime.today() - datetime.timedelta(days=days)
     news_collection = client.trading['news']
@@ -348,41 +353,41 @@ def news_tfidf():
     #sql.get_table.df_to_sql(res, 'news_tfidf')
 
 
-if __name__ ==  "__main__":
+if __name__ == "__main__":
     pass
     mylist = ['YNM3',
-            'RIM3',
-            'GZM3',
-            'SNM3',
-            'MXM3',
-            'RNM3',
-            'SFM3',
-            'GDM3',
-            'GKM3',
-            'NAM3',
-            'LKM3',
-            'EDM3',
-            'NKM3',
-            'RMM3',
-            'SRM3',
-            'NGJ3',
-            'VBM3',
-            'EuM3',
-            'POM3',
-            'TTM3',
-            'PZM3',
-            'NMM3',
-            'SiM3',
-            'CRM3',
-            'FVM3',
-            'BRK3',
-            'CHM3',
-            'MEM3',
-            'OZM3',
-            'MGM3',
-            'MNM3',
-            'ALM3',
-            ]
+              'RIM3',
+              'GZM3',
+              'SNM3',
+              'MXM3',
+              'RNM3',
+              'SFM3',
+              'GDM3',
+              'GKM3',
+              'NAM3',
+              'LKM3',
+              'EDM3',
+              'NKM3',
+              'RMM3',
+              'SRM3',
+              'NGJ3',
+              'VBM3',
+              'EuM3',
+              'POM3',
+              'TTM3',
+              'PZM3',
+              'NMM3',
+              'SiM3',
+              'CRM3',
+              'FVM3',
+              'BRK3',
+              'CHM3',
+              'MEM3',
+              'OZM3',
+              'MGM3',
+              'MNM3',
+              'ALM3',
+              ]
     for item in mylist:
         remove_security(item)
     name = 'Вконтакте'
@@ -390,81 +395,81 @@ if __name__ ==  "__main__":
     namee = ['ВК', 'VK', 'VKCO']
     insert_security(ticker, name, namee)
 
-    mylist2 = [('GAZP','ГАЗПРОМ'),
-        ('GMKN','ГМКНорНик'),
-        ('TCSG','ТКСХолд'),
-        ('SBER','Сбербанк'),
-        ('LKOH','ЛУКОЙЛ'),
-        ('AFKS','Система'),
-        ('NLMK','НЛМК'),
-        ('PLZL','Полюс'),
-        ('RUAL','РУСАЛ'),
-        ('ROSN','Роснефть'),
-        ('MGNT','Магнит'),
-        ('YNDX','Yandex'),
-        ('NVTK','Новатэк'),
-        ('CHMF','СевСт'),
-        ('MTLR','Мечел'),
-        ('VKCO','ВК'),
-        ('TRNFP','Транснф'),
-        ('MTSS','МТС'),
-        ('FLOT','Совкомфлот'),
-        ('AFLT','Аэрофлот'),
-        ('MAGN','ММК'),
-        ('SMLT','Самолет'),
-        ('SNGSP','Сургнфгз'),
-        ('VTBR','ВТБ'),
-        ('SNGS','Сургнфгз'),
-        ('OZON','OZON'),
-        ('EUTR','ЕвроТранс'),
-        ('MOEX','МосБиржа'),
-        ('UGLD','ЮГК'),
-        ('PHOR','ФосАгро'),
-        ('ALRS','АЛРОСА'),
-        ('RNFT','РуссНфт'),
-        ('POSI','Позитив'),
-        ('RTKM','Ростел'),
-        ('TATN','Татнфт'),
-        ('PIKK','ПИК'),
-        ('BSPB','БСП'),
-        ('SBERP','Сбербанк'),
-        ('LSRG','ЛСР'),
-        ('BELU','НоваБев'),
-        ('SIBN','Газпрнефть'),
-        ('SGZH','Сегежа'),
-        ('IRAO','ИнтерРАОао'),
-        ('BANEP','Башнефт'),
-        ('TRMK','ТМК'),
-        ('ASTR','Астра'),
-        ('SOFL','Софтлайн'),
-        ('SVCB','Совкомбанк'),
-        ('SPBE','СПББиржа'),
-        ('ENPG','ЭН+ГРУП'),
-        ('MTLRP','Мечел'),
-        ('RTKMP','Ростел'),
-        ('SVAV','СОЛЛЕРС'),
-        ('SFIN','ЭсЭфАй'),
-        ('BANE','Башнефт'),
-        ('MBNK','МТСБанк'),
-        ('FEES','Россети'),
-        ('UPRO','Юнипро'),
-        ('GLTR','GLTR'),
-        ('TATNP','Татнфт'),
-        ('AGRO','AGRO'),
-        ('LSNGP','РСетиЛЭ'),
-        ('MVID','МВидео'),
-        ('UNAC','АвиастКао'),
-        ('NMTP','НМТП'),
-        ('HNFG','ХЭНДЕРСОН'),
-        ('FESH','ДВМП'),
-        ('SELG','Селигдар'),
-        ('TGKN','ТГК'),
-        ('POLY','Polymetal'),
-        ('LEAS','Европлан'),
-        ('PMSB','ПермьЭнСб'),
-        ('WUSH','ВУШХолднг'),
-        ('DELI','Каршеринг'),
-        ]
+    mylist2 = [('GAZP', 'ГАЗПРОМ'),
+               ('GMKN', 'ГМКНорНик'),
+               ('TCSG', 'ТКСХолд'),
+               ('SBER', 'Сбербанк'),
+               ('LKOH', 'ЛУКОЙЛ'),
+               ('AFKS', 'Система'),
+               ('NLMK', 'НЛМК'),
+               ('PLZL', 'Полюс'),
+               ('RUAL', 'РУСАЛ'),
+               ('ROSN', 'Роснефть'),
+               ('MGNT', 'Магнит'),
+               ('YNDX', 'Yandex'),
+               ('NVTK', 'Новатэк'),
+               ('CHMF', 'СевСт'),
+               ('MTLR', 'Мечел'),
+               ('VKCO', 'ВК'),
+               ('TRNFP', 'Транснф'),
+               ('MTSS', 'МТС'),
+               ('FLOT', 'Совкомфлот'),
+               ('AFLT', 'Аэрофлот'),
+               ('MAGN', 'ММК'),
+               ('SMLT', 'Самолет'),
+               ('SNGSP', 'Сургнфгз'),
+               ('VTBR', 'ВТБ'),
+               ('SNGS', 'Сургнфгз'),
+               ('OZON', 'OZON'),
+               ('EUTR', 'ЕвроТранс'),
+               ('MOEX', 'МосБиржа'),
+               ('UGLD', 'ЮГК'),
+               ('PHOR', 'ФосАгро'),
+               ('ALRS', 'АЛРОСА'),
+               ('RNFT', 'РуссНфт'),
+               ('POSI', 'Позитив'),
+               ('RTKM', 'Ростел'),
+               ('TATN', 'Татнфт'),
+               ('PIKK', 'ПИК'),
+               ('BSPB', 'БСП'),
+               ('SBERP', 'Сбербанк'),
+               ('LSRG', 'ЛСР'),
+               ('BELU', 'НоваБев'),
+               ('SIBN', 'Газпрнефть'),
+               ('SGZH', 'Сегежа'),
+               ('IRAO', 'ИнтерРАОао'),
+               ('BANEP', 'Башнефт'),
+               ('TRMK', 'ТМК'),
+               ('ASTR', 'Астра'),
+               ('SOFL', 'Софтлайн'),
+               ('SVCB', 'Совкомбанк'),
+               ('SPBE', 'СПББиржа'),
+               ('ENPG', 'ЭН+ГРУП'),
+               ('MTLRP', 'Мечел'),
+               ('RTKMP', 'Ростел'),
+               ('SVAV', 'СОЛЛЕРС'),
+               ('SFIN', 'ЭсЭфАй'),
+               ('BANE', 'Башнефт'),
+               ('MBNK', 'МТСБанк'),
+               ('FEES', 'Россети'),
+               ('UPRO', 'Юнипро'),
+               ('GLTR', 'GLTR'),
+               ('TATNP', 'Татнфт'),
+               ('AGRO', 'AGRO'),
+               ('LSNGP', 'РСетиЛЭ'),
+               ('MVID', 'МВидео'),
+               ('UNAC', 'АвиастКао'),
+               ('NMTP', 'НМТП'),
+               ('HNFG', 'ХЭНДЕРСОН'),
+               ('FESH', 'ДВМП'),
+               ('SELG', 'Селигдар'),
+               ('TGKN', 'ТГК'),
+               ('POLY', 'Polymetal'),
+               ('LEAS', 'Европлан'),
+               ('PMSB', 'ПермьЭнСб'),
+               ('WUSH', 'ВУШХолднг'),
+               ('DELI', 'Каршеринг'),
+               ]
     for item in mylist2:
         ticker = item[0]
         name = item[1]
