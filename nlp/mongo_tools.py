@@ -220,7 +220,7 @@ def remove_empty_tag_news():
     news_collection = client.trading['news']
 
     for item in news_collection.find({}):
-        if len(item['tags']) == 0:
+        if 'tags' not in item or len(item['tags']) == 0:
             news_collection.delete_one(item)
 
 
