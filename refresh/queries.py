@@ -96,9 +96,9 @@ def get_query_bidask_upd(current_time):
     """
     return f"""
     BEGIN;
-    INSERT INTO deals_ba_hist SELECT * FROM deals_ba_view;
+    INSERT INTO deals_ba_hist SELECT code, price, '{current_time}' as last_upd, bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask FROM deals_ba_view;
     TRUNCATE TABLE deals_ba_t1;
-    INSERT INTO deals_ba_t1 SELECT code, price, '{current_time}' as last_upd, bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask FROM deals_ba;
+    INSERT INTO deals_ba_t1 SELECT * FROM deals_ba;
     COMMIT;
     """
 
