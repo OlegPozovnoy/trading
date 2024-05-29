@@ -89,16 +89,16 @@ def get_query_signals_upd():
     """
 
 
-def get_query_bidask_upd():
+def get_query_bidask_upd(current_time):
     """
     как в futquoteshist: копируем deals_ba_view в deals_ba_hist
     обновляем deals_ba_t1 из deals_ba (перестраивая deals_ba_view)
     """
-    return """
+    return f"""
     BEGIN;
     INSERT INTO deals_ba_hist SELECT * FROM deals_ba_view;
     TRUNCATE TABLE deals_ba_t1;
-    INSERT INTO deals_ba_t1 SELECT * FROM deals_ba;
+    INSERT INTO deals_ba_t1 SELECT code, price, '{current_time}' as last_upd, bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask FROM deals_ba;
     COMMIT;
     """
 

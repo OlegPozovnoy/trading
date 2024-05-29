@@ -54,7 +54,7 @@ def market_data_upd(sequential=True):
     sql_query_list = [
         get_query_fut_upd(current_time),
         get_query_sec_upd(current_time),
-        get_query_bidask_upd()
+        get_query_bidask_upd(current_time)
     ]
     if sequential:
         query = ";".join(sql_query_list)
