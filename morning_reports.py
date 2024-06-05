@@ -22,7 +22,7 @@ fut_postfix = os.environ['futpostfix']
 
 check_list = [item + fut_postfix for item in ['RI', 'CR', 'MX', 'Si']]
 
-cutoffs = [datetime.time(10, 0, 0),
+cutoffs = [datetime.time(10, 30, 0),
            datetime.time(12, 0, 0),
            datetime.time(14, 0, 0),
            datetime.time(18, 45, 0),
@@ -67,7 +67,7 @@ def predict(sec):
     df_p = pd.DataFrame()
     df_p['ds'] = df['dtime']
     df_p['y'] = df['close']
-    m = Prophet(interval_width=0.95)
+    m = Prophet(interval_width=0.95, daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False)
     m.fit(df_p)
     future = m.make_future_dataframe(periods=7, include_history=True)
     future = future[future['ds'].dt.dayofweek < 5]

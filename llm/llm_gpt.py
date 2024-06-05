@@ -17,13 +17,11 @@ client = OpenAI(api_key=os.environ['openai_key'])
 
 @sync_timed()
 def get_gpt_action(text, model='gpt-3.5-turbo'):
-    start = datetime.datetime.now()
-
     completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": get_prompt(text)}
+            {"role": "user", "content": text}
         ]
     )
-    return completion.choices[0].message, datetime.datetime.now() - start
+    return completion.choices[0].message
