@@ -26,7 +26,7 @@ def get_yandex_action(text, model='yandexgpt'):
             },
             {
                 "role": "user",
-                "text": get_prompt(text)
+                "text": text
             }
         ]
     }

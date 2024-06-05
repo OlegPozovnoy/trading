@@ -246,7 +246,7 @@ def place_order(secCode, quantity, price_bound=None, max_quantity=10, comment="m
 
 
 @sync_timed()
-def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012):
+def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, comment="mycomment", maxspread=0.0012, money_limit=1000000):
     global engine
     global client
     global account_id
@@ -258,6 +258,9 @@ def place_order_tcs(secCode, quantity, price_bound=None, max_quantity=10, commen
         money = quotes['collateral']
     else:
         money = quotes['ask'] * quotes['lot']
+
+    # ограничения на деньги за одну транзакцию
+    quantity = min(abs(quantity), money_limit/money) if quantity > 0 else - min(abs(quantity), money_limit/money)
 
     if not check_order_validity(quotes, diff, quantity, price_bound, maxspread):
         return
