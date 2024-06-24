@@ -237,6 +237,7 @@ async def clean_db():
         "DELETE	FROM public.secquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
         "DELETE	FROM public.futquoteshist where to_date(tradedate, 'DD.MM.YYYY') < (CURRENT_DATE-14);",
         "DELETE FROM public.df_all_candles_t_arch WHERE datetime < now() - interval '90 days'",
+        "DELETE FROM public.deals_imp_t",
         #"DELETE FROM public.futquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
         "DELETE FROM public.futquotesdiffhist_arch 	where updated_at < (CURRENT_DATE-14);",
         #"DELETE FROM public.secquotesdiffhist 	where updated_at < (CURRENT_DATE-14);",
