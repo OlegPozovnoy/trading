@@ -3,7 +3,6 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from openai import OpenAI
 
-from llm import get_prompt
 from tools.utils import sync_timed
 
 load_dotenv(find_dotenv('../my.env', True))
@@ -22,6 +21,7 @@ def get_gpt_action(text, model='gpt-3.5-turbo'):
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": text}
-        ]
+        ],
+        temperature=0,
     )
     return completion.choices[0].message
