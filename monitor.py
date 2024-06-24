@@ -12,6 +12,7 @@ from monitor.monitor_gains_volumes import monitor_gains_main, format_volumes
 from monitor.monitor_imports import monitor_import
 from monitor.monitor_plita import store_plita_values
 from monitor.monitor_support_resistance import update_df_monitor
+from monitor.monitor_update_deal_imp_t import update_deals_imp_t
 from nlp.mongo_tools import news_tfidf
 from test import get_orderbook
 
@@ -35,6 +36,7 @@ if __name__ == '__main__':
     logger.info("monitor started: ")
 
     try:
+        update_deals_imp_t()
         monitor_import(check_sec=True, check_fut=True, check_tinkoff=True)
     except Exception as e:
         asyncio.run(telegram_send.send_message(f'monitor_import failed: {traceback.format_exc()}', True))
