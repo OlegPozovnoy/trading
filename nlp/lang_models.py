@@ -3,10 +3,8 @@ import re
 import pymorphy2
 
 from nlp import client
-from datetime import datetime, timedelta
 
 from tools.utils import sync_timed
-from numba import njit
 import ahocorasick
 
 morph = pymorphy2.MorphAnalyzer()

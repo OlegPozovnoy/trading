@@ -3,7 +3,6 @@ import os
 import traceback
 
 import pytz
-from numba import njit
 
 import sql.get_table
 import sql.async_exec
