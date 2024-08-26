@@ -8,7 +8,6 @@ from _decimal import Decimal
 from datetime import timedelta
 
 import pandas as pd
-from numba import njit
 from tinkoff.invest import CandleInterval, Client
 from tinkoff.invest.utils import quotation_to_decimal, now
 from tinkoff.invest.services import InstrumentsService
