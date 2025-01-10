@@ -44,14 +44,14 @@ async def test_load_chat():
 
 
 async def send_message(msg, urgent=False):
-    filename = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f") + '.json'
+    filename = 'msg_' + datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f") + '.json'
     folder = URGENT_PATH if urgent else NORMAL_PATH
     with open(os.path.join(folder, filename), 'w') as f:
         json.dump({'msg': msg}, f)
 
 
 async def send_photo(filepath, urgent=False):
-    filename = datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f") + '.json'
+    filename = 'img_' + datetime.datetime.now().strftime("%Y_%m_%d_%H%M%S_%f") + '.json'
     folder = URGENT_PATH if urgent else NORMAL_PATH
     with open(os.path.join(folder, filename), 'w') as f:
         json.dump({'filepath': filepath}, f)
