@@ -73,7 +73,7 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
                             if 'filepath' in data:
                                 await app.send_photo(stream_id, data['filepath'])
                             if 'msg' in data:
-                                next_message = str(filename[:17]) + '\n' + str(data['msg']) + '\n\n'
+                                next_message = str(filename[:21]) + '\n' + str(data['msg']) + '\n\n'
                                 while len(string_buffer) > max_buffer_size:
                                     await app.send_message(stream_id, string_buffer[:max_buffer_size])
                                     string_buffer = string_buffer[max_buffer_size:]
