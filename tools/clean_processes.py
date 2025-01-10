@@ -49,6 +49,6 @@ def clean_proc(keyword, pid, mins_threshold):
 
     if keyword == "create_tgchanne" and len(res) - killcount >=5:
         state = False
-    print(f"returning: Is allowed to start = {state}")
+    print(f"{datetime.datetime.now()} returning: Is allowed to start = {state}")
     return state
 

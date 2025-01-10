@@ -144,22 +144,22 @@ def get_filtered_gains(df_res, threshold=0.5):
     logger.info(f"full df inc\n {df_inc}")
     return df_res[(df_res['inc'] >= threshold) | (df_res['inc'] <= -threshold)], df_inc
 
-
 def format_volumes(df):
     for col in ['std', 'beta']:
-        df[col] = df[col].astype(float).round(1)
+        df.loc[:, col] = df[col].astype(float).round(1)
 
     for col in ['volume_mean', 'volume_std', 'volume']:
-        df[col] = df[col].astype(int)
+        df.loc[:, col] = df[col].astype(int)
 
     for col in ['inc', 'base_inc', 'beta', 'r2']:
-        df[col] = df[col].astype(float).round(2)
+        df.loc[:, col] = df[col].astype(float).round(2)
 
     return df[['security', 'std', 'timeframe', 'volume_mean', 'volume_std', 'inc', 'beta', 'base_inc', 'r2']]
 
 
 def format_jumps(df):
-    df['cdate_x'] = df['cdate_x'].dt.strftime("%H:%M")
-    df['inc'] = df['inc'].astype(float).round(2)
-    df['close_x'] = df['close_x'].astype(float).round(4)
+    df.loc[:, 'cdate_x'] = df['cdate_x'].dt.strftime("%H:%M")
+    df.loc[:, 'inc'] = df['inc'].astype(float).round(2)
+    df.loc[:, 'base_inc'] = df['base_inc'].astype(float).round(2)
+    df.loc[:, 'close_x'] = df['close_x'].astype(float).round(4)
     return df[['security', 'inc', 'close_x', 'cdate_x', 'base_inc', 'beta', 'r2']]

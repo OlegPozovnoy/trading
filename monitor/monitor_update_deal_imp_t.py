@@ -2,6 +2,10 @@ import sql.get_table
 
 
 def update_deals_imp_t():
+    """
+    Refreshing impersonal deals incremetnts: report_deal_imp => deals_imp_t
+    Returns:
+    """
     query = """
     INSERT INTO deals_imp_t
     SELECT *

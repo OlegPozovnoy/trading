@@ -270,7 +270,8 @@ async def clean_db():
             RETURNING a.* -- or specify columns
         )
         INSERT INTO df_all_candles_t_arch  --specify columns if necessary
-        SELECT  * FROM moved_rows;    
+        SELECT  * FROM moved_rows
+        ON CONFLICT (security, datetime) DO NOTHING;
     """
     engine.execute(query)
 
@@ -319,7 +320,7 @@ if __name__ == '__main__':
         logger.info('Update import settings')
         update_instrument_list()
         logger.info('Begin quotes reimport')
-        asyncio.run(import_new_tickers(False))
+        asyncio.run(import_new_tickers(refresh_tickers=False))
         logger.info('Bars updated')
         asyncio.run(clean_db())
         logger.info('DB Cleaned')

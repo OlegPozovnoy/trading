@@ -7,6 +7,8 @@ from pyrogram import Client
 import json
 import os
 
+import hashlib
+
 import tools.clean_processes
 import sql.get_table
 
@@ -25,12 +27,12 @@ engine = sql.get_table.engine
 
 TOKEN = os.environ["INVEST_TOKEN"]
 
-
+#@pytest.mark.asyncio
 async def test_send_hello():
     async with Client("my_ccount", api_id, api_hash) as app:
         await app.send_message(channel_id_urgent, str("test_login"))
 
-
+#@pytest.mark.asyncio
 async def test_load_chat():
     async with Client("my_ccount", api_id, api_hash) as app:
         chat = await app.get_chat(-1001656693918)
@@ -98,6 +100,34 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
                 await app.send_message(stream_id, string_buffer)
 
 
+def calculate_file_hash(filepath, chunk_size=1024):
+    """Вычисляет хеш SHA256 для файла."""
+    hash_algo = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        while chunk := f.read(chunk_size):
+            hash_algo.update(chunk)
+    return hash_algo.hexdigest()
+
+
+def remove_duplicates_by_content(folder_path):
+    """Удаляет дубликаты файлов в папке на основе содержимого."""
+    seen_hashes = {}  # Словарь для хранения хешей
+    for root, _, files in os.walk(folder_path):
+        for file_name in files:
+            full_path = os.path.join(root, file_name)
+
+            # Вычисляем хеш содержимого файла
+            file_hash = calculate_file_hash(full_path)
+
+            if file_hash in seen_hashes:
+                # Если хеш уже существует, удаляем файл
+                print(f"Удаляю дубликат: {full_path}")
+                os.remove(full_path)
+            else:
+                # Сохраняем хеш и путь
+                seen_hashes[file_hash] = full_path
+
+
 if __name__ == "__main__":
     print(datetime.datetime.now())
     if not tools.clean_processes.clean_proc("telegram_send", os.getpid(), 3):
@@ -107,7 +137,12 @@ if __name__ == "__main__":
     # waiting till monitor will do the job
     sleep(15)
 
+    remove_duplicates_by_content(URGENT_PATH)
+    remove_duplicates_by_content(NORMAL_PATH)
+
+
     asyncio.run(send_all())
+
     print(datetime.datetime.now())
 
 

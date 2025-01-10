@@ -283,7 +283,7 @@ def channel_stats():
         username = channel['username']
         isactive = channel['is_active']
         title = channel['title']
-        description = channel['description']
+        description = channel['description'].replace('\n', '')
         members_count = channel['members_count']
 
         query = {'channel_username': username}
@@ -292,10 +292,12 @@ def channel_stats():
         for news_item in news_collection.find(query):
             cnt += 1
             date = news_item['date'] if date is None else max(date, news_item['date'])
-        df_list.append([username, isactive, cnt, date, title, description, members_count])
+        df_list.append([username, isactive, cnt, date, title, members_count, description])
+
+
 
     res = pd.DataFrame(df_list,
-                       columns=['username', 'isactive', 'cnt', 'date', 'title', 'description', 'members_count'])
+                       columns=['username', 'isactive', 'cnt', 'date', 'title', 'members_count', 'description'])
     res = res.reset_index(drop=True)
     res.to_csv("channel_stats.csv", sep='\t')
 
