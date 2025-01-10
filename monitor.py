@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import traceback
 
@@ -15,6 +16,8 @@ from monitor.monitor_support_resistance import update_df_monitor
 from monitor.monitor_update_deal_imp_t import update_deals_imp_t
 from nlp.mongo_tools import news_tfidf
 from test import get_orderbook
+
+logger = logging.getLogger(__name__)
 
 pd.set_option('display.max_columns', None)
 
@@ -63,11 +66,16 @@ if __name__ == '__main__':
     except Exception as e:
         asyncio.run(telegram_send.send_message(f'normalize_money failed: {traceback.format_exc()}', True))
 
-    volume_tf = pd.DataFrame()
+    volume_tf = pd.DataFrame(columns=['security', 'std', 'inc', 'beta', 'base_inc', 'r2'])
     try:
         intresting_gains, df_volumes = monitor_gains_main(urgent_list)
         plita_list = get_orderbook(urgent_list)
+
+        logger.info(f"interesting gains: {intresting_gains}")
+        logger.info(f"df_monitor['code']: {df_monitor['code']}")
+        logger.info(f"plita_list: {plita_list}")
         intresting_gains = pd.concat([intresting_gains, df_monitor['code'], plita_list]).drop_duplicates()
+
         volume_tf = format_volumes(df_volumes[df_volumes['timeframe'] == 'days'])
         volume_tf = volume_tf[['security', 'std', 'inc', 'beta', 'base_inc', 'r2']]
     except Exception as e:

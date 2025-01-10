@@ -163,7 +163,7 @@ if __name__ == "__main__":
         exit(0)
     time.sleep(1)
     try:
-        asyncio.run(import_new_tickers(refresh_tickers=False))
+        asyncio.run(import_new_tickers(refresh_tickers=True))
     except Exception as ex:
         print("error", str(ex), datetime.datetime.now())
         sys.exit(1)
