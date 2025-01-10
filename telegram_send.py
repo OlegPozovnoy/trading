@@ -27,13 +27,11 @@ engine = sql.get_table.engine
 
 TOKEN = os.environ["INVEST_TOKEN"]
 
-#@pytest.mark.asyncio
-async def test_send_hello():
+async def mtest_send_hello():
     async with Client("my_ccount", api_id, api_hash) as app:
         await app.send_message(channel_id_urgent, str("test_login"))
 
-#@pytest.mark.asyncio
-async def test_load_chat():
+async def mtest_load_chat():
     async with Client("my_ccount", api_id, api_hash) as app:
         chat = await app.get_chat(-1001656693918)
         await app.get_chat_history_count(chat_id=-1001656693918)
