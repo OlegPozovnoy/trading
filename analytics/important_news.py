@@ -49,7 +49,7 @@ def all_news():
 with open("important.txt", "w") as f:
     f.write(important_news())
 
-subprocess.run(["python", "send_email.py"])
+subprocess.run(["python", "/home/oleg/PycharmProjects/trading/analytics/send_email.py"], check=True)
 
 print(len(important_news().split()), important_news())
 
