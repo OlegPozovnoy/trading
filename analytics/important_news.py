@@ -9,7 +9,9 @@ def important_news(days=1):
     urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
     print(urgent_list)
 
-    urgent_list = urgent_list + ['VTBR'] #['LKOH', 'SBER', 'VKCO', 'ALRS', 'VTBR', 'ROSN', 'RUAL', 'NOTK', 'SMLT', 'YDEX']
+    urgent_list = urgent_list + ['VTBR','GAZP', 'SBER', 'YDEX', 'CHMF', 'RUAL', 'VKCO', 'ALRS', 'FIVE', 'NOTK'] #'AFLT', 'MTLR', 'SGZH','SMLT', 
+
+    #urgent_list = ['VKCO']
 
     urgent_list.sort()
     print(urgent_list)

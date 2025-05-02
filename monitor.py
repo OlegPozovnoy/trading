@@ -93,8 +93,8 @@ if __name__ == '__main__':
         pos_df['l_plit'] = pos_df['l_plit'].astype(float).round(2).astype(str)
 
         pos_df = cut_trailing(
-            normalize_money(pos_df, ['pnl', 'volume']),
-            ['pnl', 'mktprice', 'volume', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty'])
+                normalize_money(pos_df, ['pnl', 'volume']),
+                ['pnl', 'mktprice', 'volume', 'lower', 'upper', 'bid', 'bid_qty', 'ask', 'ask_qty'])
 
         send_df(pos_df[['code', 'pos', 'pnl', 'mktprice', 'volume', 'actnum', 'levels', 'inc', 'std']], True)
         send_df(pos_df[['code', 'levels', 'lower', 'upper',  'bid_qty','bid', 'mktprice', 'ask', 'ask_qty', 'l_plit']], True)

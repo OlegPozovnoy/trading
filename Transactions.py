@@ -433,6 +433,9 @@ def process_orders(orderProcesser):
             # добавляем в очередь блокировки с задержкой pause
             if_not_exist = orderProcesser.add_task(
                 (comment, secCode, quantity, price_bound, max_amount, comment), order['pause'])  # key 1st
+
+            logger.info(f"{if_not_exist=}")
+
             if if_not_exist:
                 if order['provider'] == 'tcs':
                     logger.warning(
