@@ -13,8 +13,8 @@ engine = sql.get_table.engine
 if 'schema' not in locals():
     schema = 'public'
 
-quantity = -392
-code = 'BSPB'
+quantity = -5000
+code = 'SU26238RMFS4'
 
 barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
 barrier_down = None  # 29050 #28850 #12#2700
@@ -25,7 +25,7 @@ provider = None
 
 state = 1
 max_amount = 10
-pause = 5
+pause = 10
 
 
 def execute_manual_order(quantity, code, barrier_up, barrier_down, order_nums, state, max_amount, pause, provider=None):

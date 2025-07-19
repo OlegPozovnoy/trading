@@ -77,7 +77,8 @@ def get_ticker(ticker_list):
                 )
 
     tickers_df = pd.DataFrame(tickers)
-    exchange_filter = tickers_df["exchange"].str.startswith('MOEX') | tickers_df["exchange"].str.startswith('FORTS')
+    tickers_df.to_csv('tickers.csv', sep=';')
+    exchange_filter = tickers_df["exchange"].str.startswith('MOEX') | tickers_df["exchange"].str.startswith('FORTS')| tickers_df["exchange"].str.startswith('moex_mrng_evng_e_wknd_dlr')
     tickers_df = tickers_df[exchange_filter]
     tickers_df = tickers_df[tickers_df["ticker"].isin(ticker_list)]
     return tickers_df
@@ -89,7 +90,8 @@ def df_postprocessing(final):
         final[col] = final[col].astype('float')
     final.volume = pd.to_numeric(final.volume, downcast='integer')
     final['datetime'] = pd.to_datetime(final['time']).dt.tz_convert(tz="Europe/Moscow")
-    final.drop(['time', 'is_complete'], axis=1, inplace=True)
+    final.to_csv('df_postprocessing.csv')
+    final.drop(['time', 'is_complete', 'candle_source'], axis=1, inplace=True)
     final.drop_duplicates(inplace=True)
     return final
 
@@ -113,6 +115,7 @@ def update_import_params():
     if len(tickers) == 0:
         logger.error("list of tickers for import in file is empty")
         return
+    print(f'{tickers=}')
     df = get_ticker(tickers)
 
     sql.get_table.df_to_sql(df, "tinkoff_params")
@@ -128,9 +131,10 @@ async def import_new_tickers(refresh_tickers=False):
     :return: None
     """
     df = update_import_params() if refresh_tickers else sql.get_table.query_to_df("select * from public.tinkoff_params")
-
     query = f"select security, max(datetime) as last_row from public.df_all_candles_t group by security"
     df_lastrec = sql.get_table.query_to_df(query)
+    print(df, df_lastrec)
+
     if len(df_lastrec) == 0:
         df_lastrec = pd.DataFrame(columns=['security', 'last_row'])
     df = df.merge(df_lastrec, left_on='ticker', right_on='security', how='left')
@@ -138,13 +142,18 @@ async def import_new_tickers(refresh_tickers=False):
                       (lambda t: now() - timedelta(days=90) if pd.isnull(t) else t + timedelta(minutes=1, seconds=1)))
 
     candles = await candles_api_multi_call(df)
+
+    print('candleslen', len(candles))
+
     if len(candles) > 0:
         print(f"{len(candles)} rows to append")
         candles = df_postprocessing(candles)
+        candles.to_csv('candles.csv', sep=';')
+        print(candles.columns)
         candles.to_sql('df_all_candles_t', engine, if_exists='append', index=False)
 
 
-#@sync_timed()
+@sync_timed()
 def update_diffhist():
     query = "select * from public.diffhistview_t1510"
     df = sql.get_table.query_to_df(query)

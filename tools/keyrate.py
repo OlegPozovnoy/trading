@@ -1,10 +1,12 @@
 import requests
 import lxml.html
 import re
-import tkinter as tk
-from tkinter import messagebox
+#import tkinter as tk
+#from tkinter import messagebox
 import time
 import logging
+import sql.get_table
+from datetime import datetime, time as dt_time
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO,
@@ -13,7 +15,7 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-url = 'https://www.cbr.ru/press/pr/?file=07062024_133000key.htm'
+url = 'https://www.cbr.ru/press/pr/?file=06062025_133000key.htm'
 
 
 def fetch_page(url):
@@ -53,10 +55,11 @@ def extract_first_number_from_h1(html_text):
 
 
 def show_messagebox(message):
-    root = tk.Tk()
-    root.withdraw()  # Скрытие главного окна
-    messagebox.showinfo("Сообщение", message)
-    root.destroy()  # Уничтожение главного окна после закрытия messagebox
+    pass
+    #root = tk.Tk()
+    #root.withdraw()  # Скрытие главного окна
+    #messagebox.showinfo("Сообщение", message)
+    #root.destroy()  # Уничтожение главного окна после закрытия messagebox
 
 
 # Основная логика
@@ -66,18 +69,42 @@ while True:
         first_number = extract_first_number_from_h1(html_text)
         if first_number is not None:
             break
-    logging.info('Повторная попытка через 60 секунд.')
-    time.sleep(60)
+    # Получаем текущее время
+    now = datetime.now().time()
+    print(now)
+    # Задаем пороговое время
+    threshold1 = dt_time(13, 29, 40)
+
+    # Задаем пороговое время
+    threshold2 = dt_time(13, 28, 00)
+
+    # Сравнение
+    if now > threshold1:
+        sleeptimer = 1
+    elif now > threshold2:
+        sleeptimer = 3
+    else:
+        sleeptimer = 30
+    logging.info(f'Повторная попытка через {sleeptimer} секунд.')
+    time.sleep(sleeptimer)
 
 
-if first_number <= 16.5:
-    query = "update public.orders_my set state = 1 where id = 179"
+if first_number > 20.5 or abs(first_number) < 0.5 :
+    query = "update public.orders_my set state = 1 where id = 28"
+    sql.get_table.exec_query(query)
+    query = "update public.orders_my set state = 1 where id = 29"
+    sql.get_table.exec_query(query)
 elif first_number <= 17.5:
-    query = "update public.orders_my set state = 1 where id = 180"
+    pass
+    #query = "update public.orders_my set state = 1 where id = 180"
 else:
-    print("пиздец")
+    pass
+    #print("пиздец")
 
+print(first_number)
 if first_number is not None:
-    show_messagebox(float(first_number))
+    print(float(first_number))
+    #show_messagebox(float(first_number))
 else:
-    show_messagebox("Число не найдено")
+    print("Число не найдено")
+    #show_messagebox("Число не найдено")
