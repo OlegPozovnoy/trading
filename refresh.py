@@ -101,7 +101,7 @@ def record_bucket(time, exec):
     return bucket
 
 
-start_refresh = compose_td_datetime("09:00:00")
+start_refresh = compose_td_datetime("08:00:00")
 end_refresh = compose_td_datetime("23:59:00")
 
 if __name__ == '__main__':

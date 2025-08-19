@@ -125,8 +125,11 @@ def get_all_gains(min_lag, base_asset='MX'):
     """
 
     df = sql.get_table.query_to_df(query)
-    base_inc = df[df['security'] == base_asset]['inc'].iloc[0]
-    df['base_inc'] = base_inc
+    try:
+        base_inc = df[df['security'] == base_asset]['inc'].iloc[0]
+        df['base_inc'] = base_inc
+    except:
+        df['base_inc'] = 0
     return df
 
 
