@@ -19,6 +19,7 @@ from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_sign
     get_query_events_update_prices, get_remove_sec_duplicates, get_remove_fut_duplicates
 from tools import compose_td_datetime
 from tools.utils import sync_timed
+from sql.get_table import exec_script
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -48,7 +49,7 @@ def process_error():
 
 @sync_timed()
 def market_data_upd(sequential=True):
-    current_time = datetime.datetime.now(moscow_tz).isoformat()
+    current_time = datetime.datetime.now(moscow_tz).strftime("%Y-%m-%d %H:%M:%S")
 
     sql_query_list = [
         get_query_fut_upd(current_time),
@@ -56,8 +57,8 @@ def market_data_upd(sequential=True):
         get_query_bidask_upd(current_time)
     ]
     if sequential:
-        query = ";".join(sql_query_list)
-        sql.get_table.exec_query(query)
+        script = ";".join(sql_query_list)
+        exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
@@ -71,8 +72,8 @@ def process_signals(sequential=True):
         get_query_deact_by_endtime(),
     ]
     if sequential:
-        query = ";".join(sql_query_list)
-        sql.get_table.exec_query(query)
+        script = ";".join(sql_query_list)
+        exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
@@ -86,8 +87,8 @@ def process_events(sequential=True):
         get_query_events_update_prices()
     ]
     if sequential:
-        query = ";".join(sql_query_list)
-        sql.get_table.exec_query(query)
+        script = ";".join(sql_query_list)
+        exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
 

@@ -79,3 +79,4 @@ my_ccount.session
 /tg_buffer/
 /monitor/level_image/
 cache/
+configs/jsonlogs/

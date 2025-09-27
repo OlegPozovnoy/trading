@@ -1,5 +1,6 @@
 import traceback
-
+# sql/get_table.py — добавь рядом с exec_query
+from typing import Optional, Any
 from sqlalchemy import create_engine, text
 import logging
 import pandas as pd
@@ -9,6 +10,38 @@ engine = create_engine(
     autocommit=True)  # insufficient data in "D" message // pool_pre_ping=True
 logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
+
+def exec_script(sql_text: str, params: Optional[tuple | dict] = None) -> None:
+    """
+    Выполняет МНОГОСТРОЧНЫЙ скрипт (несколько SQL-операторов, разделённых ';')
+    в ОДНОЙ транзакции. Без сырых BEGIN/COMMIT в тексте.
+    Быстро: один вызов к серверу и один COMMIT.
+    """
+    # Берём сырой DBAPI-коннект из SQLAlchemy engine
+    conn = engine.raw_connection()  # psycopg2 connection
+    try:
+        # Для транзакции нужно выключить автокоммит у DBAPI-коннекта
+        try:
+            conn.autocommit = False
+        except Exception:
+            pass
+
+        cur = conn.cursor()
+        try:
+            if params is not None:
+                # ВАЖНО: для именованных параметров в тексте должны быть %(name)s,
+                # для позиционных — %s. (psycopg2-стиль)
+                cur.execute(sql_text, params)
+            else:
+                cur.execute(sql_text)
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
+    finally:
+        conn.close()
 
 def exec_query(query):
     return engine.execute(text(query))
