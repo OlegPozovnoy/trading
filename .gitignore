@@ -1,16 +1,81 @@
-*.csv
-*.log
-*.png
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.pyc
+
+# ---- Environments & Secrets ----
+.venv/
+venv/
+.env
+.env.*
 *.env
+
+# ---- Build / Cache / Logs ----
+dist/
+build/
+*.egg-info/
+.cache/
+.cache/**
+*.log
+logs/
+tmp/
+tmp/**
+.pytest_cache/
+.mypy_cache/
+.tox/
+
+# ---- IDE ----
+.vscode/
+.idea/
+*.code-workspace
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Data / Models / Artifacts ----
+# Keep data out of git; use LFS/DVC/S3 if needed
+data/
+datasets/
+models/
+checkpoints/
+artifacts/
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.feather
+*.parquet
+*.pkl
+*.joblib
+*.npz
+*.npy
+*.h5
+*.onnx
+*.pt
+*.bin
+
+# ---- Archives ----
+*.zip
+*.tar
+*.tar.gz
+
+# ---- Project-specific (from your original) ----
+*.png
 **/.ipynb_checkpoints/
 /level_images/
 **/__pycache__
 my_ccount.session
 /research/
 /.idea/
-
 /tg_buffer/urgent/
 /tg_buffer/normal/
 /tg_buffer/
 /monitor/level_image/
-
+cache/
