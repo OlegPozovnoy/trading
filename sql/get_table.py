@@ -1,10 +1,10 @@
 import logging
-import traceback
 # sql/get_table.py — добавь рядом с exec_query
 from typing import Optional
 
 import pandas as pd
 from sqlalchemy import create_engine, text
+from sqlalchemy import text as SAtext
 
 engine = create_engine(
     'postgresql+psycopg2://postgres:postgres@localhost:5432/test?application_name=trading-refresh'
@@ -57,18 +57,44 @@ def query_to_list(query):
     return exec_query(query).mappings().all()
 
 
-def df_to_sql(df, table_name, index = False):
+def df_to_sql(df, table_name, index: bool = False):
+    """
+    Твоя семантика:
+      - если таблица уже есть → быстро очистить и добавить (TRUNCATE + append)
+      - если таблицы нет / схема не совпала → fallback на replace (создаст заново)
+    Плюс ускорения: method='multi', chunksize=2000.
+    """
     try:
-        engine.execute(f"delete from {table_name}")
-    except:
-        logging.error('clean table failed', traceback.format_exc())
-    finally:
-        try:
-            df.to_sql(table_name, engine, if_exists='append', index=index)
-        except:
-            logging.error('appending to table failed')
-            logging.error(traceback.format_exc())
-            df.to_sql(table_name, engine, if_exists='replace', index=index)
+        # Пытаемся быстрый путь: TRUNCATE + append в одной транзакции
+        with engine.begin() as conn:
+            try:
+                conn.execute(SAtext(f'TRUNCATE TABLE "{table_name}"'))
+            except Exception:
+                # нет таблицы / нет прав и т.п. — попробуем replace ниже
+                pass
+            else:
+                # удалось TRUNCATE → пробуем батч-вставку
+                df.to_sql(
+                    table_name,
+                    con=conn,
+                    if_exists="append",
+                    index=index,
+                    method="multi",
+                    chunksize=2000,
+                )
+                return  # готово: быстрый путь сработал
+
+        # Если дошли сюда, либо TRUNCATE не прошёл, либо append упал → делаем replace
+        df.to_sql(
+            table_name,
+            con=engine,
+            if_exists="replace",
+            index=index,
+            method="multi",
+            chunksize=2000,
+        )
+    except Exception:
+        logging.error("df_to_sql failed for %s", table_name, exc_info=True)
 
 
 def load_candles():
