@@ -21,6 +21,8 @@ from tools import compose_td_datetime
 from tools.utils import sync_timed
 
 from sql.get_table import exec_script
+from tools.health import ensure_health_table, heartbeat
+
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -50,7 +52,7 @@ def process_error():
 
 @sync_timed()
 def market_data_upd(sequential=True):
-    current_time = datetime.datetime.now(moscow_tz).strftime("%Y-%m-%d %H:%M:%S")
+    current_time = datetime.datetime.now(moscow_tz).isoformat(timespec="microseconds")
 
     sql_query_list = [
         get_query_fut_upd(current_time),
@@ -62,6 +64,7 @@ def market_data_upd(sequential=True):
         exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    heartbeat("market_data_upd")
 
 
 @sync_timed()
@@ -77,6 +80,7 @@ def process_signals(sequential=True):
         exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    heartbeat("process_signals")
 
 
 @sync_timed()
@@ -92,6 +96,7 @@ def process_events(sequential=True):
         exec_script(script)
     else:
         asyncio.run(sql.async_exec.exec_list(sql_query_list))
+    heartbeat("process_events")
 
 
 def record_bucket(time, exec):
@@ -102,6 +107,8 @@ def record_bucket(time, exec):
     sql.get_table.exec_query(query)
     return bucket
 
+
+ensure_health_table()
 
 start_refresh = compose_td_datetime("08:00:00")
 end_refresh = compose_td_datetime("23:59:00")
