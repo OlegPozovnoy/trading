@@ -17,10 +17,10 @@ def exec_script(sql_text: str, params: Optional[tuple | dict] = None) -> None:
     в ОДНОЙ транзакции. Без сырых BEGIN/COMMIT в тексте.
     Быстро: один вызов к серверу и один COMMIT.
     """
-    # Берём сырой DBAPI-коннект из SQLAlchemy engine
-    conn = engine.raw_connection()  # psycopg2 connection
+    # Берём сырой DBAPI-коннект из SQLAlchemy engine (psycopg2 connection)
+    conn = engine.raw_connection()
     try:
-        # Для транзакции нужно выключить автокоммит у DBAPI-коннекта
+        # гарантируем транзакционный режим
         try:
             conn.autocommit = False
         except Exception:
@@ -29,8 +29,7 @@ def exec_script(sql_text: str, params: Optional[tuple | dict] = None) -> None:
         cur = conn.cursor()
         try:
             if params is not None:
-                # ВАЖНО: для именованных параметров в тексте должны быть %(name)s,
-                # для позиционных — %s. (psycopg2-стиль)
+                # psycopg2-плейсхолдеры: %s или %(name)s
                 cur.execute(sql_text, params)
             else:
                 cur.execute(sql_text)
@@ -42,6 +41,7 @@ def exec_script(sql_text: str, params: Optional[tuple | dict] = None) -> None:
             cur.close()
     finally:
         conn.close()
+
 
 def exec_query(query):
     return engine.execute(text(query))

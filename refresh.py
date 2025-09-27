@@ -19,6 +19,7 @@ from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_sign
     get_query_events_update_prices, get_remove_sec_duplicates, get_remove_fut_duplicates
 from tools import compose_td_datetime
 from tools.utils import sync_timed
+
 from sql.get_table import exec_script
 
 logger = logging.getLogger()
