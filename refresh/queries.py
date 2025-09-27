@@ -95,7 +95,13 @@ def get_query_bidask_upd(current_time):
     обновляем deals_ba_t1 из deals_ba (перестраивая deals_ba_view)
     """
     return f"""
-    INSERT INTO deals_ba_hist SELECT code, price, '{current_time}' as last_upd, bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask FROM deals_ba_view;
+    INSERT INTO deals_ba_hist
+      (code, price, last_upd, bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask)
+    SELECT
+      code, price, '{current_time}'::timestamptz as last_upd,
+      bid, ask, updated_at, bidt1, askt1, updated_at_t1, dbid, dask
+    FROM deals_ba_view;
+    
     TRUNCATE TABLE deals_ba_t1;
     INSERT INTO deals_ba_t1 SELECT * FROM deals_ba;
     """
@@ -187,7 +193,7 @@ def get_query_events_update_jumps():
 
 
 def get_query_events_update_prices():
-     return      """    
+    return """    
      UPDATE orders_event_activator_price oeap
     SET is_activated = true,
         activate_time = now()
@@ -227,6 +233,7 @@ def get_remove_sec_duplicates():
         WHERE row_num > 1
     );
     """
+
 
 def get_remove_fut_duplicates():
     """

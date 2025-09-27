@@ -1,13 +1,15 @@
+import logging
 import traceback
 # sql/get_table.py — добавь рядом с exec_query
-from typing import Optional, Any
-from sqlalchemy import create_engine, text
-import logging
+from typing import Optional
+
 import pandas as pd
+from sqlalchemy import create_engine, text
 
 engine = create_engine(
-    'postgresql://postgres:postgres@localhost:5432/test').execution_options(
-    autocommit=True)  # insufficient data in "D" message // pool_pre_ping=True
+    'postgresql+psycopg2://postgres:postgres@localhost:5432/test?application_name=trading-refresh'
+).execution_options(autocommit=True)
+
 logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 

@@ -1,28 +1,25 @@
 import asyncio
+import datetime
+import logging
 import os
+import sys
+import time
 import traceback
 
 import pytz
 
-import sql.get_table
 import sql.async_exec
-import time
-import datetime
-import logging
-import sys
-
+import sql.get_table
 import telegram_send
 import tools.clean_processes
 from refresh.orders_state import update_orders_state
 from refresh.queries import get_query_fut_upd, get_query_sec_upd, get_query_signals_upd, get_query_store_jump_events, \
     get_query_deact_by_endtime, get_query_bidask_upd, get_query_events_update_news, get_query_events_update_jumps, \
-    get_query_events_update_prices, get_remove_sec_duplicates, get_remove_fut_duplicates
-from tools import compose_td_datetime
-from tools.utils import sync_timed
-
+    get_query_events_update_prices
 from sql.get_table import exec_script
+from tools import compose_td_datetime
 from tools.health import ensure_health_table, heartbeat
-
+from tools.utils import sync_timed
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -131,8 +128,8 @@ if __name__ == '__main__':
             logger.error(e)
             process_error()
             # на всякий случай удалим задвоения в secquotes futquotes
-            #sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
-            #asyncio.run(sql.async_exec.exec_list(sql_query_list))
+            # sql_query_list = [get_remove_sec_duplicates, get_remove_fut_duplicates]
+            # asyncio.run(sql.async_exec.exec_list(sql_query_list))
 
         try:
             process_signals()
@@ -140,7 +137,7 @@ if __name__ == '__main__':
             process_events()
 
             update_orders_state()
-            #log_timing()
+            # log_timing()
         except Exception as e:
             logger.error(e)
             process_error()
@@ -149,5 +146,5 @@ if __name__ == '__main__':
         if bucket >= 0:
             logger.warning(f"TOO LONG {datetime.datetime.now()} {time.time() - start}")
 
-        #process_signal()
+        # process_signal()
         time.sleep(0.25 - (time.time() % 0.25))
