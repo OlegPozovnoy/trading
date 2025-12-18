@@ -1,27 +1,26 @@
+import asyncio
 import datetime
 import logging
 import os
-import asyncio
 import re
 import string
-import traceback
 import time
+import traceback
 from typing import Union
 
 from dotenv import load_dotenv, find_dotenv
 from pyrogram import Client
+from pyrogram import raw, utils
 
 import sql.get_table
+import tools.clean_processes
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
+from nlp import client
 from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
-
-import tools.clean_processes
-from nlp import client
 from tg_channels import ClientWrapper
 from tools import compose_td_datetime
 from tools.utils import sync_timed, async_timed
-from pyrogram import types, raw, utils
 
 load_dotenv(find_dotenv('my.env', True))
 
@@ -98,6 +97,32 @@ async def get_chat_history_offset2(wrapper: ClientWrapper, chat_id: Union[int, s
         return result
 
 
+# --- предкомпилированный антиспам для cbrstocksprivate (как у тебя в if) ---
+_CBR_NOISE = re.compile(
+    r'(Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный '
+    r'спрос|Рейтинг акций по чистым)',
+    re.IGNORECASE
+)
+
+
+def _msg_text(msg) -> str:
+    """Собираем caption+text один раз, без None и лишних пробелов."""
+    c = (msg.caption or '').strip()
+    t = (msg.text or '').strip()
+    if c and t:
+        return f"{c} {t}"
+    return c or t
+
+
+def _is_noise_channel(channel_username: str, text: str) -> bool:
+    """Выносим правило «пропускаем шум» в одну функцию (быстрый вызов + читаемо)."""
+    if channel_username == 'cbrstocksprivate' and _CBR_NOISE.search(text):
+        return True
+    return False
+
+
+
+
 @sync_timed()
 def process_message(msg, channel):
     res = {
@@ -111,10 +136,8 @@ def process_message(msg, channel):
 
     try:
         if msg.caption is not None or msg.text is not None:
-            newstext = f"{msg.caption or ''} {msg.text or ''}"
-            if res['channel_username'] == 'cbrstocksprivate' and re.search(
-                    r'Аномальный объем|Аномальное изменение цены|Аномальная лимитка|Бумаги с повышенной вероятностью|Аномальный спрос|Рейтинг акций по чистым ',
-                    newstext):
+            newstext = _msg_text(msg)
+            if _is_noise_channel(res['channel_username'], newstext):
                 return None
             tags = build_news_tags(newstext)
             res['tags'] = tags

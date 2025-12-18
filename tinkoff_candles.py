@@ -1,24 +1,22 @@
+import asyncio
 import datetime
 import json
 import logging
 import os
-import time
 import sys
+import time
 from _decimal import Decimal
 from datetime import timedelta
 
 import pandas as pd
+from dotenv import load_dotenv
 from tinkoff.invest import CandleInterval, Client
-from tinkoff.invest.utils import quotation_to_decimal, now
 from tinkoff.invest.services import InstrumentsService
+from tinkoff.invest.utils import quotation_to_decimal, now
 
 import sql.get_table
-from dotenv import load_dotenv
-
 import tools.clean_processes
 from tools.utils import async_timed, sync_timed
-
-import asyncio
 
 # import tools.pandas_full_view
 

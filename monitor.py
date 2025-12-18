@@ -14,7 +14,6 @@ from monitor.monitor_imports import monitor_import
 from monitor.monitor_plita import store_plita_values
 from monitor.monitor_support_resistance import update_df_monitor
 from monitor.monitor_update_deal_imp_t import update_deals_imp_t
-from nlp.mongo_tools import news_tfidf
 from test import get_orderbook
 
 logger = logging.getLogger(__name__)

@@ -1,12 +1,10 @@
-import requests
-import lxml.html
-import re
-#import tkinter as tk
-#from tkinter import messagebox
 import time
 import logging
 import sql.get_table
 from datetime import datetime, time as dt_time
+import re
+import requests
+import html
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO,
@@ -15,95 +13,116 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-url = 'https://www.cbr.ru/press/pr/?file=06062025_133000key.htm'
+url = 'https://cbr.ru/press/pr/?file=19122025_133000key.htm'
+#url = 'https://cbr.ru/press/pr/?file=24102025_133000key.htm'
+
+RATE_RE = re.compile(
+    r"(?is)принял\s+решение[^.]{0,450}?ключевую\s+ставку[^.]{0,250}?"
+    r"(?:до|на\s+уровне)\s*([0-9]{1,2}(?:[.,][0-9]{1,2})?)\s*%?\s*годов"
+)
+
+# Запасной вариант (если вдруг первое предложение сверстано нестандартно)
+RATE_RE_FALLBACK = re.compile(
+    r"(?is)\bключевую\s+ставку\b.{0,300}?(?:до|на\s+уровне)\s*([0-9]{1,2}(?:[.,][0-9]{1,2})?)\s*%?\s*годов"
+)
+
+def strip_tags(s: str) -> str:
+    """Грубое удаление HTML-тегов + нормализация пробелов."""
+    s = re.sub(r"<script\b[^>]*>.*?</script>", " ", s, flags=re.I | re.S)
+    s = re.sub(r"<style\b[^>]*>.*?</style>", " ", s, flags=re.I | re.S)
+    s = re.sub(r"<[^>]+>", " ", s)
+    s = s.replace("\xa0", " ").replace("&nbsp;", " ")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
 
 
-def fetch_page(url):
-    try:
-        r = requests.get(url)
-        if r.status_code == 200:
-            logging.info('Страница успешно загружена.')
-            return r.text
-        else:
-            logging.info('Страница не найдена (код состояния: %d).', r.status_code)
-            return None
-    except requests.exceptions.RequestException as e:
-        logging.info('Ошибка при запросе страницы: %s.', str(e))
+def fetch(url: str, timeout=20) -> tuple[int, str]:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+        "Connection": "keep-alive",
+    }
+    r = requests.get(url, headers=headers, timeout=timeout)
+    r.raise_for_status()
+    r.encoding = r.apparent_encoding or "utf-8"
+    return r.status_code, r.text
+
+
+
+def extract_rate_from_html(page_html: str) -> float | None:
+    """Извлекаем ставку из HTML (сначала пытаемся по тексту, потом по 'сырым' данным)."""
+    raw = html.unescape(page_html)
+    text = strip_tags(raw)
+
+    m = RATE_RE.search(text) or RATE_RE_FALLBACK.search(text)
+    if not m:
+        # Иногда помогает поиск по "сырому" HTML (если слова разорваны тегами)
+        m = RATE_RE.search(raw) or RATE_RE_FALLBACK.search(raw)
+
+    if not m:
         return None
 
+    num = m.group(1).replace(",", ".")
+    return float(num)
 
-def extract_first_number_from_h1(html_text):
-    try:
-        page = lxml.html.document_fromstring(html_text)
-        h1_elements = page.cssselect('h1')
-        h1_texts = "\n".join([element.text_content() for element in h1_elements])
-
-        # Извлечение чисел с запятой в качестве десятичного разделителя
-        numbers_with_comma = re.findall(r'\d+,\d+|\d+', h1_texts)
-
-        if numbers_with_comma:
-            # Замена запятой на точку и конвертация в float для первого числа
-            first_number = float(numbers_with_comma[0].replace(',', '.'))
-            logging.info('Число найдено: %f', first_number)
-            return first_number
-        else:
-            logging.info('Число не найдено в содержимом h1.')
-            return None
-    except Exception as e:
-        logging.info('Ошибка при разборе HTML: %s.', str(e))
-        return None
-
-
-def show_messagebox(message):
-    pass
-    #root = tk.Tk()
-    #root.withdraw()  # Скрытие главного окна
-    #messagebox.showinfo("Сообщение", message)
-    #root.destroy()  # Уничтожение главного окна после закрытия messagebox
 
 
 # Основная логика
 while True:
-    html_text = fetch_page(url)
-    if html_text:
-        first_number = extract_first_number_from_h1(html_text)
-        if first_number is not None:
-            break
-    # Получаем текущее время
-    now = datetime.now().time()
-    print(now)
-    # Задаем пороговое время
-    threshold1 = dt_time(13, 29, 40)
+    try:
+        status, page = fetch(url)
+        if page:
+            rate = extract_rate_from_html(page)
+            if rate is not None:
+                break
+            else:
+                print(f"не удалось извлечь ставку (HTTP {status})")
+        # Получаем текущее время
+        now = datetime.now().time()
+        print(now)
+        # Задаем пороговое время
+        threshold1 = dt_time(13, 29, 40)
+        threshold2 = dt_time(13, 28, 00)
+        threshold_out = dt_time(13, 35, 00)
 
-    # Задаем пороговое время
-    threshold2 = dt_time(13, 28, 00)
+        # Сравнение
+        if now > threshold_out:
+            sleeptimer = 100000000
+        elif now > threshold1:
+            sleeptimer = 0.5
+        elif now > threshold2:
+            sleeptimer = 3
+        else:
+            sleeptimer = 30
+        logging.info(f'Повторная попытка через {sleeptimer} секунд.')
+        time.sleep(sleeptimer)
 
-    # Сравнение
-    if now > threshold1:
-        sleeptimer = 1
-    elif now > threshold2:
-        sleeptimer = 3
-    else:
-        sleeptimer = 30
-    logging.info(f'Повторная попытка через {sleeptimer} секунд.')
-    time.sleep(sleeptimer)
+    except requests.HTTPError as e:
+        code = getattr(e.response, "status_code", None)
+        print(f"не открылось (HTTP {code})")
+    except requests.RequestException as e:
+        print(f"не открылось ({type(e).__name__}: {e})")
+    except Exception as e:
+        print(f"ошибка парсинга ({type(e).__name__}: {e})")
 
 
-if first_number > 20.5 or abs(first_number) < 0.5 :
-    query = "update public.orders_my set state = 1 where id = 28"
+if rate > 15.5: #or abs(first_number) < 0.5 :
+    query = "update public.orders_my set state = 1 where id = 43"
     sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 29"
+    query = "update public.orders_my set state = 1 where id = 45"
     sql.get_table.exec_query(query)
-elif first_number <= 17.5:
+elif rate <= 15.5:
     pass
     #query = "update public.orders_my set state = 1 where id = 180"
 else:
     pass
     #print("пиздец")
 
-print(first_number)
-if first_number is not None:
-    print(float(first_number))
+print(rate)
+if rate is not None:
+    print(float(rate))
     #show_messagebox(float(first_number))
 else:
     print("Число не найдено")
