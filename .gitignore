@@ -71,7 +71,8 @@ artifacts/
 **/.ipynb_checkpoints/
 /level_images/
 **/__pycache__
-my_ccount.session
+*.session
+*.session-journal
 /research/
 /.idea/
 /tg_buffer/urgent/
