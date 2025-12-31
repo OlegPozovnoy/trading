@@ -109,9 +109,9 @@ while True:
 
 
 if rate > 15.5: #or abs(first_number) < 0.5 :
-    query = "update public.orders_my set state = 1 where id = 43"
+    query = "update public.orders_my set state = 1 where id = 46"
     sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 45"
+    query = "update public.orders_my set state = 1 where id = 47"
     sql.get_table.exec_query(query)
 elif rate <= 15.5:
     pass
