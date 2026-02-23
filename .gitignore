@@ -66,13 +66,15 @@ artifacts/
 *.tar
 *.tar.gz
 
+# Pyrogram / Telegram sessions
+*.session
+*.session-journal
+
 # ---- Project-specific (from your original) ----
 *.png
 **/.ipynb_checkpoints/
 /level_images/
 **/__pycache__
-*.session
-*.session-journal
 /research/
 /.idea/
 /tg_buffer/urgent/
@@ -82,3 +84,4 @@ artifacts/
 cache/
 configs/jsonlogs/
 tools/reports/
+

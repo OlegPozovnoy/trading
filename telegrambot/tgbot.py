@@ -1,5 +1,8 @@
 import logging
 import os
+from pathlib import Path
+import subprocess
+import sys
 from dotenv import load_dotenv, find_dotenv
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes, ConversationHandler, \
@@ -8,8 +11,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes, Conversation
 from telegrambot.queries import get_orders, place_order, invert_state
 import tools.clean_processes
 
-logger = logging.getLogger()
+#logger = logging.getLogger()
+logger = logging.getLogger("tgbot")
 logger.setLevel(logging.INFO)
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+logger.info(BASE_DIR)
 
 load_dotenv(find_dotenv('my.env', raise_error_if_not_found=True))
 TOKEN = os.getenv('tg_key')
@@ -19,7 +26,8 @@ ROOT, GET_CHOICE, UPDATE_CHOICE = range(3)
 reply_keyboard = [["code", "quantity", "state"],
                   ["barrier_up", "max_amount", "pause"],
                   ["provider", "barrier_down", "order_nums"],
-                  ["get_orders", "invert_state", "place_order"]]
+                  ["get_orders", "invert_state", "place_order"],
+                  ["send_news"]]
 reply_markup = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=False)
 
 loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
@@ -58,6 +66,21 @@ async def root(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             result = place_order(context.user_data)
             await update.get_bot().send_message(update.effective_chat.id, result,
                                                 reply_markup=reply_markup, parse_mode='HTML')
+        elif update.message.text == 'send_news':
+            script_path = BASE_DIR / "analytics" / "important_news.py"
+            try:
+                logger.info("Launching important_news script: %s", script_path)
+                subprocess.Popen([sys.executable, str(script_path)])
+                text = "Запустил important_news.py, новости должны прийти тебе на почту."
+            except Exception as e:
+                logger.exception("Failed to launch important_news.py: %s", e)
+                text = "Не смог запустить important_news.py, смотри лог."
+
+            await update.get_bot().send_message(
+                update.effective_chat.id,
+                text,
+                reply_markup=reply_markup,
+            )
 
         await update.message.reply_text(msg, reply_markup=reply_markup)
         return GET_CHOICE
@@ -140,9 +163,9 @@ def main():
         states={
             ROOT: [MessageHandler(filters=filters.TEXT & ~filters.COMMAND, callback=root)],
             GET_CHOICE: [
-                MessageHandler(filters=filters.TEXT & ~filters.COMMAND & ~filters.Regex('^(get_orders|place_order)$'),
+                MessageHandler(filters=filters.TEXT & ~filters.COMMAND & ~filters.Regex('^(get_orders|place_order|send_news)$'),
                                callback=regular_choice),
-                MessageHandler(filters=filters.TEXT & ~filters.COMMAND & filters.Regex('^(get_orders|place_order)$'),
+                MessageHandler(filters=filters.TEXT & ~filters.COMMAND & filters.Regex('^(get_orders|place_order|send_news)$'),
                                callback=root)
             ],  #
         },

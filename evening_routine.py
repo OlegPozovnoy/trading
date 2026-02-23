@@ -25,7 +25,8 @@ logger.addHandler(handler)
 async def clean_db():
     sql_query_list = [
         "insert into deals_imp_arch select * from deals_imp on conflict (deal_id, tradedate) do nothing",
-        "insert into deals_myhist select * from deals on conflict (deal_id, tradedate) do nothing"
+        "insert into deals_myhist select * from deals on conflict (deal_id, tradedate) do nothing",
+        "delete from orders_my"
     ]
     await sql.async_exec.exec_list(sql_query_list)
 

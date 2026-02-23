@@ -6,6 +6,7 @@ import re
 import string
 import time
 import traceback
+from pathlib import Path
 from typing import Union
 
 from dotenv import load_dotenv, find_dotenv
@@ -14,11 +15,15 @@ from pyrogram import raw, utils
 
 import sql.get_table
 import tools.clean_processes
+from create_tgchannels import ClientWrapper
+from create_tgchannels.channel_status_csv import ChannelStatusKVCSV, ChannelInvalidLogHandler
+from create_tgchannels.floodwait_csv import FloodWaitCSV, FloodWaitLogHandler
+from create_tgchannels.invalid_channels_csv import InvalidChannelsCSV
+from create_tgchannels.pyrogram_errors import map_pyrogram_error
 from hft.discovery import record_new_watch, record_new_event, fast_dividend_process
 from nlp import client
 from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
-from tg_channels import ClientWrapper
 from tools import compose_td_datetime
 from tools.utils import sync_timed, async_timed
 
@@ -67,34 +72,21 @@ async def get_chat_history_limit(wrapper: ClientWrapper, chat_id, limit):
 
 @async_timed()
 async def get_chat_history_offset2(wrapper: ClientWrapper, chat_id: Union[int, str], offset_id: int, limit):
-    global last_session_log_message
-    result = []
-    try:
-        messages = await wrapper.app.invoke(
-            raw.functions.messages.GetHistory(
-                peer=await wrapper.app.resolve_peer(chat_id),
-                offset_id=offset_id + 100,
-                offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
-                add_offset=0,
-                limit=limit,
-                max_id=0,
-                min_id=offset_id,
-                hash=0
-            ),
-            sleep_threshold=60
-        )
-        wrapper.record_success_calls()
-        result = await utils.parse_messages(wrapper.app, messages, replies=0)
-
-    except Exception as e:
-        print(e)
-    finally:
-        last_log_message = read_last_session_log_message()
-        if last_log_message and "Waiting for" in last_log_message:
-            timeout_seconds = int(re.search(r'\d+', last_log_message).group())
-            last_session_log_message = ""
-            wrapper.record_db_performance(timeout_seconds)
-        return result
+    messages = await wrapper.app.invoke(
+        raw.functions.messages.GetHistory(
+            peer=await wrapper.app.resolve_peer(chat_id),
+            offset_id=offset_id + 100,
+            offset_date=utils.datetime_to_timestamp(utils.zero_datetime()),
+            add_offset=0,
+            limit=limit,
+            max_id=0,
+            min_id=offset_id,
+            hash=0
+        ),
+        sleep_threshold=60
+    )
+    wrapper.record_success_calls()
+    return await utils.parse_messages(wrapper.app, messages, replies=0)
 
 
 # --- предкомпилированный антиспам для cbrstocksprivate (как у тебя в if) ---
@@ -239,6 +231,7 @@ async def import_news(wrapper: ClientWrapper, channel, limit=None, max_msg_load=
                     max_msg_id = msg.id if max_msg_id is None else max(max_msg_id, msg.id)
                     count_num_loaded += 1
                     logger.info(f"{count_num_loaded}/{limit}")
+
                     res = process_message(msg, channel)
                     if res is not None:
                         news_to_insert.append(res)
@@ -249,6 +242,7 @@ async def import_news(wrapper: ClientWrapper, channel, limit=None, max_msg_load=
                 record_max_id(channel, max_msg_id)
             except Exception as e:
                 logger.error(e)
+                raise
     else:
         hist = await get_chat_history_offset2(wrapper, chat_id, offset_id=last_msg[0]['last_msg_id'], limit=max_msg_load)
         try:
@@ -267,6 +261,7 @@ async def import_news(wrapper: ClientWrapper, channel, limit=None, max_msg_load=
 
         except Exception as e:
             logger.error(e)
+            raise
 
 
 @sync_timed()
@@ -278,61 +273,200 @@ def prepare_channels():
 
 @async_timed()
 async def upload_recent_news(wrapper: ClientWrapper):
-    """
-    Импортируем все каналы с тегом urgent и 6(non_urgent_channels) non_urgent
-    :return:
-    """
-    wrapper.last_id = wrapper.last_id + 1
+    cycle_started_at = datetime.datetime.now()
 
-    # после 19-00 начинаем импортировать обычные новости
-    non_urgent_channels = wrapper.non_urgent_channels + (1 if datetime.datetime.now().hour >= 19 or datetime.datetime.now().hour < 9 else 0)
+    # 1) “цикл” начинается — очищаем память
+    if getattr(wrapper, "invalid_csv", None):
+        wrapper.invalid_csv.reset_for_cycle(cycle_started_at)
+    if getattr(wrapper, "flood_csv", None):
+        wrapper.flood_csv.reset_for_cycle(cycle_started_at)
 
-    ids_list = list(range((wrapper.last_id - 1) * non_urgent_channels, wrapper.last_id * non_urgent_channels))
+    try:
+        wrapper.last_id = wrapper.last_id + 1
 
-    for channel in wrapper.channels:
-        try:
-            if 'urgent' in channel['tags'] or (channel['out_id'] in [x % len(wrapper.channels) for x in ids_list]):
-                t_start = datetime.datetime.now()
-                logger.info(f"{wrapper.session_name} started {datetime.datetime.now()}")
-                await import_news(wrapper, channel, limit=None, max_msg_load=10000)
-                logger.info(f"{wrapper.session_name} finished {datetime.datetime.now() - t_start}")
-                await asyncio.sleep(wrapper.sleep_time - (time.time() % wrapper.sleep_time))
-                logger.info(f"{wrapper.session_name} slept {datetime.datetime.now() - t_start} \n SLEEP_TIME: {wrapper.sleep_time} ")
-        except Exception as e:
-            print(traceback.format_exc())
-            print(f"import_news ERROR: {channel['title']}\n{channel}\n{str(e)}")
+        non_urgent_channels = wrapper.non_urgent_channels + (
+            1 if datetime.datetime.now().hour >= 19 or datetime.datetime.now().hour < 9 else 0
+        )
+        ids_list = list(range((wrapper.last_id - 1) * non_urgent_channels, wrapper.last_id * non_urgent_channels))
+
+        for channel in wrapper.channels:
+            try:
+                if "urgent" in (channel.get("tags") or []) or (
+                        channel.get("out_id") in [x % len(wrapper.channels) for x in ids_list]
+                ):
+                    t_start = datetime.datetime.now()
+                    logger.info(f"{wrapper.session_name} started {datetime.datetime.now()}")
+                    await import_news(wrapper, channel, limit=None, max_msg_load=10000)
+                    logger.info(f"{wrapper.session_name} finished {datetime.datetime.now() - t_start}")
+
+                    await asyncio.sleep(wrapper.sleep_time - (time.time() % wrapper.sleep_time))
+                    logger.info(
+                        f"{wrapper.session_name} slept {datetime.datetime.now() - t_start} | SLEEP_TIME={wrapper.sleep_time}"
+                    )
+
+            except Exception as e:
+                m = map_pyrogram_error(e)
+
+                logger.warning(
+                    f"[{wrapper.session_name}] {m['error_code']} | {channel.get('title', '')} | {str(e)}"
+                )
+
+                # 2) пишем в память (а не на диск)
+                if getattr(wrapper, "invalid_csv", None):
+                    wrapper.invalid_csv.add(
+                        channel,
+                        error_code=m["error_code"],
+                        exc=e,
+                        action=m.get("action", ""),
+                        wait_seconds=m.get("wait_seconds"),
+                    )
+
+                if m.get("wait_seconds") and getattr(wrapper, "flood_csv", None):
+                    wrapper.flood_csv.add(
+                        wait_seconds=int(m["wait_seconds"]),
+                        source="exception",
+                        message=str(e),
+                    )
+
+    finally:
+        # 3) КОНЕЦ цикла — один раз перезаписали CSV
+        if getattr(wrapper, "invalid_csv", None):
+            wrapper.invalid_csv.flush_overwrite()
+        if getattr(wrapper, "flood_csv", None):
+            wrapper.flood_csv.flush_overwrite()
+
 
 
 start_refresh = compose_td_datetime("0:0:00")
-end_refresh = compose_td_datetime("23:30:00")
+end_refresh = compose_td_datetime("23:50:00")
 
 
 async def main():
     if not tools.clean_processes.clean_proc("create_tgchanne", os.getpid(), 9999):
         print("something is already running")
-        exit(0)
+        raise SystemExit(0)
 
     renumerate_channels(is_active=True)
 
-    print("STARTING PRIVATE CLIENT +79261491162")
-    async with Client("my_account_tgchannels", os.environ['tg_api_id'], os.environ['tg_api_hash'], ) as app_private:
-        print("STARTING PUBLIC CLIENT +79932691162")
-        async with Client("my_account_public", os.environ['public_tg_api_id'], os.environ['public_tg_api_hash']) as app_public:
+    base_dir = Path(__file__).resolve().parent / "create_tgchannels"
+    base_dir.mkdir(parents=True, exist_ok=True)
 
-            client_private = ClientWrapper(app_private, api_id, api_hash,
-                                           'my_account_tgchannels', is_private=True, non_urgent_channels=0, sleep_time=0.01)
-            client_public = ClientWrapper(app_public, os.environ['public_tg_api_id'],
-                                          os.environ['public_tg_api_hash'], 'my_account_public', is_private=False, non_urgent_channels=1, sleep_time=1)
+    # ===== status store (KV) в память + один CSV-снапшот на диск =====
+    status_store = ChannelStatusKVCSV(base_dir, filename="channels_status.csv")
+
+    # лог-хендлер: ловим твой CHANNEL_INVALID из WARNING:__main__
+    main_logger = logging.getLogger(__name__)
+    # не дублим при перезапусках из IDE
+    for h in list(main_logger.handlers):
+        if isinstance(h, ChannelInvalidLogHandler):
+            main_logger.removeHandler(h)
+    main_logger.addHandler(ChannelInvalidLogHandler(status_store))
+    # ===============================================================
+
+    print("STARTING PRIVATE CLIENT +79261491162")
+    async with Client(
+            "my_account_tgchannels",
+            os.environ["tg_api_id"],
+            os.environ["tg_api_hash"],
+            workdir=str(base_dir),
+    ) as app_private:
+
+        print("STARTING PUBLIC CLIENT +79932691162")
+        async with Client(
+                "my_account_public",
+                os.environ["public_tg_api_id"],
+                os.environ["public_tg_api_hash"],
+                workdir=str(base_dir),
+        ) as app_public:
+
+            client_private = ClientWrapper(
+                app_private,
+                os.environ["tg_api_id"],
+                os.environ["tg_api_hash"],
+                "my_account_tgchannels",
+                is_private=True,
+                non_urgent_channels=0,
+                sleep_time=0.01,
+            )
+            client_public = ClientWrapper(
+                app_public,
+                os.environ["public_tg_api_id"],
+                os.environ["public_tg_api_hash"],
+                "my_account_public",
+                is_private=False,
+                non_urgent_channels=1,
+                sleep_time=1,
+            )
+
+            # ===== CSV/логи в память (снапшот на диск делаем вручную после цикла) =====
+            client_private.invalid_csv = InvalidChannelsCSV(base_dir, client_private.session_name)
+            client_public.invalid_csv = InvalidChannelsCSV(base_dir, client_public.session_name)
+
+            client_private.flood_csv = FloodWaitCSV(base_dir, client_private.session_name)
+            client_public.flood_csv = FloodWaitCSV(base_dir, client_public.session_name)
+
+            pyro_logger = logging.getLogger("pyrogram.session.session")
+            for h in list(pyro_logger.handlers):
+                if isinstance(h, FloodWaitLogHandler):
+                    pyro_logger.removeHandler(h)
+            pyro_logger.addHandler(FloodWaitLogHandler(client_private.flood_csv))
+            pyro_logger.addHandler(FloodWaitLogHandler(client_public.flood_csv))
+            pyro_logger.setLevel(logging.WARNING)
+            # ======================================================================
+
+            # ===== общий status store (KV) шарим на оба клиента =====
+            client_private.status_store = status_store
+            client_public.status_store = status_store
+
+            # заранее подгружаем все каналы в стор (чтобы в CSV сразу были ВСЕ 50 строк)
+            status_store.ensure_channels(getattr(client_private, "channels", []), is_private=True)
+            status_store.ensure_channels(getattr(client_public, "channels", []), is_private=False)
+
+            # сразу пишем первый снапшот, чтобы даже до первого цикла CSV был полный
+            status_store.flush()
+            # ======================================================
+
             client_private.print_channels()
             client_public.print_channels()
-            while start_refresh <= datetime.datetime.now() < end_refresh:
+
+            try:
+                while start_refresh <= datetime.datetime.now() < end_refresh:
+                    try:
+                        await asyncio.gather(
+                            upload_recent_news(client_private),
+                            upload_recent_news(client_public),
+                        )
+
+                        # ======= СНАПШОТЫ НА ДИСК (один раз на цикл) =======
+                        # чтобы ты открывал CSV и видел цельную таблицу "последнего цикла"
+                        status_store.flush()
+                        client_private.invalid_csv.flush_overwrite()
+                        client_public.invalid_csv.flush_overwrite()
+                        client_private.flood_csv.flush_overwrite()
+                        client_public.flood_csv.flush_overwrite()
+                        # ==================================================
+
+                    except Exception:
+                        print(traceback.format_exc())
+                        # даже если упали — попробуем зафиксировать то, что успели накопить
+                        try:
+                            status_store.flush()
+                            client_private.invalid_csv.flush_overwrite()
+                            client_public.invalid_csv.flush_overwrite()
+                            client_private.flood_csv.flush_overwrite()
+                            client_public.flood_csv.flush_overwrite()
+                        except Exception:
+                            pass
+            finally:
+                # при любом выходе — финальный снапшот
                 try:
-                    await asyncio.gather(
-                        upload_recent_news(client_private),
-                        upload_recent_news(client_public)
-                    )
-                except Exception as e:
-                    print(traceback.format_exc())
+                    status_store.flush()
+                    client_private.invalid_csv.flush_overwrite()
+                    client_public.invalid_csv.flush_overwrite()
+                    client_private.flood_csv.flush_overwrite()
+                    client_public.flood_csv.flush_overwrite()
+                except Exception:
+                    pass
 
 
 if __name__ == "__main__":

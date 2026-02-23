@@ -6,12 +6,11 @@ from nlp import client
 
 
 def important_news(days=1):
-    urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT code	FROM public.united_pos;")]
+    urgent_list = [x[0] for x in sql.get_table.exec_query("SELECT distinct code	FROM public.united_pos;")]
     print(urgent_list)
 
     #urgent_list = urgent_list + ['VTBR','GAZP', 'SBER', 'VKCO', 'ALRS', 'SMLT', 'GMKN', 'IRAO','26238']
-    urgent_list = urgent_list + ['VTBR']
-
+    #urgent_list = urgent_list + ['VTBR']
     #urgent_list = ['VKCO']
 
     urgent_list.sort()

@@ -21,7 +21,8 @@ class ClientWrapper:
         self.renumerate_channels()
 
     def print_channels(self):
-        print(f"{self.session_name}: {self.channels}")
+        names = [x['title'] for x in self.channels]
+        print(f"CHANELS TO PROCESS {len(names)} {self.session_name}: \n" + "\n".join(names))
 
     def renumerate_channels(self):
         out_id = 0

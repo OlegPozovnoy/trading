@@ -12,6 +12,21 @@ import hashlib
 import tools.clean_processes
 import sql.get_table
 
+import logging
+
+logger = logging.getLogger("telegram_send")
+logger.setLevel(logging.INFO)
+
+if not logger.handlers:  # чтобы при повторном импорте не дублировать хендлеры
+    handler = logging.FileHandler('./logs/telegram_send.log', mode='a', encoding='utf-8')
+    formatter = logging.Formatter(
+        '%(asctime)s.%(msecs)03d %(levelname)s [%(name)s] %(message)s',
+        '%Y-%m-%d %H:%M:%S',
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.propagate = False  # ВАЖНО: не пускать записи наверх, в общий лог
+
 load_dotenv(find_dotenv('my.env', True),verbose=True)
 
 key = os.environ['tg_key']
@@ -37,8 +52,8 @@ async def mtest_load_chat():
         await app.get_chat_history_count(chat_id=-1001656693918)
         chat = json.loads(str(chat))
         chat['is_active'] = 1
-        print(chat['id'], chat['title'].strip())
-        print(chat.get('username', '').strip(), chat.get('description', '').strip(), chat['members_count'])
+        logger.info(chat['id'], chat['title'].strip())
+        logger.info(chat.get('username', '').strip(), chat.get('description', '').strip(), chat['members_count'])
 
 
 async def send_message(msg, urgent=False):
@@ -55,7 +70,7 @@ async def send_photo(filepath, urgent=False):
         json.dump({'filepath': filepath}, f)
 
 
-async def send_all(min_buffer_size=2000, max_buffer_size=4000):
+async def send_all_old(min_buffer_size=2000, max_buffer_size=4000):
     async with Client("my_ccount", api_id, api_hash) as app:
         for folder, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
             string_buffer = ""
@@ -98,6 +113,120 @@ async def send_all(min_buffer_size=2000, max_buffer_size=4000):
                 await app.send_message(stream_id, string_buffer)
 
 
+async def send_all(
+    min_buffer_size=2000,
+    max_buffer_size=4000,
+    max_messages_per_cycle=40,
+):
+    async with Client("my_ccount", api_id, api_hash) as app:
+        # общий лимит отправок за запуск
+        messages_left = max_messages_per_cycle
+
+        # счётчики по каналам
+        total_sent_urgent = 0
+        total_sent_normal = 0
+
+        async def capped_send_message(stream_id, text):
+            nonlocal messages_left, total_sent_urgent, total_sent_normal
+            if messages_left <= 0:
+                return False
+            await app.send_message(stream_id, text)
+            messages_left -= 1
+            if stream_id == channel_id_urgent:
+                total_sent_urgent += 1
+            else:
+                total_sent_normal += 1
+            return True
+
+        async def capped_send_photo(stream_id, filepath):
+            nonlocal messages_left, total_sent_urgent, total_sent_normal
+            if messages_left <= 0:
+                return False
+            await app.send_photo(stream_id, filepath)
+            messages_left -= 1
+            if stream_id == channel_id_urgent:
+                total_sent_urgent += 1
+            else:
+                total_sent_normal += 1
+            return True
+
+        # порядок: сначала urgent, потом обычный (как ты и хотел)
+        for folder, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
+            if messages_left <= 0:
+                break
+
+            string_buffer = ""
+            files = os.listdir(folder)
+            files.sort()
+
+            for filename in files:
+                if messages_left <= 0:
+                    break
+
+                try:
+                    f = os.path.join(folder, filename)
+                    logger.debug("Processing file %s", filename)
+                    if os.path.isfile(f):
+                        with open(f, 'r') as f_read:
+                            data = json.load(f_read)
+
+                            # сначала фото (если есть)
+                            if 'filepath' in data:
+                                ok = await capped_send_photo(stream_id, data['filepath'])
+                                if not ok:
+                                    break
+
+                            # затем текст
+                            if 'msg' in data:
+                                next_message = str(filename[:21]) + '\n' + str(data['msg']) + '\n\n'
+
+                                # режем на части, если буфер слишком большой
+                                while len(string_buffer) > max_buffer_size and messages_left > 0:
+                                    ok = await capped_send_message(stream_id, string_buffer[:max_buffer_size])
+                                    if not ok:
+                                        break
+                                    string_buffer = string_buffer[max_buffer_size:]
+                                if messages_left <= 0:
+                                    break
+
+                                if len(string_buffer) + len(next_message) > max_buffer_size and len(string_buffer) > 0:
+                                    ok = await capped_send_message(stream_id, string_buffer)
+                                    if not ok:
+                                        break
+                                    string_buffer = next_message
+                                elif len(string_buffer) + len(next_message) > min_buffer_size:
+                                    ok = await capped_send_message(stream_id, string_buffer + next_message)
+                                    if not ok:
+                                        break
+                                    string_buffer = ""
+                                else:
+                                    string_buffer += next_message
+
+                        logger.debug("Removing %s", f)
+                        os.remove(f)
+
+                except Exception as e:
+                    logger.exception("Error while processing %s: %s", filename, e)
+
+            # после обхода файлов — дольём оставшийся буфер, пока есть лимит
+            while len(string_buffer) > max_buffer_size and messages_left > 0:
+                ok = await capped_send_message(stream_id, string_buffer[:max_buffer_size])
+                if not ok:
+                    break
+                string_buffer = string_buffer[max_buffer_size:]
+
+            if len(string_buffer) > 0 and messages_left > 0:
+                await capped_send_message(stream_id, string_buffer)
+
+        logger.info(
+            "send_all finished: urgent=%d, normal=%d, total=%d (limit=%d)",
+            total_sent_urgent,
+            total_sent_normal,
+            total_sent_urgent + total_sent_normal,
+            max_messages_per_cycle,
+        )
+
+
 def calculate_file_hash(filepath, chunk_size=1024):
     """Вычисляет хеш SHA256 для файла."""
     hash_algo = hashlib.sha256()
@@ -119,7 +248,7 @@ def remove_duplicates_by_content(folder_path):
 
             if file_hash in seen_hashes:
                 # Если хеш уже существует, удаляем файл
-                print(f"Удаляю дубликат: {full_path}")
+                logger.info(f"Удаляю дубликат: {full_path}")
                 os.remove(full_path)
             else:
                 # Сохраняем хеш и путь
@@ -127,9 +256,8 @@ def remove_duplicates_by_content(folder_path):
 
 
 if __name__ == "__main__":
-    print(datetime.datetime.now())
     if not tools.clean_processes.clean_proc("telegram_send", os.getpid(), 3):
-        print("something is already running")
+        logger.info("something is already running")
         exit(0)
 
     # waiting till monitor will do the job
@@ -138,11 +266,7 @@ if __name__ == "__main__":
     remove_duplicates_by_content(URGENT_PATH)
     remove_duplicates_by_content(NORMAL_PATH)
 
-
     asyncio.run(send_all())
-
-    print(datetime.datetime.now())
-
 
 #msg = """hello"""
 #asyncio.run(send_message(msg))

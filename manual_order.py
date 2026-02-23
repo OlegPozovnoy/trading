@@ -13,8 +13,8 @@ engine = sql.get_table.engine
 if 'schema' not in locals():
     schema = 'public'
 
-quantity = -760
-code = 'GMKN'
+quantity = 5360
+code = 'MAGN'
 
 barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
 barrier_down = None  # 29050 #28850 #12#2700
