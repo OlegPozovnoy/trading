@@ -13,6 +13,15 @@ URLS = [
     "https://cbr.ru/press/pr/?file=12092025_133000key.htm",
     "https://cbr.ru/press/pr/?file=24102025_133000key.htm",
     "https://cbr.ru/press/pr/?file=19122025_133000key.htm",
+
+    # 13.02.2026 — заседание ЦБ по ключевой ставке
+    "https://cbr.ru/press/pr/?file=13022026_133000key.htm",
+    # 20.03.2026 — заседание ЦБ по ключевой ставке
+    "https://cbr.ru/press/pr/?file=20032026_133000key.htm",
+    # 24.04.2026 — заседание ЦБ по ключевой ставке
+    "https://cbr.ru/press/pr/?file=24042026_133000key.htm",
+    # 19.06.2026 — заседание ЦБ по ключевой ставке
+    "https://cbr.ru/press/pr/?file=19062026_133000key.htm",
 ]
 
 # Регулярка под формулировку ЦБ (первое предложение с "принял решение ... ключевую ставку ... до/на уровне XX% годовых")
@@ -91,7 +100,7 @@ def main(urls: list[str]) -> dict:
                 continue
 
             if prev_rate is not None and abs(rate - prev_rate) < 1e-9:
-                results[url] = "не изменилась"
+                results[url] = prev_rate
             else:
                 results[url] = rate
                 prev_rate = rate

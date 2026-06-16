@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-url = 'https://cbr.ru/press/pr/?file=13022026_133000key.htm'
+url = "https://cbr.ru/press/pr/?file=19062026_133000key.htm"
 #url = 'https://cbr.ru/press/pr/?file=24102025_133000key.htm'
 
 RATE_RE = re.compile(
@@ -114,7 +114,7 @@ if rate > 15.5: #or abs(first_number) < 0.5 :
     #sql.get_table.exec_query(query)
     #query = "update public.orders_my set state = 1 where id = 47"
     #sql.get_table.exec_query(query)
-elif rate <= 15.5:
+elif rate > 14:
     query = "update public.orders_my set state = 1 where id = 50"
     sql.get_table.exec_query(query)
     query = "update public.orders_my set state = 1 where id = 51"
