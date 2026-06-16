@@ -42,12 +42,36 @@ engine = sql.get_table.engine
 
 TOKEN = os.environ["INVEST_TOKEN"]
 
+TG_PROXY = {
+    "scheme": os.getenv("tg_proxy_scheme", "socks5"),
+    "hostname": os.getenv("tg_proxy_host", "127.0.0.1"),
+    "port": int(os.getenv("tg_proxy_port", "1088")),
+}
+
+USE_PROXY = os.environ.get("use_proxy") == "True"
+
+def tg_client(session_name="my_ccount"):
+    if USE_PROXY:
+        return Client(
+            session_name,
+            api_id,
+            api_hash,
+            proxy=TG_PROXY,
+        )
+    else:
+        return Client(
+            session_name,
+            api_id,
+            api_hash,
+        )
+
+
 async def mtest_send_hello():
-    async with Client("my_ccount", api_id, api_hash) as app:
+    async with tg_client("my_ccount") as app:
         await app.send_message(channel_id_urgent, str("test_login"))
 
 async def mtest_load_chat():
-    async with Client("my_ccount", api_id, api_hash) as app:
+    async with tg_client("my_ccount") as app:
         chat = await app.get_chat(-1001656693918)
         await app.get_chat_history_count(chat_id=-1001656693918)
         chat = json.loads(str(chat))
@@ -71,7 +95,7 @@ async def send_photo(filepath, urgent=False):
 
 
 async def send_all_old(min_buffer_size=2000, max_buffer_size=4000):
-    async with Client("my_ccount", api_id, api_hash) as app:
+    async with tg_client("my_ccount") as app:
         for folder, stream_id in [(URGENT_PATH, channel_id_urgent), (NORMAL_PATH, channel_id)]:
             string_buffer = ""
             listdir = os.listdir(folder)
@@ -118,7 +142,7 @@ async def send_all(
     max_buffer_size=4000,
     max_messages_per_cycle=40,
 ):
-    async with Client("my_ccount", api_id, api_hash) as app:
+    async with tg_client("my_ccount") as app:
         # общий лимит отправок за запуск
         messages_left = max_messages_per_cycle
 
@@ -255,6 +279,63 @@ def remove_duplicates_by_content(folder_path):
                 seen_hashes[file_hash] = full_path
 
 
+def get_buffer_file_dt(filename):
+    """
+    Парсит дату из имени:
+    msg_2026_06_15_201234_123456.json
+    img_2026_06_15_201234_123456.json
+    """
+    try:
+        name = os.path.basename(filename)
+
+        if not name.endswith(".json"):
+            return None
+
+        stem = name[:-5]  # убираем .json
+        parts = stem.split("_")
+
+        # msg_YYYY_MM_DD_HHMMSS_micro
+        # img_YYYY_MM_DD_HHMMSS_micro
+        if len(parts) != 6:
+            return None
+
+        if parts[0] not in ("msg", "img"):
+            return None
+
+        dt_str = "_".join(parts[1:])
+        return datetime.datetime.strptime(dt_str, "%Y_%m_%d_%H%M%S_%f")
+
+    except Exception:
+        return None
+
+
+def keep_last_buffer_files(folder_path, max_files=100):
+    files = []
+
+    for filename in os.listdir(folder_path):
+        full_path = os.path.join(folder_path, filename)
+
+        if not os.path.isfile(full_path):
+            continue
+
+        file_dt = get_buffer_file_dt(filename)
+
+        # Нераспознанные имена не трогаем, чтобы случайно не удалить лишнее
+        if file_dt is None:
+            continue
+
+        files.append((file_dt, full_path))
+
+    if len(files) <= max_files:
+        return
+
+    files.sort(key=lambda x: x[0], reverse=True)
+
+    for _, full_path in files[max_files:]:
+        logger.info("Removing old buffer file: %s", full_path)
+        os.remove(full_path)
+
+
 if __name__ == "__main__":
     if not tools.clean_processes.clean_proc("telegram_send", os.getpid(), 3):
         logger.info("something is already running")
@@ -265,6 +346,9 @@ if __name__ == "__main__":
 
     remove_duplicates_by_content(URGENT_PATH)
     remove_duplicates_by_content(NORMAL_PATH)
+
+    keep_last_buffer_files(URGENT_PATH, max_files=100)
+    keep_last_buffer_files(NORMAL_PATH, max_files=100)
 
     asyncio.run(send_all())
 

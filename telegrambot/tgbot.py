@@ -21,6 +21,14 @@ logger.info(BASE_DIR)
 load_dotenv(find_dotenv('my.env', raise_error_if_not_found=True))
 TOKEN = os.getenv('tg_key')
 
+USE_PROXY = os.environ.get("use_proxy") == "True"
+
+TG_PROXY_URL = (
+    f"{os.environ.get('tg_proxy_scheme', 'socks5')}://"
+    f"{os.environ.get('tg_proxy_host', '127.0.0.1')}:"
+    f"{int(os.environ.get('tg_proxy_port', '1088'))}"
+)
+
 ROOT, GET_CHOICE, UPDATE_CHOICE = range(3)
 
 reply_keyboard = [["code", "quantity", "state"],
@@ -153,7 +161,12 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 def main():
-    application = Application.builder().token(TOKEN).build()
+    builder = Application.builder().token(TOKEN)
+
+    if USE_PROXY:
+        builder = builder.proxy(TG_PROXY_URL).get_updates_proxy(TG_PROXY_URL)
+
+    application = builder.build()
 
     conv_handler = ConversationHandler(
         entry_points=[

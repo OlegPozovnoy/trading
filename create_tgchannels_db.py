@@ -36,6 +36,15 @@ channel_id_urgent = os.environ['tg_channel_id_urgent']
 
 conf_path = os.path.join(os.environ.get('root_path'), os.environ.get('tg_import_config_path'))
 
+USE_PROXY = os.environ.get("use_proxy") == "True"
+
+TG_PROXY = {
+    "scheme": os.environ.get("tg_proxy_scheme", "socks5"),
+    "hostname": os.environ.get("tg_proxy_host", "127.0.0.1"),
+    "port": int(os.environ.get("tg_proxy_port", "1088")),
+}
+
+TG_CLIENT_KWARGS = {"proxy": TG_PROXY} if USE_PROXY else {}
 # вроде так норм
 
 logger = logging.getLogger(__name__)
@@ -366,17 +375,19 @@ async def main():
     print("STARTING PRIVATE CLIENT +79261491162")
     async with Client(
             "my_account_tgchannels",
-            os.environ["tg_api_id"],
+            int(os.environ["tg_api_id"]),
             os.environ["tg_api_hash"],
             workdir=str(base_dir),
+            **TG_CLIENT_KWARGS,
     ) as app_private:
 
         print("STARTING PUBLIC CLIENT +79932691162")
         async with Client(
                 "my_account_public",
-                os.environ["public_tg_api_id"],
+                int(os.environ["public_tg_api_id"]),
                 os.environ["public_tg_api_hash"],
                 workdir=str(base_dir),
+                **TG_CLIENT_KWARGS,
         ) as app_public:
 
             client_private = ClientWrapper(
