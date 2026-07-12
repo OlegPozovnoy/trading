@@ -83,6 +83,7 @@ while True:
         now = datetime.now().time()
         print(now)
         # Задаем пороговое время
+        threshold0 = dt_time(13, 29, 55)
         threshold1 = dt_time(13, 29, 40)
         threshold2 = dt_time(13, 28, 00)
         threshold_out = dt_time(13, 35, 00)
@@ -90,6 +91,8 @@ while True:
         # Сравнение
         if now > threshold_out:
             sleeptimer = 100000000
+        elif now > threshold0:
+            sleeptimer = 0.1
         elif now > threshold1:
             sleeptimer = 0.5
         elif now > threshold2:
@@ -108,16 +111,14 @@ while True:
         print(f"ошибка парсинга ({type(e).__name__}: {e})")
 
 
-if rate > 15.5: #or abs(first_number) < 0.5 :
-    pass
-    #query = "update public.orders_my set state = 1 where id = 46"
-    #sql.get_table.exec_query(query)
-    #query = "update public.orders_my set state = 1 where id = 47"
-    #sql.get_table.exec_query(query)
-elif rate > 14:
-    query = "update public.orders_my set state = 1 where id = 50"
+if rate > 14:
+    query = "update public.orders_my set state = 1 where id = 53"
     sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 51"
+    query = "update public.orders_my set state = 1 where id = 54"
+    sql.get_table.exec_query(query)
+    query = "update public.orders_my set state = 1 where id = 55"
+    sql.get_table.exec_query(query)
+    query = "update public.orders_my set state = 1 where id = 56"
     sql.get_table.exec_query(query)
     #query = "update public.orders_my set state = 1 where id = 180"
 else:

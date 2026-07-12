@@ -1,11 +1,16 @@
+import os
 import smtplib
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv('my.env', True), verbose=True)
+
 sender_email = "pozovnoy.oleg@gmail.com"
-sender_password = "zyka vhlp vmpj wfjx"
+sender_password = os.environ["GMAIL_APP_PASSWORD"]
 recipient_email = "pozovnoy.oleg@gmail.com"
 subject = "Hello from Python"
 body = "with attachment"

@@ -14,6 +14,8 @@ from monitor.monitor_imports import monitor_import
 from monitor.monitor_plita import store_plita_values
 from monitor.monitor_support_resistance import update_df_monitor
 from monitor.monitor_update_deal_imp_t import update_deals_imp_t
+from monitor.monitor_deal_imp_tg_report import build_and_queue_deal_imp_reports
+from monitor.monitor_deal_imp_tg_report import send_all_deal_imp_graph
 from test import get_orderbook
 
 logger = logging.getLogger(__name__)
@@ -99,8 +101,16 @@ if __name__ == '__main__':
         send_df(pos_df[['code', 'levels', 'lower', 'upper',  'bid_qty','bid', 'mktprice', 'ask', 'ask_qty', 'l_plit']], True)
         send_df(pos_df[['code', 'inc', 'beta', 'base_inc', 'r2', 'std']], False)
 
-        logger.info(f"intresting_gains: {intresting_gains}")
-        if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
+        #logger.info(f"intresting_gains: {intresting_gains}")
+        #if len(intresting_gains) > 0: send_all_graph(intresting_gains, urgent_list)
+
+        logger.info(f"{urgent_list=}")
+        send_all_deal_imp_graph(
+            urgent_list=urgent_list, #+ ([] if "AKU6" in urgent_list else ["AKU6"]),
+            hours=9,
+            row_limit=50000,
+        )
+
     except Exception as e:
         asyncio.run(telegram_send.send_message(f'send_pnl/send_all_graph: {traceback.format_exc()}', True))
 

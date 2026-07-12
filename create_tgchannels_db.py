@@ -26,6 +26,7 @@ from nlp.lang_models import check_doc_importance, build_news_tags
 from nlp.mongo_tools import get_active_channels, update_tg_msg_count, renumerate_channels
 from tools import compose_td_datetime
 from tools.utils import sync_timed, async_timed
+from configs.tg_proxy_config import TG_CLIENT_KWARGS
 
 load_dotenv(find_dotenv('my.env', True))
 

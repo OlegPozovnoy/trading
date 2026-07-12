@@ -13,8 +13,8 @@ engine = sql.get_table.engine
 if 'schema' not in locals():
     schema = 'public'
 
-quantity = 5360
-code = 'MAGN'
+quantity = 1
+code = 'MXU6'
 
 barrier_up = None  # 28250#307250#13.22#None#309000#12.95#16400
 barrier_down = None  # 29050 #28850 #12#2700
@@ -23,8 +23,8 @@ order_nums = 1
 provider = None
 #provider = 'tcs'
 
-state = 0
-max_amount = 10
+state = 1
+max_amount = 20
 pause = 10
 
 

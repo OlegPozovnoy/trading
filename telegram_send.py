@@ -11,6 +11,7 @@ import hashlib
 
 import tools.clean_processes
 import sql.get_table
+from configs.tg_proxy_config import TG_CLIENT_KWARGS
 
 import logging
 
@@ -51,19 +52,12 @@ TG_PROXY = {
 USE_PROXY = os.environ.get("use_proxy") == "True"
 
 def tg_client(session_name="my_ccount"):
-    if USE_PROXY:
-        return Client(
-            session_name,
-            api_id,
-            api_hash,
-            proxy=TG_PROXY,
-        )
-    else:
-        return Client(
-            session_name,
-            api_id,
-            api_hash,
-        )
+    return Client(
+        session_name,
+        api_id,
+        api_hash,
+        **TG_CLIENT_KWARGS,
+    )
 
 
 async def mtest_send_hello():

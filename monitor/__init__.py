@@ -28,28 +28,79 @@ handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s -
 logger.addHandler(handler)
 
 
-def send_all_graph(interesting_sec, urgent_list):
+def send_all_graph(
+    codes,
+    urgent_list,
+    image_dir=None,
+    prepare_func=None,
+    filename_func=None,
+    send_nonurgent=False,
+):
     logger.info("Sending all graphs")
-    logger.info(f"interesting_sec: {interesting_sec}")
+    logger.info(f"codes: {codes}")
     logger.info(f"urgent_list: {urgent_list}")
-    if len(interesting_sec) > 0:
-        prepare_images(interesting_sec.drop_duplicates())
-        send_sec_graph(interesting_sec.drop_duplicates(), urgent_list)
-    logger.debug(f"{len(interesting_sec)} images to be sent")
+
+    if image_dir is None:
+        image_dir = IMAGES_PATH
+
+    codes = pd.Series(codes).dropna().astype(str).drop_duplicates()
+
+    if len(codes) == 0:
+        return
+
+    if prepare_func is None:
+        prepare_images(codes)
+    else:
+        prepare_func(codes)
+
+    send_sec_graph(
+        codes=codes,
+        urgent_list=urgent_list,
+        image_dir=image_dir,
+        filename_func=filename_func,
+        send_nonurgent=send_nonurgent,
+    )
+
+    logger.debug(f"{len(codes)} images processed")
 
 
-#@sync_timed()
-def send_sec_graph(df_gains, urgent_list=None):
+def send_sec_graph(
+    codes,
+    urgent_list=None,
+    image_dir=None,
+    filename_func=None,
+    send_nonurgent=False,
+):
     logger.info("DEBUG send_sec_graph")
-    logger.info(df_gains)
+    logger.info(codes)
     logger.info(urgent_list)
+
+    if image_dir is None:
+        image_dir = IMAGES_PATH
+
     if urgent_list is None:
         urgent_list = []
-    for idx, row in df_gains.items():
-        is_urgent = (row in urgent_list)
-        path = os.path.join(IMAGES_PATH, f'{row}.png')
-        if is_urgent:
-            asyncio.run(telegram_send.send_photo(path, is_urgent))
+
+    urgent_set = set(map(str, urgent_list))
+
+    if filename_func is None:
+        filename_func = lambda code: f"{code}.png"
+
+    codes = pd.Series(codes).dropna().astype(str).drop_duplicates()
+
+    for code in codes:
+        is_urgent = code in urgent_set
+
+        if not is_urgent and not send_nonurgent:
+            continue
+
+        path = os.path.join(str(image_dir), filename_func(code))
+
+        if not os.path.isfile(path):
+            logger.warning("Graph file not found: %s", path)
+            continue
+
+        asyncio.run(telegram_send.send_photo(path, urgent=is_urgent))
 
 
 #@sync_timed()
@@ -118,7 +169,7 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
         prev_row = row['datetime'][:10]
 
     for idx, dt in res:
-        ax_left.axvline(x=idx, color='g', linestyle='-', label=dt)
+        ax_left.axvline(x=idx, color='g', linestyle='-', label='_nolegend_')
     #Бьем вертикальными линиями по дням, оптимизированный подход
     #Добавляем новую колонку с датой
 
@@ -140,7 +191,6 @@ def plot_price_volume(df, df_eq, df_volumes, df_plita, title="title", filename="
 
     ax_left.legend() #loc='upper left'
     plt.savefig(os.path.join(IMAGES_PATH, f'{filename}.png'), dpi=50)
-
 
 
 def calculate_ratio(df):
