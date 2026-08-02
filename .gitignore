@@ -85,3 +85,56 @@ cache/
 configs/jsonlogs/
 tools/reports/
 
+
+# Secrets and local sessions
+.env
+.env.*
+*.pem
+*.key
+*.session
+*.session-journal
+*.session-shm
+*.session-wal
+
+# Generated outputs
+logs/
+configs/jsonlogs/
+monitor/deal_imp_images/
+monitor/level_images/
+
+# ---- Local databases ----
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+.pgpass
+
+# ---- AI review exports ----
+*_review_exports/
+
+# --- local runtime and secrets: managed 2026-08-02 ---
+.env
+*.env
+my.env
+*.session
+*.session-journal
+*.pem
+credentials.txt
+client_secret*.json
+id_rsa*
+id_ed25519*
+logs/
+*.log
+__pycache__/
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
+artifacts/
+trading_review_*.zip
+filesystem_review_*.zip
+computer_catalog_*.zip
+learning_catalog_*.zip
+# --- end managed block ---
+

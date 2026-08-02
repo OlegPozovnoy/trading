@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
         logger.info(f"{urgent_list=}")
         send_all_deal_imp_graph(
-            urgent_list=urgent_list, #+ ([] if "AKU6" in urgent_list else ["AKU6"]),
+            urgent_list=urgent_list + ([] if "BRQ6" in urgent_list else ["BRQ6"]),
             hours=9,
             row_limit=50000,
         )

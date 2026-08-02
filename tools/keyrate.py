@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
                         logging.StreamHandler()
                     ])
 
-url = "https://cbr.ru/press/pr/?file=19062026_133000key.htm"
+url = "https://cbr.ru/press/pr/?file=24072026_133000key.htm"
 #url = 'https://cbr.ru/press/pr/?file=24102025_133000key.htm'
 
 RATE_RE = re.compile(
@@ -112,16 +112,18 @@ while True:
 
 
 if rate > 14:
-    query = "update public.orders_my set state = 1 where id = 53"
+    query = "update public.orders_my set state = 1 where id = 60"
     sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 54"
+    query = "update public.orders_my set state = 1 where id = 61"
     sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 55"
-    sql.get_table.exec_query(query)
-    query = "update public.orders_my set state = 1 where id = 56"
-    sql.get_table.exec_query(query)
+    #query = "update public.orders_my set state = 1 where id = 55"
+    #sql.get_table.exec_query(query)
+    #query = "update public.orders_my set state = 1 where id = 56"
+    #sql.get_table.exec_query(query)
     #query = "update public.orders_my set state = 1 where id = 180"
 else:
+    query = "update public.orders_my set state = 1 where id = 59"
+    sql.get_table.exec_query(query)
     pass
     #print("пиздец")
 

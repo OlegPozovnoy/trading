@@ -31,7 +31,7 @@ load_dotenv(find_dotenv("my.env", True), verbose=True)
 IMAGES_PATH = Path(os.environ["root_path"]) / "monitor" / "deal_imp_images"
 IMAGES_PATH.mkdir(parents=True, exist_ok=True)
 
-DEAL_IMP_CODES = ["MXU6", "CRU6", "VBU6", "AKU6"]
+DEAL_IMP_CODES = ["MXU6", "CRU6", "VBU6", "BRU6", "SSU6"]
 
 def get_deal_imp_image_filename(code):
     return f"deal_imp_{safe_filename(code)}.png"
@@ -384,7 +384,7 @@ async def build_and_queue_deal_imp_reports(
 if __name__ == "__main__":
     asyncio.run(
         build_and_queue_deal_imp_reports(
-            codes=["MXU6","CRU6", "VBU6", "AKU6"],   # None = по всем инструментам
+            codes=["MXU6","CRU6", "VBU6", "AKU6", 'BRQ6'],   # None = по всем инструментам
             hours=9,
             urgent=False,
             min_rows=10,
