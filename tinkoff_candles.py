@@ -10,9 +10,15 @@ from datetime import timedelta
 
 import pandas as pd
 from dotenv import load_dotenv
-from tinkoff.invest import CandleInterval, Client
-from tinkoff.invest.services import InstrumentsService
-from tinkoff.invest.utils import quotation_to_decimal, now
+
+# Сначала загружаем переменные окружения.
+load_dotenv(dotenv_path="./my.env")
+
+# Использовать встроенный в новый SDK сертификат.
+os.environ.setdefault("SSL_TBANK_VERIFY", "True")
+
+from t_tech.invest import CandleInterval, Client
+from t_tech.invest.utils import quotation_to_decimal, now
 
 import sql.get_table
 import tools.clean_processes
@@ -20,7 +26,6 @@ from tools.utils import async_timed, sync_timed
 
 # import tools.pandas_full_view
 
-load_dotenv(dotenv_path='./my.env')
 engine = sql.get_table.engine
 
 TOKEN = os.environ["INVEST_TOKEN"]
@@ -56,7 +61,7 @@ def get_ticker(ticker_list):
     """Example - How to get figi by name of ticker."""
     tickers = []
     with Client(TOKEN) as client:
-        instruments: InstrumentsService = client.instruments
+        instruments = client.instruments
         for method in ["shares", "bonds", "futures"]:
             for item in getattr(instruments, method)().instruments:
                 tickers.append(

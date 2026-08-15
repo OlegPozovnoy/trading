@@ -6,17 +6,20 @@ import uuid
 import pandas as pd
 from dotenv import load_dotenv
 
-from tinkoff.invest import (
+# Важно загрузить my.env до импорта T-Invest SDK,
+# поскольку там находится SSL_TBANK_VERIFY=True.
+load_dotenv(dotenv_path="./my.env")
+
+from t_tech.invest import (
     Client,
     OrderDirection,
     OrderType,
-    PostOrderResponse, GetOrderBookResponse,
 )
+
 import sql.get_table
 from tinkoff_candles import transform_candles
 from tools.utils import sync_timed
 
-load_dotenv(dotenv_path='./my.env')
 
 TOKEN = os.environ["TOKEN_WRITE"]
 account_id = os.environ["tcs_account_id"]
